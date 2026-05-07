@@ -1,0 +1,382 @@
+# Override the name and fullname of the chart
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+runtimeClassName: ""
+
+# Container registry credentials for pulling images
+registry:
+  # Use existing secret (leave empty to create one)
+  existingSecret: ""
+  # Secret data (used only if existingSecret is empty)
+  server: ""
+  username: ""
+  password: ""
+
+image:
+  repository: ghcr.io/nvidia/dsx-exchange/auth-callout
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: [] # List of secrets containing registry credentials
+
+# Additional environment variables (map format for Helm merge support)
+extraEnvs: {}
+  # ENV_NAME:
+  #   value: "value"
+  # ANOTHER_ENV:
+  #   valueFrom:
+  #     secretKeyRef:
+  #       name: secret-name
+  #       key: secret-key
+
+# Additional volumes to be added to the pod
+extraVolumes:
+  []
+  # - name: extra-volume
+  #   emptyDir: {}
+  # - name: secret-volume
+  #   secret:
+  #     secretName: my-secret
+  # - name: configmap-volume
+  #   configMap:
+  #     name: my-configmap
+
+# Additional volume mounts to be added to the container
+extraVolumeMounts:
+  []
+  # - name: extra-volume
+  #   mountPath: /mnt/extra
+  # - name: secret-volume
+  #   mountPath: /etc/secrets
+  #   readOnly: true
+
+podAnnotations: {}
+podLabels: {}
+
+# Service Account configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # Specifies whether the service account token should be automatically mounted
+  automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port:  8000
+  annotations: {}
+
+affinity:
+  {}
+  # Example node affinity configuration to avoid GPU nodes:
+  # nodeAffinity:
+  #   requiredDuringSchedulingIgnoredDuringExecution:
+  #     nodeSelectorTerms:
+  #       - matchExpressions:
+  #           - key: nvidia.com/gpu.present
+  #             operator: NotIn
+  #             values:
+  #               - "true"
+  #
+  # Example pod affinity configuration for high availability:
+  # podAntiAffinity:
+  #   preferredDuringSchedulingIgnoredDuringExecution:
+  #     - weight: 100
+  #       podAffinityTerm:
+  #         labelSelector:
+  #           matchExpressions:
+  #             - key: app.kubernetes.io/name
+  #               operator: In
+  #               values:
+  #                 - auth-callout
+  #         topologyKey: kubernetes.io/hostname
+
+nodeSelector:
+  {}
+  # Example node selector to target specific nodes:
+  # kubernetes.io/arch: amd64
+  # node-type: worker
+  # zone: us-west-2a
+
+tolerations:
+  []
+  # Example tolerations for dedicated nodes:
+  # - key: "dedicated"
+  #   operator: "Equal"
+  #   value: "auth-callout"
+  #   effect: "NoSchedule"
+  # - key: "nvidia.com/gpu"
+  #   operator: "Equal"
+  #   value: "true"
+  #   effect: "NoSchedule"
+
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Health check probes configuration
+healthChecks:
+  # Liveness probe configuration
+  livenessProbe:
+    enabled: true # Enable liveness probe
+    httpGet:
+      path: "/healthz" # Health check endpoint path
+      port: "http" # Port name or number
+      scheme: "HTTP" # HTTP or HTTPS
+    initialDelaySeconds: 10 # Initial delay before starting probes
+    periodSeconds: 10 # How often to perform the probe
+    timeoutSeconds: 5 # Timeout for each probe
+    failureThreshold: 3 # Number of failures before pod is restarted
+    successThreshold: 1 # Number of successes before probe is considered successful
+
+  # Readiness probe configuration
+  readinessProbe:
+    enabled: true # Enable readiness probe
+    httpGet:
+      path: "/healthz" # Health check endpoint path
+      port: "http" # Port name or number
+      scheme: "HTTP" # HTTP or HTTPS
+    initialDelaySeconds: 5 # Initial delay before starting probes
+    periodSeconds: 5 # How often to perform the probe
+    timeoutSeconds: 3 # Timeout for each probe
+    failureThreshold: 3 # Number of failures before pod is considered not ready
+    successThreshold: 1 # Number of successes before probe is considered successful
+
+  # Startup probe configuration (optional, for slow-starting containers)
+  startupProbe:
+    enabled: false # Disable startup probe by default
+    httpGet:
+      path: "/healthz" # Health check endpoint path
+      port: "http" # Port name or number
+      scheme: "HTTP" # HTTP or HTTPS
+    initialDelaySeconds: 0 # Initial delay before starting probes
+    periodSeconds: 10 # How often to perform the probe
+    timeoutSeconds: 5 # Timeout for each probe
+    failureThreshold: 30 # Number of failures before pod is considered failed (allow up to 5 minutes startup time)
+    successThreshold: 1 # Number of successes before probe is considered successful
+
+serviceConfig:
+  # Configuration for the NATS Auth Callout service
+
+  # HTTP server configuration (health/metrics endpoints)
+  host:
+    port: 8000
+    name: "0.0.0.0"
+
+  # NATS connection configuration
+  # NOTE: Seeds are secrets and should come from Vault, not here!
+  nats:
+    url: "nats://nats:4222"
+    # Seeds injected via Vault template (see vault.template.content)
+    nkey-seed: ""      # From Vault
+    issuer-seed: ""    # From Vault
+    xkey-seed: ""      # From Vault (optional)
+
+  # OAuth2/JWKS configuration (non-secrets)
+  jwks:
+    url: ""            # JWKS endpoint URL (e.g., "https://auth.example.com/.well-known/jwks.json")
+    issuer: ""         # Expected JWT issuer
+
+  # mTLS configuration
+  mtls:
+    ca-path: ""        # Path to CA certificate file (e.g., "/etc/auth-callout/ca.crt")
+
+  # Permissions configuration file path
+  permissions:
+    file: "/etc/auth-callout/permissions.json"
+
+  # Observability configuration
+  observability:
+    logging:
+      level: debug
+      zap-configuration: development
+    telemetry:
+      deployment-environment-name: local
+      service-name: auth-callout
+      service-version: 0.1.0
+    tracing:
+      enabled: true
+      https: false
+      otlp:
+        endpoint: localhost:4317  # TODO: Decide on the default helm value for this setting
+      level: debug
+      provider: otlp
+    metrics:
+      enabled: true
+      provider: prometheus  # "otlp" or "prometheus"
+      otlp:
+        endpoint: localhost:4317
+        https: false
+        export-interval-sec: 30
+        export-timeout-sec: 10
+      prometheus:
+        port: 9090
+
+# =============================================================================
+# NATS Auth Callout Permissions Configuration (NON-SECRETS)
+# =============================================================================
+# This section defines user/service mappings for authentication.
+# Only public identifiers go here - NO seeds or private keys!
+# Seeds and private keys must come from Vault.
+
+# Use an external ConfigMap instead of generating one from inline permissions.
+# If set, the inline permissions below are ignored.
+# This allows parent charts to generate the permissions with additional entries.
+permissionsConfigMap: ""
+
+permissions:
+  # OAuth2 user mappings
+  # Maps JWT subject/azp (authorized party) to NATS accounts
+  # Each client can specify a required_scope that must be present in the JWT
+  oauth2: {}
+    # Example:
+    # admin-user:
+    #   subject: "admin@example.com"
+    #   account: "ADMIN"
+    #   required_scope: "nats:admin"  # Custom scope requirement
+    #   permissions:
+    #     pub:
+    #       allow: ["admin.>"]
+    #     sub:
+    #       allow: ["admin.>"]
+    # mqtt-client:
+    #   azp: "mqtt-client-id"  # Use azp for service accounts
+    #   account: "APP"
+    #   required_scope: "mqtt"  # Defaults to "mqtt" if not specified
+
+  # mTLS user mappings
+  # Maps certificate identity (CN) to NATS accounts
+  mtls: {}
+    # Example:
+    # gateway-device:
+    #   identity: "CN=gateway"
+    #   account: "DEVICES"
+    #   permissions:
+    #     pub:
+    #       allow: ["sensor.>"]
+    #     sub:
+    #       allow: ["command.>"]
+
+  # NKey user mappings
+  # Maps NKey public keys to NATS accounts
+  # NOTE: Only PUBLIC keys here - seeds must come from Vault!
+  nkey: {}
+    # Example:
+    # service-account:
+    #   public_key: "UABC123..."  # Public key only!
+    #   account: "SERVICE"
+    #   permissions:
+    #     pub:
+    #       allow: [">"]
+    #     sub:
+    #       allow: [">"]
+
+  # NoAuth (anonymous) configuration
+  # Allows unauthenticated connections with restricted permissions
+  noauth: null
+    # Example - enable anonymous access:
+    # account: "ANONYMOUS"
+    # permissions:
+    #   pub:
+    #     allow: ["public.>"]
+    #   sub:
+    #     allow: ["public.>"]
+
+# Vault sidecar injection configuration
+vault:
+  # Enable/disable Vault sidecar injection for secret management
+  enabled: false
+  # Vault role for authentication (required when enabled)
+  role: ""
+  # Vault auth path (optional, defaults to "auth/kubernetes")
+  authPath: ""
+
+  # Additional Vault configuration
+  config:
+    # Vault address (optional, uses default)
+    address: ""
+    # Vault namespace (optional)
+    namespace: ""
+    # Template static secret render interval (how often Vault re-renders secrets)
+    templateStaticSecretRenderInterval: "10s"
+    # Hot config reload interval (how often the app checks for file changes)
+    # This should be equal to or slightly larger than templateStaticSecretRenderInterval
+    # for optimal reload timing. Set to "5s" for development, "10s" for production.
+    hotConfigInterval: "5s"
+    # Pre-populate only mode - if true, Vault agent exits after initial secret fetch
+    # Set to false for hot-reloading (agent stays running and updates secrets)
+    prePopulateOnly: "false"
+    # Vault agent log level (trace, debug, info, warn, error)
+    logLevel: "info"
+
+  # Vault secrets and template configuration
+  # IMPORTANT: The 'secrets' and 'template.content' sections must be kept in sync!
+  # The template content references the secret keys defined in the secrets section.
+  #
+  # Define your Vault secret paths here:
+  secrets:
+    nats: ""  # e.g., "secret/data/auth-callout/nats"
+  #   # Additional secrets as needed:
+  #   mtls: "secret/data/auth-callout/mtls"
+
+  # Template configuration for injected secrets
+  # The template uses Vault's template syntax to fetch secrets and inject them as a YAML file
+  # that your application can read. The file is hot-reloaded when secrets change.
+  #
+  # ⚠️  IMPORTANT: This syntax is tricky! Helm processes this template to create Vault template text.
+  # 📖 See docs/VAULT_TEMPLATE_GUIDE.md for detailed explanation of the backtick escape syntax,
+  #    rendering stages, common pitfalls, and testing strategies.
+  #
+  # NATS Auth Callout secrets template:
+  # The following keys should be stored in Vault at the path specified in vault.secrets.nats:
+  #   - nkey_seed: NATS connection NKey seed (starts with SU...)
+  #   - issuer_seed: Account signing key seed (starts with SA...)
+  #   - xkey_seed: XKey seed for encryption (starts with SX..., optional)
+  #
+  # Example Vault secret structure:
+  #   vault kv put secret/auth-callout/nats \
+  #     nkey_seed="SUAM..." \
+  #     issuer_seed="SAAK..." \
+  #     xkey_seed="SXAK..."
+  template:
+    filename: "config-secrets.yaml"
+    content: ""
+    # Enable this content when vault.enabled=true and vault.secrets.nats is set:
+    # content: |
+    #   nats:
+    #     {{`{{- with secret "`}}{{ .Values.vault.secrets.nats }}{{`" }}`}}
+    #     nkey-seed: "{{`{{ .Data.data.nkey_seed }}`}}"
+    #     issuer-seed: "{{`{{ .Data.data.issuer_seed }}`}}"
+    #     xkey-seed: "{{`{{ .Data.data.xkey_seed }}`}}"
+    #     {{`{{- end }}`}}
+
+
+
+# ServiceMonitor configuration (only used when serviceConfig.observability.metrics.provider=prometheus)
+serviceMonitor:
+  enabled: false # Create ServiceMonitor for Prometheus Operator (expects CRD to be installed)
+  interval: "15s" # Scrape interval
+  path: "/metrics" # Metrics endpoint path
+  labels: {} # Additional labels for ServiceMonitor discovery
+  relabelings: [] # Prometheus relabeling rules
+  # Example relabelings:
+  # - sourceLabels: [__meta_kubernetes_pod_label_app]
+  #   targetLabel: app
+  # - sourceLabels: [__meta_kubernetes_namespace]
+  #   targetLabel: kubernetes_namespace

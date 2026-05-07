@@ -1,0 +1,9 @@
+{
+    "binaries": [
+    ],
+    "debian_archives": [
+        "https://snapshot.debian.org/archive/debian/20231009T145902Z/pool/main/g/glibc/libc6_2.36-9%2Bdeb12u2_$TARGETARCH.deb",
+        "https://snapshot.debian.org/archive/debian/20231009T145902Z/pool/main/o/openssl/libssl3_3.0.11-1~deb12u1_$TARGETARCH.deb",
+        "https://snapshot.debian.org/archive/debian/20231009T145902Z/pool/main/o/openssl/openssl_3.0.11-1~deb12u1_$TARGETARCH.deb"
+    ]
+}

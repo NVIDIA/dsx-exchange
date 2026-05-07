@@ -1,0 +1,26 @@
+deployments:
+  auth-callout:
+    helm:
+      values:
+        serviceMonitor:
+          enabled: true # expects CRD to be installed
+        serviceConfig:
+          observability:
+            tracing:
+              enabled: true
+              provider: "otlp"
+              https: false
+              otlp:
+                endpoint: "opentelemetry-collector.observability:4317"
+            metrics:
+              enabled: true
+              provider: "prometheus"
+              prometheus:
+                port: 9090
+              # example otlp config:
+              # provider: "otlp"
+              # otlp:
+              #   endpoint: "opentelemetry-collector.observability:4317"
+              #   https: false
+              #   export-interval-sec: 30
+              #   export-timeout-sec: 10

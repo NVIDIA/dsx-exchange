@@ -1,0 +1,56 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Default service configuration
+# Service-specific configuration values are defined here
+host:
+  port: 8000
+  name: "0.0.0.0"
+
+# NATS connection and auth callout configuration
+nats:
+  url: "nats://localhost:4222"
+  # Seeds are secrets - provided via Vault, not here
+  nkey-seed: ""      # NATS connection NKey seed (from Vault)
+  issuer-seed: ""    # Issuer account signing key seed (from Vault)
+  xkey-seed: ""      # XKey seed for encryption (from Vault, optional)
+
+# OAuth2/JWKS configuration (non-secrets)
+jwks:
+  url: ""            # JWKS endpoint URL
+  issuer: ""         # Expected JWT issuer
+
+# mTLS configuration
+mtls:
+  ca-path: ""        # Path to CA certificate file
+
+# Permissions configuration file path
+permissions:
+  file: "/etc/auth-callout/permissions.json"
+
+observability:
+  logging:
+    level: "info"
+    zap-configuration: "production"
+  telemetry:
+    deployment-environment-name: "local"
+    service-name: "auth-callout"
+    service-version: "0.1.0"
+  tracing:
+    enabled: false
+    https: false
+    provider: "otlp"
+    level: "info"
+    otlp:
+      endpoint: "localhost:4317"
+      https: false
+  metrics:
+    enabled: false
+    provider: "prometheus"
+    prometheus:
+      port: 9090
+    otlp:
+      endpoint: "localhost:4317"
+      https: false
+      export-interval-sec: 30
+      export-timeout-sec: 10

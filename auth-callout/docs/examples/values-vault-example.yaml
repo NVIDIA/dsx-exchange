@@ -1,0 +1,62 @@
+# Example values file showing how to configure Vault integration
+# Copy the relevant sections to your values.yaml and customize as needed
+
+vault:
+  # Enable Vault sidecar injection
+  enabled: true
+
+  # Vault role for authentication (required when enabled)
+  role: "auth_callout-role"
+
+  # Vault auth path (optional, defaults to "auth/kubernetes")
+  authPath: "auth/kubernetes"
+
+  # Additional Vault configuration
+  config:
+    # Vault address (optional, uses default if not specified)
+    address: "https://vault.example.com:8200"
+    # Vault namespace (optional)
+    namespace: "my-vault-namespace"
+    # Template static secret render interval (how often Vault re-renders secrets)
+    templateStaticSecretRenderInterval: "5s"
+    # Hot config reload interval (how often the app checks for file changes)
+    # Should match or slightly exceed templateStaticSecretRenderInterval for best results
+    hotConfigInterval: "5s"
+    # Pre-populate only mode - if true, Vault agent exits after initial secret fetch
+    # Set to false for hot-reloading (agent stays running and updates secrets)
+    prePopulateOnly: "false"
+    # Vault agent log level (trace, debug, info, warn, error)
+    # Use "debug" or "trace" for troubleshooting Vault integration issues
+    logLevel: "info"
+
+  # Vault secrets and template configuration
+  # IMPORTANT: The 'secrets' and 'template.content' sections must be kept in sync!
+  # The template content references the secret keys defined in the secrets section.
+  secrets:
+    # NATS Auth Callout secrets path in Vault (customize for your environment)
+    nats: "secret/data/myapp/nats"
+
+  # Template configuration for injected secrets
+  # NOTE: This template content must reference the same secret keys defined above in 'secrets'
+  template:
+    # Target filename for the injected secrets template
+    filename: "config-secrets.yaml"
+    # Template content for generating the secrets file
+    # This template uses Vault's template syntax to fetch secrets and format them
+    # MUST be updated when adding/removing secrets above
+    #
+    # NOTE: This template content is processed by Helm FIRST, then by Vault agent
+    #
+    # 📖 For detailed explanation of this syntax, see docs/VAULT_TEMPLATE_GUIDE.md
+    #    It covers the 3-stage rendering pipeline, backtick escaping, and common pitfalls
+    content: |
+      # Vault-generated secrets - minimal override for config.yaml
+      # Contains ONLY the secret values, maintains same YAML structure
+      # Priority: ENV vars > Helm secrets > Vault secrets > config.yaml defaults
+
+      nats:
+        {{`{{- with secret "`}}{{ .Values.vault.secrets.nats }}{{`" }}`}}
+        nkey-seed: "{{`{{ .Data.data.nkey_seed }}`}}"
+        issuer-seed: "{{`{{ .Data.data.issuer_seed }}`}}"
+        xkey-seed: "{{`{{ .Data.data.xkey_seed }}`}}"
+        {{`{{- end }}`}}

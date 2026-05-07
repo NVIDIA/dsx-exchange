@@ -1,0 +1,32 @@
+deployments:
+  auth-callout:
+    helm:
+      values:
+        vault:
+          enabled: true
+          role: "${DEVSPACE_NAME}"  # Role name created by the script
+          authPath: "auth/kubernetes"  # Vault auth path
+          config:
+            # Fast reload for development (1s intervals)
+            templateStaticSecretRenderInterval: "1s"
+            hotConfigInterval: "1s"
+          secrets:
+            nats: "secret/data/${DEVSPACE_NAME}/nats"
+          template:
+            filename: "config-secrets.yaml"
+            content: |
+              # Vault-generated secrets - minimal override for config.yaml
+              # Contains ONLY the secret values, maintains same YAML structure
+              # Priority: ENV vars > Helm secrets > Vault secrets > config.yaml defaults
+
+              nats:
+                {{`{{- with secret "`}}{{ .Values.vault.secrets.nats }}{{`" }}`}}
+                nkey-seed: "{{`{{ .Data.data.nkey_seed }}`}}"
+                issuer-seed: "{{`{{ .Data.data.issuer_seed }}`}}"
+                xkey-seed: "{{`{{ .Data.data.xkey_seed }}`}}"
+                {{`{{- end }}`}}
+dependencies:
+  vmaas:
+    vars:
+      SERVICE_NAME: "${DEVSPACE_NAME}"  # Match your actual service account and namespace
+      SECRET_CONFIG: "nats|nkey_seed:seed,issuer_seed:seed,xkey_seed:seed"

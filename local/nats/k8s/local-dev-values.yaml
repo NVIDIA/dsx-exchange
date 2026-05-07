@@ -1,0 +1,45 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Local development values - common across all clusters
+#
+# Uses locally-built auth-callout image instead of pulling from a registry.
+# This file contains dev environment settings only.
+
+# Auth-callout service configuration
+auth-callout:
+  fullnameOverride: "auth-callout"
+  image:
+    repository: auth-callout
+    tag: "latest"
+    pullPolicy: Never
+
+  serviceConfig:
+    # Keycloak JWKS endpoint for OAuth2 token validation
+    jwks:
+      url: "http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs"
+      issuer: "http://172.18.200.1/realms/event-bus"
+    # CA certificate for mTLS client verification
+    mtls:
+      ca-path: "/etc/mtls-ca/ca.crt"
+    nats:
+      # Seeds injected via extraEnvs from secret
+      nkey-seed: ""
+      issuer-seed: ""
+      xkey-seed: ""
+    observability:
+      tracing:
+        enabled: false
+
+  # Mount CA certificate from TLS secret for mTLS client verification
+  extraVolumes:
+    - name: mtls-ca
+      secret:
+        secretName: nats-mtls-server-tls
+  extraVolumeMounts:
+    - name: mtls-ca
+      mountPath: /etc/mtls-ca
+      readOnly: true
+
+  # extraEnvs defined in cluster-specific values (csc/values.yaml, cpc/values.yaml)
+  # to avoid Helm list replacement issues

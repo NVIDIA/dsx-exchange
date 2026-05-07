@@ -1,0 +1,50 @@
+# this needs `tasks` and `node` installed
+# brew install go-task - https://taskfile.dev
+# task setup
+version: "3"
+
+tasks:
+  cover:
+    cmds:
+      - go tool cover -html=coverage.out
+  test:
+    deps:
+    cmds:
+      - rm -f ./coverage.out
+      - go test -coverpkg=./... -coverprofile=./coverage.out ./...
+      - mv coverage.out _coverage.out
+      - cat _coverage.out | grep -v "callout.go/examples/" > coverage.out
+      - rm _coverage.out
+  lint:
+    cmds:
+      - golangci-lint run
+  fmt:
+    cmds:
+      - gofumpt -l -w .
+
+  bench:
+    cmds:
+      - go test -run ^\$ -bench=Benchmark -cpu 16
+  bf:
+    cmds:
+      - go test -run ^\$ -bench={{.CLI_ARGS}} -cpu 16
+  bench_separate:
+    cmds:
+      - for: [ Benchmark_EncodeJwts, Benchmark_ParallelEncodeJwts, Benchmark_ParallelConnect, Benchmark_ServiceHandler, Benchmark_ParallelServiceHandler, Benchmark_MicroRequestReply, Benchmark_MicroAsyncRequestReply, Benchmark_RequestReply, Benchmark_ParallelRequestReply, Benchmark_Auth, Benchmark_AuthParallel, Benchmark_AuthMultipleServiceEndpoints, Benchmark_AuthAsyncWorkers, Benchmark_AuthMultipleServices]
+        vars:
+          TEST: '{{.ITEM}}'
+        task: bench_limits
+
+  bench_limits:
+    cmds:
+      - go test -run ^\$ -bench='{{.TEST}}' -cpu 16
+
+  ft:
+    cmds:
+      - go test -run ^\$ -testify.m={{.CLI_ARGS}}
+
+  auth:
+    cmds:
+      - go test -run ^\$ -bench=Benchmark_Auth -cpu 16
+
+

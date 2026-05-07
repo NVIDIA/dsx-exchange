@@ -1,0 +1,69 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: shared-gateway
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: eg
+  listeners:
+    # NATS listeners
+    - name: mqtt
+      protocol: TCP
+      port: 1883
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: All
+    - name: nats-client
+      protocol: TCP
+      port: 4222
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: All
+    - name: nats-leafnode
+      protocol: TCP
+      port: 7422
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: All
+    - name: mqtt-mtls
+      protocol: TCP
+      port: 8883
+      allowedRoutes:
+        kinds:
+          - kind: TCPRoute
+        namespaces:
+          from: All
+    # Keycloak listener
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        kinds:
+          - kind: HTTPRoute
+        namespaces:
+          from: All
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: connection-limits
+  namespace: envoy-gateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: shared-gateway
+  circuitBreaker:
+    maxConnections: 32768
+    maxPendingRequests: 32768
+    maxRequestsPerConnection: 32768
+

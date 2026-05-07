@@ -1,0 +1,56 @@
+@startuml Ingress Architecture
+!theme plain
+
+skinparam rectangle {
+    BackgroundColor<<tcp>> LightBlue
+    BackgroundColor<<mtls>> LightGreen
+    BackgroundColor<<gateway>> LightGray
+    BorderColor Black
+}
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+}
+
+package "Single Cluster (CSC or CPC)" {
+
+    rectangle "Envoy" <<gateway>> {
+        component "Gateway" as gateway_ingress
+    }
+
+    rectangle "Main NATS Cluster" <<tcp>> {
+        component "MQTT/TCP Endpoint\nmqtt.bus.dc.svc.cluster.local" as mqtt_tcp
+        component "NATS Endpoint\nnats.bus.dc.svc.cluster.local" as nats_tcp
+        database "JetStream" as js
+
+        mqtt_tcp -[hidden]down- nats_tcp
+        nats_tcp -[hidden]down- js
+    }
+
+    rectangle "mTLS NATS Cluster" <<mtls>> {
+        component "MQTT/mTLS Endpoint\nmqtt.mtls-bus.dc.svc.cluster.local" as mqtt_mtls
+        component "NATS Endpoint\nnats.mtls-bus.dc.svc.cluster.local" as nats_leaf_tcp
+
+        mqtt_mtls -[hidden]down- nats_leaf_tcp
+    }
+
+    actor "Internal\nMQTT Client" as int_client_tcp
+    actor "Internal\nMQTT Client" as int_client_mtls
+
+    nats_leaf_tcp -[#blue,bold]-> nats_tcp : "Leaf Node\nConnection\n(NATS/TCP)"
+
+    gateway_ingress -down-> mqtt_tcp : "TCP"
+    gateway_ingress -down-> mqtt_mtls : "mTLS"
+
+    int_client_tcp -down-> mqtt_tcp : "TCP\n(direct)"
+    int_client_mtls -down-> mqtt_mtls : "mTLS\n(direct)"
+}
+
+actor "External\nMQTT Client" as ext_client_tls
+actor "External\nMQTT Client" as ext_client_mtls
+
+ext_client_tls -down-> gateway_ingress : "TLS"
+ext_client_mtls -down-> gateway_ingress : "mTLS"
+
+@enduml

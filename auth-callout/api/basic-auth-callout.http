@@ -1,0 +1,60 @@
+# Open this file in VSCode and use the REST extension to send requests to the API.
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# =============================================================================
+# Configuration
+# =============================================================================
+
+@clusterUrl = http://auth-callout.127-0-0-1.nip.io:8080
+
+# =============================================================================
+# LOCAL DEVELOPMENT - KEYCLOAK CONFIGURATION
+# =============================================================================
+
+@keycloakUrl = {{$dotenv KEYCLOAK_ENDPOINT}}
+@keycloakRealm = {{$dotenv KEYCLOAK_REALM}}
+@keycloakClientId = {{$dotenv KEYCLOAK_APP_CLIENT_ID}}
+@keycloakServiceClientId = {{$dotenv KEYCLOAK_SERVICE_CLIENT_ID}}
+@keycloakServiceClientSecret = {{$dotenv KEYCLOAK_SERVICE_CLIENT_SECRET}}
+
+# Keycloak User Credentials
+@keycloakUserRwUsername = {{$dotenv KEYCLOAK_RW_USER_ID}}
+@keycloakUserRwPassword = {{$dotenv KEYCLOAK_RW_USER_PASSWORD}}
+@keycloakUserRoUsername = {{$dotenv KEYCLOAK_RO_USER_ID}}
+@keycloakUserRoPassword = {{$dotenv KEYCLOAK_RO_USER_PASSWORD}}
+@keycloakUserAdminUsername = {{$dotenv KEYCLOAK_ADMIN_USER_ID}}
+@keycloakUserAdminPassword = {{$dotenv KEYCLOAK_ADMIN_USER_PASSWORD}}
+
+# =============================================================================
+# LOCAL DEVELOPMENT - SSA CONFIGURATION
+# =============================================================================
+
+@ssaEndpoint = {{$dotenv SSA_ENDPOINT}}
+@ssaClientId = {{$dotenv SSA_CLIENT_ID}}
+@ssaClientSecret = {{$dotenv SSA_CLIENT_SECRET}}
+@ssaScope = {{$dotenv SSA_SCOPE}}
+@ssaTokenUrl = https://{{ssaEndpoint}}/token
+
+
+# =============================================================================
+# Routes
+# =============================================================================
+
+# =============================================================================
+# GET TOKENS - KEYCLOAK (Local Development Option)
+# =============================================================================
+
+### Get RW User Token - Keycloak
+# @name getKeycloakUserRwToken
+POST {{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{keycloakUserRwUsername}}&password={{keycloakUserRwPassword}}&grant_type=password&client_id={{keycloakClientId}}
+
+# =============================================================================
+# AUTHENTICATED ENDPOINTS - KEYCLOAK CREDS (Local Development Option)
+# =============================================================================
+
+### Home Endpoint - Keycloak RW User
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getKeycloakUserRwToken.response.body.access_token}}

@@ -1,0 +1,22 @@
+{{- if .Values.vault.enabled }}
+# Vault Sidecar Injection Annotations
+vault.hashicorp.com/agent-inject: "true"
+{{- if .Values.vault.role }}
+vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+{{- end }}
+vault.hashicorp.com/agent-pre-populate-only: {{ .Values.vault.config.prePopulateOnly | default "false" | quote }}
+{{- if .Values.vault.config.address }}
+vault.hashicorp.com/service: {{ .Values.vault.config.address | quote }}
+{{- end }}
+{{- if .Values.vault.authPath }}
+vault.hashicorp.com/auth-path: {{ .Values.vault.authPath | quote }}
+{{- end }}
+vault.hashicorp.com/log-level: {{ .Values.vault.config.logLevel | default "info" | quote }}
+{{- if .Values.vault.config.namespace }}
+vault.hashicorp.com/namespace: {{ .Values.vault.config.namespace | quote }}
+{{- end }}
+vault.hashicorp.com/template-static-secret-render-interval: {{ .Values.vault.config.templateStaticSecretRenderInterval | default "10s" | quote }}
+vault.hashicorp.com/agent-inject-secret-{{ .Values.vault.template.filename }}: "{{ .Values.vault.secrets | values | join "," }}"
+vault.hashicorp.com/agent-inject-template-{{ .Values.vault.template.filename }}: |
+{{ tpl .Values.vault.template.content . | indent 2 }}
+{{- end }}

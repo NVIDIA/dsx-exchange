@@ -1,0 +1,46 @@
+@startuml Flight Recorder Architecture
+!theme plain
+left to right direction
+
+skinparam rectangle {
+    BackgroundColor<<primary>> LightBlue
+    BackgroundColor<<log>> LightYellow
+    BackgroundColor<<export>> LightGray
+    BackgroundColor<<datalake>> White
+    BackgroundColor<<nats>> White
+    BorderColor Black
+}
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+}
+
+package "NATS" <<nats>> as nats_pkg {
+    rectangle "Primary NATS\n(MQTT Account)" <<primary>> as primary_box {
+        component "MQTT / NATS\nJetStream" as mqtt_primary
+    }
+    rectangle "LOG Account" <<log>> as log_box {
+        component "N Partitions" as partitions
+        component "N Streams\nIn-Memory, R3, Work Queue\n1GB limit, No ack, 7d TTL" as log_streams
+        partitions -[hidden]d-> log_streams
+    }
+    primary_box -[hidden]d-> log_box
+}
+
+rectangle "OTEL Collector\n(internal)" <<export>> as otel_box {
+    component "natsreceiver" as nats_receiver
+    component "Export\n(OTLP logs, sampling,\ntransforms)" as otel_export
+    nats_receiver -[hidden]d-> otel_export
+}
+
+rectangle "Kratos\n(Datalake)" <<datalake>> as kratos
+
+nats_pkg -[hidden]r-> otel_box
+otel_box -[hidden]r-> kratos
+
+mqtt_primary -[#blue]r-> partitions : "Export\nselected topics"
+log_streams -[#green]r-> nats_receiver : "Consume"
+otel_export -[#orange]r-> kratos : "OTLP logs"
+
+@enduml

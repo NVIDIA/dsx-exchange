@@ -1,0 +1,38 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Primary account for nats-mtls leaf node, which proxies mTLS clients to the main
+NATS server. JetStream is disabled; mappings redirect
+JetStream and MQTT session subjects to the appropriate domain.
+*/}}
+{{- if .Values.eventBus.mtls.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-mtls-accounts-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: nats-mtls
+    app.kubernetes.io/part-of: nats-event-bus
+data:
+  accounts.conf: |
+{{- if eq .Values.eventBus.clusterType "csc" }}
+    CSC {
+      jetstream: false
+      mappings: {
+        "$JS.API.>": "$JS.CSC.API.>"
+        "$MQTT.sess.*.>": "$MQTT.sess.CSC.>"
+      }
+    }
+{{- else if eq .Values.eventBus.clusterType "cpc" }}
+    CPC {
+      jetstream: false
+      mappings: {
+        "$JS.API.>": "$JS.CPC.API.>"
+        "$MQTT.sess.*.>": "$MQTT.sess.CPC.>"
+      }
+    }
+{{- end }}
+{{- end }}

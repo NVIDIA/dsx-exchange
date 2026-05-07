@@ -1,0 +1,70 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# CSC-specific values
+#
+# This file contains operator-facing configuration only.
+# Internal NATS accounts, mappings, and leaf nodes are auto-generated
+# by the nats-event-bus Helm chart based on eventBus.clusterType.
+
+# Event Bus Configuration
+eventBus:
+  clusterType: csc
+  # List of CPC IDs that will connect as leaves
+  cpcIds: ["1", "2"]
+
+  # Auth permissions for CSC account
+  auth:
+    permissions:
+      oauth2:
+        csc-admin:
+          subject: "csc-admin@example.com"
+          account: "CSC"
+        mqtt-client:
+          azp: "mqtt-client"
+          account: "CSC"
+          permissions:
+            pub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+            sub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+        mqtt-publisher:
+          azp: "mqtt-publisher"
+          account: "CSC"
+          permissions:
+            pub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+            sub:
+              allow: ["dummy.>"]
+        mqtt-subscriber:
+          azp: "mqtt-subscriber"
+          account: "CSC"
+          permissions:
+            pub:
+              allow: ["dummy.>"]
+            sub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+      mtls:
+        mqtt-client:
+          identity: "CN=mqtt-client.csc"
+          account: "CSC"
+      noauth:
+        account: "CSC"
+
+# NATS configuration (cluster name, JetStream domain, server names are auto-set by templates)
+
+# CSC-specific auth-callout configuration
+# Common extraEnvs are in umbrella chart, only CSC-specific entries here
+auth-callout:
+  extraEnvs:
+    # CPC leaf user pubkeys (for permissions.json)
+    NKEY_LEAF_CPC_1_PUBKEY:
+      valueFrom:
+        secretKeyRef:
+          name: nats-leaf-cpc-1
+          key: pubkey
+    NKEY_LEAF_CPC_2_PUBKEY:
+      valueFrom:
+        secretKeyRef:
+          name: nats-leaf-cpc-2
+          key: pubkey

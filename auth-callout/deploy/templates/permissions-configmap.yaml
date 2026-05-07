@@ -1,0 +1,18 @@
+{{- /*
+Permissions ConfigMap for NATS Auth Callout
+
+Contains NON-SECRET permission mappings only.
+SECRETS (seeds, private keys) must come from Vault, not this ConfigMap!
+
+If permissionsConfigMap is set, this ConfigMap is not generated.
+*/ -}}
+{{- if not .Values.permissionsConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-permissions
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  permissions.json: {{ .Values.permissions | toJson | quote }}
+{{- end }}

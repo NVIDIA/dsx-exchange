@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Connect to DevSpace Debugger",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "substitutePath": [
+                {
+                    "from": "${workspaceFolder}",
+                    "to": "/go/src/app"
+                }
+            ],
+            "host": "localhost",
+            "port": 5005,
+            "showLog": true,
+            "trace": "verbose",
+            "logOutput": "rpc"
+        },
+        {
+            "name": "Launch Service Locally",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/cmd/auth_callout/main.go",
+            "args": [],
+            "showLog": true,
+            "trace": "verbose"
+        }
+    ]
+}

@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Force pod restart when configmap changes
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+{{- $vaultAnnotations := tpl (.Files.Get "files/vault-annotations.yaml") . }}
+  {{- if $vaultAnnotations }}
+{{ $vaultAnnotations | nindent 8 }}
+  {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "app.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "app.serviceAccountName" . }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
+      imagePullSecrets:
+        {{- if .Values.imagePullSecrets }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+        {{- end }}
+        {{- if or .Values.registry.existingSecret .Values.registry.username }}
+        - name: {{ .Values.registry.existingSecret | default (printf "%s-registry" (include "app.fullname" .)) }}
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--config"
+            - "/etc/config/config.yaml"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            {{- if include "metrics.prometheusEnabled" . }}
+            - name: metrics
+              containerPort: {{ include "metrics.prometheusPort" . }}
+              protocol: TCP
+            {{- end }}
+          env:
+            # Service and Application Configuration
+            - name: AUTH_CALLOUT_SERVICE_NAME
+              value: {{ .Release.Name | quote }}
+            - name: AUTH_CALLOUT_SERVICE_SERVER_PORT
+              value: {{ .Values.service.port | quote }}
+
+            # Kubernetes Runtime Information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+
+            # Vault Hot Config Configuration
+            {{- if .Values.vault.enabled }}
+            - name: AUTH_CALLOUT_HOT_CONFIG
+              value: "/vault/secrets/config-secrets.yaml"
+            - name: AUTH_CALLOUT_HOT_CONFIG_INTERVAL
+              value: {{ .Values.vault.config.hotConfigInterval | default "5s" | quote }}
+            {{- end }}
+
+            # Additional Environment Variables
+            {{- range $name, $value := .Values.extraEnvs }}
+            - name: {{ $name }}
+              {{- toYaml $value | nindent 14 }}
+            {{- end }}
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: permissions-volume
+              mountPath: /etc/auth-callout
+              readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- if .Values.healthChecks.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.livenessProbe.httpGet.path }}
+              port: {{ .Values.healthChecks.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.healthChecks.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.healthChecks.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.livenessProbe.successThreshold }}
+          {{- end }}
+
+          {{- if .Values.healthChecks.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.readinessProbe.httpGet.path }}
+              port: {{ .Values.healthChecks.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.healthChecks.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.healthChecks.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.readinessProbe.successThreshold }}
+          {{- end }}
+
+          {{- if .Values.healthChecks.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.healthChecks.startupProbe.httpGet.path }}
+              port: {{ .Values.healthChecks.startupProbe.httpGet.port }}
+              scheme: {{ .Values.healthChecks.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.healthChecks.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthChecks.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthChecks.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthChecks.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.healthChecks.startupProbe.successThreshold }}
+          {{- end }}
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "app.fullname" . }}-config
+        - name: permissions-volume
+          configMap:
+            name: {{ .Values.permissionsConfigMap | default (printf "%s-permissions" (include "app.fullname" .)) }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}

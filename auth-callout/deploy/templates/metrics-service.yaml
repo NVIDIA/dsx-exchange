@@ -1,0 +1,18 @@
+{{- if include "metrics.prometheusEnabled" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "app.fullname" . }}-metrics
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: {{ include "metrics.prometheusPort" . }}
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    {{- include "app.selectorLabels" . | nindent 4 }}
+{{- end }}

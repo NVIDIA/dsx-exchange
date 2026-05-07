@@ -1,0 +1,117 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+asyncapi: 3.1.0
+info:
+  title: SPIRE SPIFFE Exchange - Public Keysets
+  version: 1.0.0
+  description: |
+    AsyncAPI specification for publishing JWK (JSON Web Key) public keys on the
+    SPIFFE/SPIRE exchange topic. One JWK per message. Used to distribute public
+    keys for a given tenant and key identifier so consumers can verify JWS or
+    use keys for encryption.
+
+    **Topic format:** `spiffe-exchange/v1/pub-keysets/tenant/{tenant_domain}/kid/{kid}`
+
+    Payloads conform to RFC 7517 (JSON Web Key). Only public key material is
+    published on this channel.
+
+servers:
+  production:
+    host: broker.example.com
+    protocol: mqtt
+    description: MQTT broker for SPIFFE exchange public key distribution
+
+channels:
+  pubKeysets:
+    address: "spiffe-exchange/v1/pub-keysets/tenant/{tenant_domain}/kid/{kid}"
+    parameters:
+      tenant_domain:
+        description: Tenant domain identifier (e.g. tenant namespace or domain name).
+      kid:
+        description: Key ID (kid) for this key; aligns with JWS/JWE header kid.
+    messages:
+      jwk:
+        $ref: "#/components/messages/JwkMessage"
+
+operations:
+  publishPubKeyset:
+    action: send
+    channel:
+      $ref: "#/channels/pubKeysets"
+    messages:
+      - $ref: "#/channels/pubKeysets/messages/jwk"
+    description: >
+      Publish one JWK for the given tenant and kid. Publishers (e.g. SPIRE)
+      use this to advertise a public key for verification or encryption.
+
+  subscribePubKeyset:
+    action: receive
+    channel:
+      $ref: "#/channels/pubKeysets"
+    messages:
+      - $ref: "#/channels/pubKeysets/messages/jwk"
+    description: >
+      Subscribe to public key updates for a tenant and kid. Each message
+      carries one JWK. Consumers use the key to verify signatures or encrypt.
+
+components:
+  messages:
+    JwkMessage:
+      name: JwkMessage
+      title: JWK (RFC 7517)
+      contentType: application/json
+      payload:
+        $ref: "#/components/schemas/Jwk"
+
+  schemas:
+    Jwk:
+      type: object
+      required:
+        - kty
+      description: >
+        Single JSON Web Key per RFC 7517. Only public key parameters are included
+        on this channel. Key type (kty) determines which additional members are present.
+      properties:
+        kty:
+          type: string
+          description: Key type (e.g. RSA, EC, OKP).
+          enum:
+            - RSA
+            - EC
+            - OKP
+        use:
+          type: string
+          description: Public key use (sig, enc, or omitted).
+          enum:
+            - sig
+            - enc
+        key_ops:
+          type: array
+          items:
+            type: string
+          description: Key operations (e.g. verify, encrypt).
+        alg:
+          type: string
+          description: Algorithm (e.g. ES256, RS256, EdDSA).
+        kid:
+          type: string
+          description: Key ID; should match the topic kid when present.
+        # RSA public key parameters (when kty is RSA)
+        n:
+          type: string
+          description: RSA modulus (Base64url).
+        e:
+          type: string
+          description: RSA public exponent (Base64url).
+        # EC public key parameters (when kty is EC)
+        crv:
+          type: string
+          description: Elliptic curve (e.g. P-256, P-384).
+        x:
+          type: string
+          description: EC x coordinate (Base64url).
+        y:
+          type: string
+          description: EC y coordinate (Base64url).
+        # OKP (e.g. Ed25519): public key is in 'x'. Private key (d) MUST NOT be published here.

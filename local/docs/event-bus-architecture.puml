@@ -1,0 +1,83 @@
+@startuml Event Bus Architecture
+
+!theme plain
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+
+' Define colors
+skinparam component {
+    BackgroundColor<<EventBus>> lightblue
+    BackgroundColor<<Service>> lightgray
+    BackgroundColor<<Gateway>> orange
+}
+
+skinparam package {
+    BackgroundColor<<CPC>> lightgreen
+}
+
+' Force top-to-bottom layout
+skinparam direction topToBottom
+
+package "CSC - Common Services Cluster" {
+    component "Gateway" as GW_CSC <<Gateway>>
+    component "Event Bus" as BUS_CSC <<EventBus>>
+    component "Service 1" as S1_CSC <<Service>>
+    component "Service 2" as S2_CSC <<Service>>
+    component "Prometheus Connector" as PC_CSC <<Service>>
+    component "Message Mapper" as MM_CSC <<Service>>
+}
+
+package "CPC 1 - Control Plane Cluster" <<CPC>> {
+    component "Gateway" as GW_CPC1 <<Gateway>>
+    component "Event Bus" as BUS_CPC1 <<EventBus>>
+    component "Service 1" as S1_CPC1 <<Service>>
+    component "Service 2" as S2_CPC1 <<Service>>
+    component "Prometheus Connector" as PC_CPC1 <<Service>>
+    component "Message Mapper" as MM_CPC1 <<Service>>
+}
+
+package "CPC 2..N - Control Plane Cluster" <<CPC>> {
+    component "Gateway" as GW_CPC2 <<Gateway>>
+    component "Event Bus" as BUS_CPC2 <<EventBus>>
+    component "Service 1" as S1_CPC2 <<Service>>
+    component "Service 2" as S2_CPC2 <<Service>>
+    component "Prometheus Connector" as PC_CPC2 <<Service>>
+    component "Message Mapper" as MM_CPC2 <<Service>>
+}
+
+' External clients with no internal network access
+component "External Client\n(no internal network access)" as EXT_CLIENT1 <<Service>>
+component "External Client\n(no internal network access)" as EXT_CLIENT2 <<Service>>
+component "External Client\n(no internal network access)" as EXT_CLIENT3 <<Service>>
+
+' CPC to CSC Communication
+BUS_CPC1 --> GW_CSC : internal protocol over TLS
+BUS_CPC2 --> GW_CSC : internal protocol over TLS
+
+' CSC connections
+GW_CSC --> BUS_CSC : internal protocol
+S1_CSC --> BUS_CSC : MQTT
+S2_CSC --> BUS_CSC : MQTT
+PC_CSC --> BUS_CSC : MQTT
+MM_CSC --> BUS_CSC : MQTT
+
+' CPC 1 connections
+GW_CPC1 --> BUS_CPC1 : internal protocol
+S1_CPC1 --> BUS_CPC1 : MQTT
+S2_CPC1 --> BUS_CPC1 : MQTT
+PC_CPC1 --> BUS_CPC1 : MQTT
+MM_CPC1 --> BUS_CPC1 : MQTT
+
+' CPC 2..N connections
+GW_CPC2 --> BUS_CPC2 : internal protocol
+S1_CPC2 --> BUS_CPC2 : MQTT
+S2_CPC2 --> BUS_CPC2 : MQTT
+PC_CPC2 --> BUS_CPC2 : MQTT
+MM_CPC2 --> BUS_CPC2 : MQTT
+
+' External client connections
+EXT_CLIENT1 --> GW_CSC : MQTT over TLS
+EXT_CLIENT2 --> GW_CPC1 : MQTT over TLS
+EXT_CLIENT3 --> GW_CPC2 : MQTT over TLS
+
+@enduml

@@ -1,0 +1,41 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  instances: 1
+  http:
+    httpEnabled: true
+  hostname:
+    strict: false
+    strictBackchannel: false
+  ingress:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "550Mi"
+    limits:
+      cpu: "1000m"
+      memory: "550Mi"
+  unsupported:
+    podTemplate:
+      spec:
+        volumes:
+          - name: realm-import
+            configMap:
+              name: keycloak-realm-import
+        containers:
+          - args:
+              - "-Djgroups.dns.query=keycloak-discovery.keycloak"
+              - "--verbose"
+              - "start"
+              - "--import-realm"
+            volumeMounts:
+              - name: realm-import
+                mountPath: /opt/keycloak/data/import
+

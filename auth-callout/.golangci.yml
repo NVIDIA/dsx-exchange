@@ -1,0 +1,26 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+version: "2"
+
+linters:
+  default: standard
+  exclusions:
+    rules:
+      # Ignore unchecked errors in test files (defer cleanup, Close, Remove)
+      # TODO: Fix these properly — tracked as follow-up
+      - linters: [errcheck]
+        path: _test\.go$
+
+      # Ignore deprecated API usage for x509 CertPool.Subjects()
+      # Used in mtls.go for CA pool validation — no drop-in replacement available
+      # TODO: Replace with alternative approach when available
+      - linters: [staticcheck]
+        text: "SA1019.*Subjects has been deprecated"
+
+      # Ignore nil pointer dereference warnings in test files
+      # Test code uses t.Fatal guards before dereference — staticcheck doesn't track cross-statement flow
+      # TODO: Refactor test to satisfy staticcheck
+      - linters: [staticcheck]
+        text: "SA5011"
+        path: _test\.go$

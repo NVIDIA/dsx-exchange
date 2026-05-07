@@ -1,0 +1,46 @@
+@startuml
+title Row 14: Publisher in CPC-2 (CSC Topic Space) publishing 'local'
+
+package "CPC-1" {
+  component "Bus" as CPC1_Bus #wheat
+  rectangle "CSC Topic Space" as CPC1_CSC_TS #LightBlue {
+    component "Subscriber" as CPC1_CSC_Sub
+  }
+  rectangle "CPC-1 Topic Space" as CPC1_CPC_TS #LightGreen {
+    component "Subscriber" as CPC1_CPC_Sub
+  }
+}
+
+package "CSC" {
+  component "Bus" as CSC_Bus #wheat
+  note top of CSC_Bus
+    Approved cross topic space topics:
+    ""cross""
+  end note
+  rectangle "CSC Topic Space" as CSC_TS #LightBlue {
+    component "Subscriber" as CSC_Sub
+  }
+}
+
+package "CPC-2" {
+  component "Bus" as CPC2_Bus #wheat
+  rectangle "CSC Topic Space" as CPC2_CSC_TS #LightBlue {
+    component "Publisher" as CPC2_Client #lightcoral
+    component "Subscriber" as CPC2_CSC_Sub
+  }
+  rectangle "CPC-2 Topic Space" as CPC2_CPC_TS #LightYellow {
+    component "Subscriber" as CPC2_CPC_Sub
+  }
+}
+
+CPC1_Bus <..> CSC_Bus : peer
+CPC2_Bus <..> CSC_Bus : peer
+
+CPC2_Client --> CPC2_Bus : publish 'local'
+
+CPC2_Bus --> CPC2_CSC_Sub : receive 'local'
+CSC_Bus --> CSC_Sub : receive 'local'
+CPC1_Bus --> CPC1_CSC_Sub : receive 'local'
+CPC1_Bus -[hidden]-> CPC1_CPC_Sub
+CPC2_Bus -[hidden]-> CPC2_CPC_Sub
+@enduml

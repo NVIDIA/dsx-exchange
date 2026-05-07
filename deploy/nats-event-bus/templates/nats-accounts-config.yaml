@@ -1,0 +1,94 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Datacenter account definitions (CSC, CPC) included in the NATS accounts block.
+CSC clusters have simple accounts; CPC clusters have cross-layer imports/exports
+for routing messages between CSC and CPC accounts via the leaf connection.
+*/}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-accounts-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: nats-config
+    app.kubernetes.io/part-of: nats-event-bus
+data:
+  accounts.conf: |
+{{- if eq .Values.eventBus.clusterType "csc" }}
+    CSC {
+      jetstream: true
+    }
+  {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+    {{ $name }} {
+      {{- range $key, $value := $config }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+    }
+  {{- end }}
+{{ else if eq .Values.eventBus.clusterType "cpc" }}
+{{- $clusterId := .Values.eventBus.clusterId -}}
+{{- $crossLayer := .Values.eventBus.crossLayer }}
+    CSC {
+      jetstream: false
+      exports: [
+        {{- range $crossLayer.cscExports }}
+        { stream: {{ . | quote }} }
+        {{- end }}
+        {{- range $crossLayer.cscPrefixedExports }}
+        { stream: {{ . | quote }} }
+        {{- end }}
+        { stream: {{ printf "cpc.%s.>" $clusterId | quote }} }
+        { service: "$JS.API.>", response_type: stream }
+        { service: "$JS.FC.>" }
+        { stream: {{ printf "csc2cpc.%s.>" $clusterId | quote }} }
+      ]
+      imports: [
+        {{- range $crossLayer.cpcExports }}
+        { stream: { account: CPC, subject: {{ . | quote }} }, to: {{ printf "cpc.%s.%s" $clusterId . | quote }} }
+        {{- end }}
+        { service: { account: CPC, subject: "$JS.API.>" }, to: {{ printf "$JS.CPC-%s.API.>" $clusterId | quote }} }
+      ]
+      mappings: {
+        "$JS.API.>": "$JS.CSC.API.>"
+        "$MQTT.sess.*.>": "$MQTT.sess.CSC.>"
+      }
+    }
+
+    CPC {
+      jetstream: true
+      exports: [
+        {{- range $crossLayer.cpcExports }}
+        { stream: {{ . | quote }} }
+        {{- end }}
+        { service: "$JS.API.>", response_type: stream }
+        { service: "$JS.FC.>" }
+      ]
+      imports: [
+        {{- range $crossLayer.cscExports }}
+        { stream: { account: CSC, subject: {{ . | quote }} } }
+        {{- end }}
+        {{- range $crossLayer.cscPrefixedExports }}
+        { stream: { account: CSC, subject: {{ printf "cpc.%s.%s" $clusterId . | quote }} }, to: {{ . | quote }} }
+        {{- end }}
+        { service: { account: CSC, subject: "$JS.API.>" }, to: "$JS.CSC.API.>" }
+        { service: { account: CSC, subject: "$JS.FC.>" } }
+        { stream: { account: CSC, subject: {{ printf "csc2cpc.%s.>" $clusterId | quote }} } }
+      ]
+    }
+  {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+    {{ $name }} {
+      jetstream: false
+      mappings: {
+        "$JS.API.>": "$JS.CSC.API.>"
+      }
+      {{- range $key, $value := $config }}
+      {{- if ne $key "jetstream" }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
+    }
+  {{- end }}
+{{- end }}

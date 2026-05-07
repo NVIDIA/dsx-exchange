@@ -1,0 +1,529 @@
+version: v2beta1
+name: auth-callout
+
+# Required tools
+require:
+  commands:
+    - name: docker
+      versionArgs: ["--version"]
+      versionRegEx: "Docker version (\\d+\\.\\d+\\.\\d+)"
+      version: ">= 20.0.0"
+    - name: kind
+      version: ">= 0.20.0"
+    - name: helm
+      version: ">= 3.0.0"
+    - name: kubectl
+      versionArgs: ["version", "--client", "-o", "yaml"]
+      versionRegEx: "gitVersion: (v\\d+\\.\\d+\\.\\d+)"
+      version: ">= 1.25.0"
+    - name: nsc
+      versionArgs: ["--version"]
+      versionRegEx: "nsc version (\\d+\\.\\d+\\.\\d+)"
+      version: ">= 2.0.0"
+
+# Variables
+vars:
+  DEVSPACE_NAME:
+    default: auth-callout
+  # Versions
+  GOLANG_VERSION:
+    default: "1.25"
+  KEYCLOAK_VERSION:
+    default: "26.0.7"
+  NATS_VERSION:
+    default: "2.12.2"
+  NATS_BOX_VERSION:
+    default: "0.19.2"
+  NATS_RELOADER_VERSION:
+    default: "0.20.1"
+  # NATS keys - generated on first access if devspace.env doesn't exist
+  AUTH_USER_NKEY_SEED:
+    command: "scripts/devspace-get-key.sh AUTH_USER_NKEY_SEED"
+  AUTH_USER_NKEY:
+    command: "scripts/devspace-get-key.sh AUTH_USER_NKEY"
+  AUTH_SIGNING_KEY_SEED:
+    command: "scripts/devspace-get-key.sh AUTH_SIGNING_KEY_SEED"
+  AUTH_SIGNING_KEY:
+    command: "scripts/devspace-get-key.sh AUTH_SIGNING_KEY"
+  XKEY_SEED:
+    command: "scripts/devspace-get-key.sh XKEY_SEED"
+  XKEY_PUBKEY:
+    command: "scripts/devspace-get-key.sh XKEY_PUBKEY"
+
+# Functions
+functions:
+  ensure-kind-cluster: |
+    if ! kind get clusters 2>/dev/null | grep -q "^auth-callout$"; then
+      echo "Creating kind cluster 'auth-callout'..."
+      kind create cluster --name auth-callout --wait 60s
+    fi
+    kind export kubeconfig --name auth-callout >/dev/null 2>&1
+
+  delete-kind-cluster: |
+    echo "Deleting kind cluster 'auth-callout'..."
+    kind delete cluster --name auth-callout || true
+
+# Hooks
+hooks:
+  # Preload images before deployments
+  - name: "preload-nats-images"
+    events: ["before:deploy:nats"]
+    command: |
+      ./scripts/kind-load-image.sh "nats:${NATS_VERSION}-alpine"
+      ./scripts/kind-load-image.sh "natsio/nats-box:${NATS_BOX_VERSION}"
+      ./scripts/kind-load-image.sh "natsio/nats-server-config-reloader:${NATS_RELOADER_VERSION}"
+
+  - name: "preload-keycloak-operator-image"
+    events: ["before:deploy:keycloak-operator"]
+    command: ./scripts/kind-load-image.sh "quay.io/keycloak/keycloak-operator:${KEYCLOAK_VERSION}"
+
+  - name: "preload-keycloak-image"
+    events: ["before:deploy:keycloak"]
+    command: ./scripts/kind-load-image.sh "quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}"
+
+  - name: "preload-dev-image"
+    events: ["before:deploy:auth-callout"]
+    command: ./scripts/kind-load-image.sh "golang:${GOLANG_VERSION}-alpine"
+
+  # Wait for Keycloak operator to be ready after deploying it
+  - name: "wait-keycloak-operator"
+    events: ["after:deploy:keycloak-operator"]
+    wait:
+      running: true
+      terminatedWithCode: 0
+      timeout: 120
+    container:
+      labelSelector:
+        app.kubernetes.io/name: keycloak-operator
+      namespace: keycloak
+
+  # Wait for Keycloak to be ready after deploying it
+  - name: "wait-keycloak"
+    events: ["after:deploy:keycloak"]
+    wait:
+      running: true
+      timeout: 180
+    container:
+      labelSelector:
+        app: keycloak
+      namespace: keycloak
+
+  # Wait for NATS to be ready after deploying it
+  - name: "wait-nats"
+    events: ["after:deploy:nats"]
+    wait:
+      running: true
+      timeout: 120
+    container:
+      labelSelector:
+        app.kubernetes.io/name: nats
+
+# Commands
+commands:
+  fresh:
+    description: "Delete cluster, create fresh one, and start dev"
+    command: |
+      devspace run-pipeline delete-cluster
+      devspace run-pipeline create-cluster
+      devspace dev $@
+
+# Pipelines
+pipelines:
+  # Cluster lifecycle - run separately from dev/deploy
+  create-cluster:
+    run: |
+      ensure-kind-cluster
+
+  delete-cluster:
+    run: |
+      delete-kind-cluster
+
+  # Development and deployment
+  dev:
+    run: |
+      run_pipelines deploy
+      start_dev --all
+
+  deploy:
+    run: |
+      # CRDs must be first
+      create_deployments keycloak-crds
+      # Everything else in parallel
+      create_deployments nats keycloak-operator keycloak-realm keycloak auth-callout
+
+  purge:
+    run: |
+      stop_dev --all
+      purge_deployments --all
+
+# Images
+images:
+  auth-callout:
+    image: auth-callout
+    dockerfile: build/package/Dockerfile
+    context: .
+
+# Deployments
+deployments:
+  # Keycloak CRDs
+  keycloak-crds:
+    kubectl:
+      manifests:
+        - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/${KEYCLOAK_VERSION}/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+        - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/${KEYCLOAK_VERSION}/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+
+  # Keycloak Operator
+  keycloak-operator:
+    kubectl:
+      manifests:
+        - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/${KEYCLOAK_VERSION}/kubernetes/kubernetes.yml
+    namespace: keycloak
+
+  # Keycloak Realm ConfigMap
+  keycloak-realm:
+    kubectl:
+      inlineManifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: keycloak-realm-import
+          namespace: keycloak
+        data:
+          realm-csc.json: |
+            {
+              "id": "auth-callout",
+              "realm": "auth-callout",
+              "enabled": true,
+              "displayName": "Auth Callout Realm",
+              "accessTokenLifespan": 3600,
+              "ssoSessionIdleTimeout": 1800,
+              "ssoSessionMaxLifespan": 36000,
+              "clients": [
+                {
+                  "clientId": "mqtt-client",
+                  "enabled": true,
+                  "publicClient": false,
+                  "secret": "mqtt-client-secret",
+                  "directAccessGrantsEnabled": false,
+                  "standardFlowEnabled": false,
+                  "implicitFlowEnabled": false,
+                  "serviceAccountsEnabled": true,
+                  "protocol": "openid-connect",
+                  "defaultClientScopes": ["mqtt"],
+                  "optionalClientScopes": [],
+                  "attributes": {
+                    "oauth2.device.authorization.grant.enabled": "false",
+                    "oidc.ciba.grant.enabled": "false"
+                  }
+                }
+              ],
+              "clientScopes": [
+                {
+                  "name": "mqtt",
+                  "description": "MQTT access scope",
+                  "protocol": "openid-connect",
+                  "attributes": {
+                    "include.in.token.scope": "true",
+                    "display.on.consent.screen": "true"
+                  }
+                }
+              ],
+              "users": []
+            }
+
+  # Keycloak Instance
+  keycloak:
+    kubectl:
+      inlineManifest: |
+        apiVersion: k8s.keycloak.org/v2alpha1
+        kind: Keycloak
+        metadata:
+          name: keycloak
+          namespace: keycloak
+        spec:
+          instances: 1
+          http:
+            httpEnabled: true
+          hostname:
+            strict: false
+            strictBackchannel: false
+          ingress:
+            enabled: false
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "550Mi"
+            limits:
+              cpu: "1000m"
+              memory: "550Mi"
+          unsupported:
+            podTemplate:
+              spec:
+                volumes:
+                  - name: realm-import
+                    configMap:
+                      name: keycloak-realm-import
+                containers:
+                  - args:
+                      - "-Djgroups.dns.query=keycloak-discovery.keycloak"
+                      - "--verbose"
+                      - "start"
+                      - "--import-realm"
+                    volumeMounts:
+                      - name: realm-import
+                        mountPath: /opt/keycloak/data/import
+
+  # NATS
+  nats:
+    helm:
+      chart:
+        name: nats
+        version: ${NATS_VERSION}
+        repo: https://nats-io.github.io/k8s/helm/charts/
+      values:
+        fullnameOverride: nats
+        image:
+          repository: nats
+          tag: ${NATS_VERSION}-alpine
+        reloader:
+          image:
+            repository: natsio/nats-server-config-reloader
+            tag: ${NATS_RELOADER_VERSION}
+        natsBox:
+          image:
+            repository: natsio/nats-box
+            tag: ${NATS_BOX_VERSION}
+        config:
+          cluster:
+            enabled: true
+            replicas: 3
+          jetstream:
+            enabled: true
+            memoryStore:
+              enabled: true
+              maxSize: 2Gi
+            fileStore:
+              enabled: false
+          mqtt:
+            enabled: true
+            port: 1883
+            merge:
+              stream_replicas: 3
+              consumer_memory_storage: true
+          merge:
+            system_account: SYS
+            max_payload: 4194304
+            accounts:
+              SYS:
+                users:
+                  - user: sys
+              AUTH:
+                users:
+                  - nkey: << $AUTH_USER_NKEY >>
+              CSC:
+                jetstream: true
+            authorization:
+              auth_callout:
+                account: AUTH
+                issuer: << $AUTH_SIGNING_KEY >>
+                xkey: << $XKEY_PUBKEY >>
+                auth_users:
+                  - << $AUTH_USER_NKEY >>
+        container:
+          env:
+            GOMEMLIMIT: 1638MiB
+            AUTH_USER_NKEY: ${AUTH_USER_NKEY}
+            AUTH_SIGNING_KEY: ${AUTH_SIGNING_KEY}
+            XKEY_PUBKEY: ${XKEY_PUBKEY}
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+
+  # Auth-callout Service
+  auth-callout:
+    helm:
+      chart:
+        name: auth-callout
+        path: ./deploy
+      values:
+        image:
+          repository: auth-callout
+          tag: ${runtime.images.auth-callout.tag}
+          pullPolicy: IfNotPresent
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: auth-callout.127-0-0-1.nip.io
+              paths:
+                - path: /
+                  pathType: Prefix
+        serviceConfig:
+          nats:
+            url: "nats://nats:4222"
+            nkey-seed: ${AUTH_USER_NKEY_SEED}
+            issuer-seed: ${AUTH_SIGNING_KEY_SEED}
+            xkey-seed: ${XKEY_SEED}
+          jwks:
+            url: "http://keycloak-service.keycloak:8080/realms/auth-callout/protocol/openid-connect/certs"
+            issuer: "http://keycloak-service.keycloak:8080/realms/auth-callout"
+        permissions:
+          oauth2:
+            csc-admin:
+              subject: "csc-admin@example.com"
+              account: "CSC"
+            mqtt-client:
+              azp: "mqtt-client"
+              account: "CSC"
+              permissions:
+                pub:
+                  allow: ["test.>", "perf.>"]
+                sub:
+                  allow: ["test.>", "perf.>"]
+            mqtt-publisher:
+              azp: "mqtt-publisher"
+              account: "CSC"
+              permissions:
+                pub:
+                  allow: ["test.>", "perf.>"]
+                sub:
+                  allow: ["dummy.>"]
+            mqtt-subscriber:
+              azp: "mqtt-subscriber"
+              account: "CSC"
+              permissions:
+                pub:
+                  allow: ["dummy.>"]
+                sub:
+                  allow: ["test.>", "perf.>"]
+          mtls:
+            mqtt-client:
+              identity: "CN=mqtt-client.csc"
+              account: "CSC"
+          nkey:
+            nack-controller:
+              public_key: "NACK_USER_NKEY"
+              account: "CSC"
+            leaf-cpc1:
+              public_key: "LEAF_CPC1_USER_NKEY"
+              account: "CSC"
+            leaf-cpc2:
+              public_key: "LEAF_CPC2_USER_NKEY"
+              account: "CSC"
+            mtls-leaf:
+              public_key: "MTLS_LEAF_USER_NKEY"
+              account: "CSC"
+          noauth:
+            account: "CSC"
+
+# Development mode
+dev:
+  auth-callout:
+    imageSelector: auth-callout
+    devImage: golang:${GOLANG_VERSION}-alpine
+    container: auth-callout
+    workingDir: /app
+    sync:
+      - path: ./:/app
+        excludePaths:
+          - .git/
+          - .devspace/
+          - __debug*
+          - tmp/
+          - "*.exe"
+          - "*.test"
+        uploadExcludePaths:
+          - devspace.env
+    patches:
+      - op: replace
+        path: spec.containers[0].securityContext
+        value:
+          allowPrivilegeEscalation: true
+          privileged: true
+      - op: remove
+        path: spec.securityContext
+      - op: remove
+        path: spec.containers[0].resources
+    terminal:
+      command: ./scripts/devspace_start.sh
+    ssh:
+      enabled: true
+    proxyCommands:
+      - command: devspace
+      - command: kubectl
+      - command: helm
+      - gitCredentials: true
+    ports:
+      - port: "5005:5005"
+      - port: "8000:8000"
+      - port: "9090:9090"
+    open:
+      - url: http://auth-callout.127-0-0-1.nip.io:8000/healthz
+
+  nats:
+    labelSelector:
+      app.kubernetes.io/name: nats
+    ports:
+      - port: "4222:4222"
+      - port: "1883:1883"
+
+# Profiles
+profiles:
+  - name: obs
+    patches:
+      - op: add
+        path: /deployments/auth-callout/helm/values/serviceMonitor
+        value:
+          enabled: true
+      - op: add
+        path: /deployments/auth-callout/helm/values/serviceConfig/observability/tracing/enabled
+        value: true
+
+  - name: gateway
+    patches:
+      - op: replace
+        path: /deployments/auth-callout/helm/values/ingress/enabled
+        value: false
+      - op: add
+        path: /deployments/auth-callout/helm/values/gateway
+        value:
+          enabled: true
+          httpRoute:
+            parentRefs:
+              - name: vmaas-gateway
+                namespace: gateway
+            hostnames:
+              - ${DEVSPACE_NAME}.127-0-0-1.nip.io
+            routes:
+              - matches:
+                  - path: /
+                    pathType: PathPrefix
+
+  - name: vault
+    merge:
+      deployments:
+        auth-callout:
+          helm:
+            values:
+              vault:
+                enabled: true
+                role: "${DEVSPACE_NAME}"
+                authPath: "auth/kubernetes"
+                config:
+                  templateStaticSecretRenderInterval: "1s"
+                  hotConfigInterval: "1s"
+                secrets:
+                  nats: "secret/data/${DEVSPACE_NAME}/nats"
+                template:
+                  filename: "config-secrets.yaml"
+                  content: |
+                    nats:
+                      {{`{{- with secret "`}}{{ .Values.vault.secrets.nats }}{{`" }}`}}
+                      nkey-seed: "{{`{{ .Data.data.nkey_seed }}`}}"
+                      issuer-seed: "{{`{{ .Data.data.issuer_seed }}`}}"
+                      xkey-seed: "{{`{{ .Data.data.xkey_seed }}`}}"
+                      {{`{{- end }}`}}

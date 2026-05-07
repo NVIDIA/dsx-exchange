@@ -1,0 +1,37 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Permissions config for auth-callout. Merges operator-defined permissions with
+auto-generated NKey entries for internal services (NACK, mTLS leaves, CPC leaves).
+Pubkeys use ${ENV_VAR} syntax for runtime expansion from secrets.
+*/}}
+{{- $dcAccount := include "nats-event-bus.dcAccount" . -}}
+{{- $autoNkeys := dict
+    "nack-controller" (dict "public_key" "${NKEY_NACK_USER_PUBKEY}" "account" $dcAccount)
+    "surveyor" (dict "public_key" "${NKEY_SURVEYOR_PUBKEY}" "account" "SYS")
+-}}
+{{- if .Values.eventBus.mtls.enabled }}
+{{- $autoNkeys = set $autoNkeys "mtls-leaf" (dict "public_key" "${NKEY_MTLS_LEAF_PUBKEY}" "account" $dcAccount) }}
+{{- $autoNkeys = set $autoNkeys "mtls-authx-leaf" (dict "public_key" "${NKEY_MTLS_AUTHX_LEAF_PUBKEY}" "account" "AUTHX") }}
+{{- $autoNkeys = set $autoNkeys "mtls-sys-leaf" (dict "public_key" "${NKEY_MTLS_SYS_LEAF_PUBKEY}" "account" "SYS") }}
+{{- end }}
+{{- if eq .Values.eventBus.clusterType "csc" }}
+{{- range .Values.eventBus.cpcIds }}
+{{- $autoNkeys = set $autoNkeys (printf "leaf-cpc-%s" .) (dict "public_key" (printf "${NKEY_LEAF_CPC_%s_PUBKEY}" .) "account" "CSC") }}
+{{- end }}
+{{- end }}
+{{- $userNkeys := .Values.eventBus.auth.permissions.nkey | default dict -}}
+{{- $mergedNkeys := merge $userNkeys $autoNkeys -}}
+{{- $permissions := .Values.eventBus.auth.permissions | deepCopy -}}
+{{- $_ := set $permissions "nkey" $mergedNkeys -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-callout-permissions
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: auth-callout
+    app.kubernetes.io/part-of: nats-event-bus
+data:
+  permissions.json: {{ $permissions | toJson | quote }}

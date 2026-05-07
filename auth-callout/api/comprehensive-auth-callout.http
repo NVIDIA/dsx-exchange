@@ -1,0 +1,135 @@
+# Open this file in VSCode and use the REST extension to send requests to the API.
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# =============================================================================
+# Configuration
+# =============================================================================
+
+@baseUrl = http://localhost:8000
+
+# use 8080 if using ingress
+@clusterUrl = http://auth-callout.127-0-0-1.nip.io:8080
+
+# use 8090 if using gateway
+# @clusterUrl = http://auth-callout.127-0-0-1.nip.io:8090
+
+# =============================================================================
+# LOCAL DEVELOPMENT - KEYCLOAK CONFIGURATION
+# =============================================================================
+
+@keycloakUrl = {{$dotenv KEYCLOAK_ENDPOINT}}
+@keycloakRealm = {{$dotenv KEYCLOAK_REALM}}
+@keycloakClientId = {{$dotenv KEYCLOAK_APP_CLIENT_ID}}
+@keycloakServiceClientId = {{$dotenv KEYCLOAK_SERVICE_CLIENT_ID}}
+@keycloakServiceClientSecret = {{$dotenv KEYCLOAK_SERVICE_CLIENT_SECRET}}
+
+# Keycloak User Credentials
+@keycloakUserRwUsername = {{$dotenv KEYCLOAK_RW_USER_ID}}
+@keycloakUserRwPassword = {{$dotenv KEYCLOAK_RW_USER_PASSWORD}}
+@keycloakUserRoUsername = {{$dotenv KEYCLOAK_RO_USER_ID}}
+@keycloakUserRoPassword = {{$dotenv KEYCLOAK_RO_USER_PASSWORD}}
+@keycloakUserAdminUsername = {{$dotenv KEYCLOAK_ADMIN_USER_ID}}
+@keycloakUserAdminPassword = {{$dotenv KEYCLOAK_ADMIN_USER_PASSWORD}}
+
+# =============================================================================
+# LOCAL DEVELOPMENT - SSA CONFIGURATION
+# =============================================================================
+
+@ssaEndpoint = {{$dotenv SSA_ENDPOINT}}
+@ssaClientId = {{$dotenv SSA_CLIENT_ID}}
+@ssaClientSecret = {{$dotenv SSA_CLIENT_SECRET}}
+@ssaScope = {{$dotenv SSA_SCOPE}}
+@ssaTokenUrl = https://{{ssaEndpoint}}/token
+
+# =============================================================================
+# GET TOKENS - KEYCLOAK (Local Development Option)
+# =============================================================================
+
+### Get RW User Token - Keycloak
+# @name getKeycloakUserRwToken
+POST {{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{keycloakUserRwUsername}}&password={{keycloakUserRwPassword}}&grant_type=password&client_id={{keycloakClientId}}
+
+### Get RO User Token - Keycloak
+# @name getKeycloakUserRoToken
+POST {{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{keycloakUserRoUsername}}&password={{keycloakUserRoPassword}}&grant_type=password&client_id={{keycloakClientId}}
+
+### Get Admin User Token - Keycloak
+# @name getKeycloakUserAdminToken
+POST {{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+username={{keycloakUserAdminUsername}}&password={{keycloakUserAdminPassword}}&grant_type=password&client_id={{keycloakClientId}}
+
+### Get Service Token - Keycloak
+# @name getKeycloakServiceToken
+POST {{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id={{keycloakServiceClientId}}&client_secret={{keycloakServiceClientSecret}}
+
+# =============================================================================
+# GET TOKEN - SSA
+# =============================================================================
+
+### Get Service Token - SSA
+# @name getSSAServiceToken
+POST {{ssaTokenUrl}}
+Authorization: Basic {{ssaClientId}}:{{ssaClientSecret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&scope={{ssaScope}}
+
+# =============================================================================
+# Endpoints
+# =============================================================================
+### Home Endpoint - localhost
+GET {{baseUrl}}/v1/
+
+# =============================================================================
+# AUTHENTICATED ENDPOINTS - KEYCLOAK CREDS (Local Development Option)
+# =============================================================================
+
+### CORS Preflight Request
+OPTIONS {{clusterUrl}}/v1/
+Origin: http://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type, Authorization
+
+### Home Endpoint - Keycloak RW User
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getKeycloakUserRwToken.response.body.access_token}}
+
+### Home Endpoint - Keycloak RO User
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getKeycloakUserRoToken.response.body.access_token}}
+
+### Home Endpoint - Keycloak Admin User
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getKeycloakUserAdminToken.response.body.access_token}}
+
+### Home Endpoint - Keycloak Service Token
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getKeycloakServiceToken.response.body.access_token}}
+
+### Self-call Endpoint - Keycloak Service Token
+GET {{clusterUrl}}/v1/selfcall
+Authorization: Bearer {{getKeycloakServiceToken.response.body.access_token}}
+
+# =============================================================================
+# AUTHENTICATED ENDPOINTS - SSA CREDS (Local Development Alternative)
+# =============================================================================
+
+### Home Endpoint - SSA Service Token
+GET {{clusterUrl}}/v1/
+Authorization: Bearer {{getSSAServiceToken.response.body.access_token}}
+
+### Self-call Endpoint - SSA Service Token
+GET {{clusterUrl}}/v1/selfcall
+Authorization: Bearer {{getSSAServiceToken.response.body.access_token}}

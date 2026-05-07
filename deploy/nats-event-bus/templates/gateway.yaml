@@ -1,0 +1,98 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Gateway API routes to expose NATS services through Envoy Gateway.
+Routes are created for MQTT, NATS client, leafnode, and mTLS MQTT endpoints.
+*/}}
+{{- if .Values.eventBus.gateway.routes.mqtt.enabled }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: {{ .Values.eventBus.gateway.routes.mqtt.kind }}
+metadata:
+  name: nats-mqtt
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+  - name: {{ .Values.eventBus.gateway.routes.mqtt.gatewayName }}
+    namespace: {{ .Values.eventBus.gateway.routes.mqtt.gatewayNamespace }}
+    sectionName: {{ .Values.eventBus.gateway.routes.mqtt.sectionName }}
+  {{- if and (eq .Values.eventBus.gateway.routes.mqtt.kind "TLSRoute") .Values.eventBus.gateway.routes.mqtt.hostnames }}
+  hostnames:
+  {{- range .Values.eventBus.gateway.routes.mqtt.hostnames }}
+  - {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - name: nats
+      port: 1883
+{{- end }}
+{{- if .Values.eventBus.gateway.routes.natsClient.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: {{ .Values.eventBus.gateway.routes.natsClient.kind }}
+metadata:
+  name: nats-client
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+  - name: {{ .Values.eventBus.gateway.routes.natsClient.gatewayName }}
+    namespace: {{ .Values.eventBus.gateway.routes.natsClient.gatewayNamespace }}
+    sectionName: {{ .Values.eventBus.gateway.routes.natsClient.sectionName }}
+  {{- if and (eq .Values.eventBus.gateway.routes.natsClient.kind "TLSRoute") .Values.eventBus.gateway.routes.natsClient.hostnames }}
+  hostnames:
+  {{- range .Values.eventBus.gateway.routes.natsClient.hostnames }}
+  - {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - name: nats
+      port: 4222
+{{- end }}
+{{- if .Values.eventBus.gateway.routes.natsLeafnode.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: {{ .Values.eventBus.gateway.routes.natsLeafnode.kind }}
+metadata:
+  name: nats-leafnode
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+  - name: {{ .Values.eventBus.gateway.routes.natsLeafnode.gatewayName }}
+    namespace: {{ .Values.eventBus.gateway.routes.natsLeafnode.gatewayNamespace }}
+    sectionName: {{ .Values.eventBus.gateway.routes.natsLeafnode.sectionName }}
+  {{- if and (eq .Values.eventBus.gateway.routes.natsLeafnode.kind "TLSRoute") .Values.eventBus.gateway.routes.natsLeafnode.hostnames }}
+  hostnames:
+  {{- range .Values.eventBus.gateway.routes.natsLeafnode.hostnames }}
+  - {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - name: nats
+      port: 7422
+{{- end }}
+{{- if and .Values.eventBus.mtls.enabled .Values.eventBus.gateway.routes.mqttMtls.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: {{ .Values.eventBus.gateway.routes.mqttMtls.kind }}
+metadata:
+  name: nats-mqtt-mtls
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+  - name: {{ .Values.eventBus.gateway.routes.mqttMtls.gatewayName }}
+    namespace: {{ .Values.eventBus.gateway.routes.mqttMtls.gatewayNamespace }}
+    sectionName: {{ .Values.eventBus.gateway.routes.mqttMtls.sectionName }}
+  {{- if and (eq .Values.eventBus.gateway.routes.mqttMtls.kind "TLSRoute") .Values.eventBus.gateway.routes.mqttMtls.hostnames }}
+  hostnames:
+  {{- range .Values.eventBus.gateway.routes.mqttMtls.hostnames }}
+  - {{ . | quote }}
+  {{- end }}
+  {{- end }}
+  rules:
+  - backendRefs:
+    - name: nats-mtls
+      port: 1883
+{{- end }}

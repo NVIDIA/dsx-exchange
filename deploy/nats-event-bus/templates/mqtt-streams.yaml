@@ -1,0 +1,134 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+JetStream streams for MQTT persistence. On CPC clusters, streams include
+sources from CSC for cross-layer message replication via subject transforms.
+*/}}
+{{- $streams := .Values.eventBus.mqttStreams -}}
+{{- $isCPC := eq .Values.eventBus.clusterType "cpc" -}}
+{{- $clusterId := .Values.eventBus.clusterId -}}
+{{- $crossLayer := .Values.eventBus.crossLayer -}}
+---
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: mqtt-msgs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: mqtt-streams
+    app.kubernetes.io/part-of: nats-event-bus
+spec:
+  name: $MQTT_msgs
+  subjects:
+    - $MQTT.msgs.>
+  storage: {{ $streams.storage }}
+  replicas: {{ $streams.replicas }}
+  retention: limits
+  maxBytes: {{ $streams.maxBytes | int64 }}
+  maxAge: {{ $streams.maxAge | quote }}
+  discard: old
+  {{- if $isCPC }}
+  sources:
+    - name: $MQTT_msgs
+      externalApiPrefix: $JS.CSC.API
+      externalDeliverPrefix: csc2cpc.{{ $clusterId }}
+      subjectTransforms:
+        {{- range $crossLayer.cscExports }}
+        - source: {{ printf "$MQTT.msgs.%s" . | quote }}
+        {{- end }}
+        {{- range $crossLayer.cscPrefixedExports }}
+        - source: {{ printf "$MQTT.msgs.cpc.%s.%s" $clusterId . | quote }}
+          dest: {{ printf "$MQTT.msgs.%s" . | quote }}
+        {{- end }}
+  {{- end }}
+---
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: mqtt-rmsgs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: mqtt-streams
+    app.kubernetes.io/part-of: nats-event-bus
+spec:
+  name: $MQTT_rmsgs
+  subjects:
+    - $MQTT.rmsgs.>
+  storage: {{ $streams.storage }}
+  replicas: {{ $streams.replicas }}
+  retention: limits
+  maxBytes: {{ $streams.maxBytes | int64 }}
+  maxAge: {{ $streams.maxAge | quote }}
+  discard: old
+  maxMsgsPerSubject: 1
+  {{- if $isCPC }}
+  sources:
+    - name: $MQTT_rmsgs
+      externalApiPrefix: $JS.CSC.API
+      externalDeliverPrefix: csc2cpc.{{ $clusterId }}
+      subjectTransforms:
+        {{- range $crossLayer.cscExports }}
+        - source: {{ printf "$MQTT.rmsgs.%s" . | quote }}
+        {{- end }}
+        {{- range $crossLayer.cscPrefixedExports }}
+        - source: {{ printf "$MQTT.rmsgs.cpc.%s.%s" $clusterId . | quote }}
+          dest: {{ printf "$MQTT.rmsgs.%s" . | quote }}
+        {{- end }}
+  {{- end }}
+---
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: mqtt-sess
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: mqtt-streams
+    app.kubernetes.io/part-of: nats-event-bus
+spec:
+  name: $MQTT_sess
+  subjects:
+    - $MQTT.sess.>
+  storage: {{ $streams.storage }}
+  replicas: {{ $streams.replicas }}
+  retention: limits
+  maxBytes: {{ $streams.maxBytes | int64 }}
+  discard: old
+---
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: mqtt-qos2in
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: mqtt-streams
+    app.kubernetes.io/part-of: nats-event-bus
+spec:
+  name: $MQTT_qos2in
+  subjects:
+    - $MQTT.qos2.in.>
+  storage: {{ $streams.storage }}
+  replicas: {{ $streams.replicas }}
+  retention: limits
+  maxBytes: {{ $streams.maxBytes | int64 }}
+  maxAge: {{ $streams.maxAge | quote }}
+  discard: old
+---
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: mqtt-out
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: mqtt-streams
+    app.kubernetes.io/part-of: nats-event-bus
+spec:
+  name: $MQTT_out
+  subjects:
+    - $MQTT.out.>
+  storage: {{ $streams.storage }}
+  replicas: {{ $streams.replicas }}
+  retention: limits
+  maxBytes: {{ $streams.maxBytes | int64 }}
+  maxAge: {{ $streams.maxAge | quote }}
+  discard: old

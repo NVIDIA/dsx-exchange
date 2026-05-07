@@ -1,0 +1,1796 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+asyncapi: 3.1.0
+info:
+  title: NICo Managed Host State Event Bus
+  version: 1.0.0
+  description: >
+    AsyncAPI specification for NICo Managed Host State change events.
+    This spec defines the message structure for publishing managed host state
+    transitions and related metadata including DPU states, host initialization,
+    validation, assignment, and reprovisioning states.
+
+    The MQTT topic path should follow the following format:
+
+    - **State Changes**: nico/v1/machine/{machineId}/state
+
+servers:
+  production:
+    host: broker.example.com
+    protocol: mqtt
+    description: MQTT broker for NICo managed host state events
+
+channels:
+  managedHostState:
+    address: "nico/v1/machine/{machineId}/state"
+    parameters:
+      machineId:
+        description: Unique identifier for the managed host machine.
+    messages:
+      stateChangeMessage:
+        $ref: "#/components/messages/ManagedHostStateChangeMessage"
+
+operations:
+  publishManagedHostStateChange:
+    action: send
+    channel:
+      $ref: "#/channels/managedHostState"
+    messages:
+      - $ref: "#/channels/managedHostState/messages/stateChangeMessage"
+    description: >
+      Publish managed host state change events when a host transitions
+      between states in the lifecycle.
+
+  subscribeManagedHostStateChange:
+    action: receive
+    channel:
+      $ref: "#/channels/managedHostState"
+    messages:
+      - $ref: "#/channels/managedHostState/messages/stateChangeMessage"
+    description: >
+      Subscribe to managed host state change events for monitoring,
+      orchestration, and automation purposes.
+
+components:
+  messages:
+    ManagedHostStateChangeMessage:
+      name: ManagedHostStateChangeMessage
+      title: Managed Host State Change
+      payload:
+        type: object
+        required:
+          - machine_id
+          - managed_host_state
+          - timestamp
+        properties:
+          machine_id:
+            type: string
+            description: Unique identifier for the managed host machine.
+          timestamp:
+            type: string
+            format: date-time
+            description: ISO 8601 timestamp of the state change.
+          managed_host_state:
+            $ref: "#/components/schemas/ManagedHostState"
+            description: The managed host state object with state name and details.
+
+  schemas:
+    ManagedHostState:
+      description:
+        Possible Machine state-machine implementation Possible ManagedHost state-machine implementation Only DPU machine
+        field in DB will contain state. Host will be empty. DPU state field will be used to derive state for DPU and Host both.
+      oneOf:
+        - description: Dpu was discovered by a site-explorer and is being configuring via redfish.
+          type: object
+          required:
+            - dpu_states
+            - state
+          properties:
+            dpu_states:
+              $ref: "#/components/schemas/DpuDiscoveringStates"
+            state:
+              type: string
+              enum:
+                - dpudiscoveringstate
+        - description: DPU is not yet ready.
+          type: object
+          required:
+            - dpu_states
+            - state
+          properties:
+            dpu_states:
+              $ref: "#/components/schemas/DpuInitStates"
+            state:
+              type: string
+              enum:
+                - dpuinit
+        - description: DPU is ready, Host is not yet Ready.
+          type: object
+          required:
+            - machine_state
+            - state
+          properties:
+            machine_state:
+              $ref: "#/components/schemas/MachineState"
+            state:
+              type: string
+              enum:
+                - hostinit
+        - description: Host validation state for machine and DPU validation
+          type: object
+          required:
+            - state
+            - validation_state
+          properties:
+            state:
+              type: string
+              enum:
+                - validation
+            validation_state:
+              $ref: "#/components/schemas/ValidationState"
+        - description: Host is Ready for instance creation.
+          type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - ready
+        - description: Host is assigned to an Instance.
+          type: object
+          required:
+            - instance_state
+            - state
+          properties:
+            instance_state:
+              $ref: "#/components/schemas/InstanceState"
+            state:
+              type: string
+              enum:
+                - assigned
+        - description: Some cleanup is going on.
+          type: object
+          required:
+            - cleanup_state
+            - state
+          properties:
+            cleanup_state:
+              $ref: "#/components/schemas/CleanupState"
+            state:
+              type: string
+              enum:
+                - waitingforcleanup
+        - description:
+            A forced deletion process has been triggered by the admin CLI State controller will no longer manage the
+            Machine
+          type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - forcedeletion
+        - description: A dummy state used to create DPU in beginning. State will sync to Init when host will be created.
+          type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - created
+        - description: Machine moved to failed state. Recovery will be based on FailedCause
+          type: object
+          required:
+            - details
+            - machine_id
+            - state
+          properties:
+            details:
+              $ref: "#/components/schemas/FailureDetails"
+            machine_id:
+              $ref: "#/components/schemas/MachineId"
+            retry_count:
+              default: 0
+              type: integer
+              format: uint32
+              minimum: 0.0
+            state:
+              type: string
+              enum:
+                - failed
+        - description: State used to indicate that DPU reprovisioning is going on.
+          type: object
+          required:
+            - dpu_states
+            - state
+          properties:
+            dpu_states:
+              $ref: "#/components/schemas/DpuReprovisionStates"
+            state:
+              type: string
+              enum:
+                - dpureprovision
+        - description: State used to indicate that host reprovisioning is going on
+          type: object
+          required:
+            - reprovision_state
+            - state
+          properties:
+            reprovision_state:
+              $ref: "#/components/schemas/HostReprovisionState"
+            retry_count:
+              default: 0
+              type: integer
+              format: uint32
+              minimum: 0.0
+            state:
+              type: string
+              enum:
+                - hostreprovision
+        - description:
+            State used to indicate the API is currently waiting on the machine to send attestation measurements, or waiting
+            for measurements to match a valid/approved measurement bundle, before continuing on towards a Ready state.
+          type: object
+          required:
+            - measuring_state
+            - state
+          properties:
+            measuring_state:
+              $ref: "#/components/schemas/MeasuringState"
+            state:
+              type: string
+              enum:
+                - measuring
+        - type: object
+          required:
+            - measuring_state
+            - state
+          properties:
+            measuring_state:
+              $ref: "#/components/schemas/MeasuringState"
+            state:
+              type: string
+              enum:
+                - postassignedmeasuring
+        - type: object
+          required:
+            - bom_validating_state
+            - state
+          properties:
+            bom_validating_state:
+              $ref: "#/components/schemas/BomValidating"
+            state:
+              type: string
+              enum:
+                - bomvalidating
+    BmcFirmwareUpgradeSubstate:
+      oneOf:
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - checkfwversion
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+            - firmware_type
+            - task_id
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - waitforupdatecompletion
+            firmware_type:
+              $ref: "#/components/schemas/FirmwareComponentType"
+            task_id:
+              type: string
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+            - count
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - reboot
+            count:
+              type: integer
+              format: uint32
+              minimum: 0.0
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - waitforerotbackgroundcopytocomplete
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - hostpowercycle
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+            - failure_details
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - failed
+            failure_details:
+              type: string
+        - type: object
+          required:
+            - bmcfirmwareupdatesubstate
+          properties:
+            bmcfirmwareupdatesubstate:
+              type: string
+              enum:
+                - fwupdatecompleted
+    BomValidating:
+      oneOf:
+        - type: object
+          required:
+            - MatchingSku
+          properties:
+            MatchingSku:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+        - type: object
+          required:
+            - UpdatingInventory
+          properties:
+            UpdatingInventory:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+        - type: object
+          required:
+            - VerifyingSku
+          properties:
+            VerifyingSku:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+        - type: object
+          required:
+            - SkuVerificationFailed
+          properties:
+            SkuVerificationFailed:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+        - type: object
+          required:
+            - WaitingForSkuAssignment
+          properties:
+            WaitingForSkuAssignment:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+        - type: object
+          required:
+            - SkuMissing
+          properties:
+            SkuMissing:
+              $ref: "#/components/schemas/BomValidatingContext"
+          additionalProperties: false
+    BomValidatingContext:
+      description: A context for passing information between states thoughout the BOM validation process.
+      type: object
+      properties:
+        machine_validation_context:
+          type:
+            - string
+            - "null"
+        reboot_retry_count:
+          type:
+            - integer
+            - "null"
+          format: int64
+    CleanupState:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - init
+        - type: object
+          required:
+            - secure_erase_boss_context
+            - state
+          properties:
+            secure_erase_boss_context:
+              $ref: "#/components/schemas/SecureEraseBossContext"
+            state:
+              type: string
+              enum:
+                - secureeraseboss
+        - type: object
+          required:
+            - state
+          properties:
+            boss_controller_id:
+              type:
+                - string
+                - "null"
+            state:
+              type: string
+              enum:
+                - hostcleanup
+        - type: object
+          required:
+            - create_boss_volume_context
+            - state
+          properties:
+            create_boss_volume_context:
+              $ref: "#/components/schemas/CreateBossVolumeContext"
+            state:
+              type: string
+              enum:
+                - createbossvolume
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - disablebiosbmclockdown
+    CreateBossVolumeContext:
+      type: object
+      required:
+        - boss_controller_id
+        - create_boss_volume_state
+      properties:
+        boss_controller_id:
+          type: string
+        create_boss_volume_jid:
+          type:
+            - string
+            - "null"
+        create_boss_volume_state:
+          $ref: "#/components/schemas/CreateBossVolumeState"
+        iteration:
+          type:
+            - integer
+            - "null"
+          format: uint32
+          minimum: 0.0
+    CreateBossVolumeState:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - createbossvolume
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforjobscheduled
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - reboothost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforjobcompletion
+        - type: object
+          required:
+            - failure
+            - power_state
+            - state
+          properties:
+            failure:
+              type: string
+            power_state:
+              type: string
+            state:
+              type: string
+              enum:
+                - handlejobfailure
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - lockhost
+    DpuDiscoveringState:
+      oneOf:
+        - description: Dpu discovery via redfish states
+          type: object
+          required:
+            - dpudiscoverystate
+          properties:
+            dpudiscoverystate:
+              type: string
+              enum:
+                - initializing
+        - type: object
+          required:
+            - dpudiscoverystate
+          properties:
+            dpudiscoverystate:
+              type: string
+              enum:
+                - configuring
+        - type: object
+          required:
+            - dpudiscoverystate
+          properties:
+            dpudiscoverystate:
+              type: string
+              enum:
+                - rebootalldpus
+        - type: object
+          required:
+            - count
+            - dpudiscoverystate
+            - enable_secure_boot_state
+          properties:
+            count:
+              type: integer
+              format: uint32
+              minimum: 0.0
+            dpudiscoverystate:
+              type: string
+              enum:
+                - enablesecureboot
+            enable_secure_boot_state:
+              $ref: "#/components/schemas/SetSecureBootState"
+        - type: object
+          required:
+            - count
+            - dpudiscoverystate
+          properties:
+            count:
+              type: integer
+              format: uint32
+              minimum: 0.0
+            disable_secure_boot_state:
+              anyOf:
+                - $ref: "#/components/schemas/SetSecureBootState"
+                - type: "null"
+            dpudiscoverystate:
+              type: string
+              enum:
+                - disablesecureboot
+        - type: object
+          required:
+            - dpudiscoverystate
+          properties:
+            dpudiscoverystate:
+              type: string
+              enum:
+                - setuefihttpboot
+        - type: object
+          required:
+            - dpudiscoverystate
+          properties:
+            dpudiscoverystate:
+              type: string
+              enum:
+                - enablershim
+    DpuDiscoveringStates:
+      type: object
+      required:
+        - states
+      properties:
+        states:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/DpuDiscoveringState"
+    DpuInitState:
+      oneOf:
+        - type: object
+          required:
+            - dpustate
+            - substate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - installdpuos
+            substate:
+              $ref: "#/components/schemas/InstallDpuOsState"
+        - type: object
+          required:
+            - dpustate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - init
+        - type: object
+          required:
+            - dpustate
+            - substate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - waitingforplatformpowercycle
+            substate:
+              $ref: "#/components/schemas/PerformPowerOperation"
+        - type: object
+          required:
+            - dpustate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - waitingforplatformconfiguration
+        - type: object
+          required:
+            - dpustate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - pollingbiossetup
+        - type: object
+          required:
+            - dpustate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - waitingfornetworkconfig
+        - type: object
+          required:
+            - dpustate
+          properties:
+            dpustate:
+              type: string
+              enum:
+                - waitingfornetworkinstall
+    DpuInitStates:
+      type: object
+      required:
+        - states
+      properties:
+        states:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/DpuInitState"
+    DpuReprovisionStates:
+      type: object
+      required:
+        - states
+      properties:
+        states:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ReprovisionState"
+    FailureCause:
+      oneOf:
+        - type: string
+          enum:
+            - noerror
+        - type: object
+          required:
+            - nvmecleanfailed
+          properties:
+            nvmecleanfailed:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - discovery
+          properties:
+            discovery:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - reprovisioning
+          properties:
+            reprovisioning:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - machinevalidation
+          properties:
+            machinevalidation:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - unhandledstate
+          properties:
+            unhandledstate:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - measurementsfailedsignaturecheck
+          properties:
+            measurementsfailedsignaturecheck:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - measurementsretired
+          properties:
+            measurementsretired:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - measurementsrevoked
+          properties:
+            measurementsrevoked:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - measurementscavalidationfailed
+          properties:
+            measurementscavalidationfailed:
+              type: object
+              required:
+                - err
+              properties:
+                err:
+                  type: string
+          additionalProperties: false
+    FailureDetails:
+      type: object
+      required:
+        - cause
+        - failed_at
+        - source
+      properties:
+        cause:
+          $ref: "#/components/schemas/FailureCause"
+        failed_at:
+          type: string
+          format: date-time
+        source:
+          $ref: "#/components/schemas/FailureSource"
+    FailureSource:
+      oneOf:
+        - type: string
+          enum:
+            - noerror
+            - scout
+            - statemachine
+        - type: object
+          required:
+            - statemachinearea
+          properties:
+            statemachinearea:
+              $ref: "#/components/schemas/StateMachineArea"
+          additionalProperties: false
+    FirmwareComponentType:
+      type: string
+      enum:
+        - bmc
+        - cec
+        - uefi
+        - nic
+        - cpldmb
+        - cpldpdb
+        - hgxbmc
+        - combinedbmcuefi
+        - gpu
+        - unknown
+    HostPlatformConfigurationState:
+      oneOf:
+        - type: object
+          required:
+            - power_on
+            - state
+          properties:
+            power_on:
+              type: boolean
+            state:
+              type: string
+              enum:
+                - powercycle
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - checkhostconfig
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - unlockhost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - configurebios
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - pollingbiossetup
+        - type: object
+          required:
+            - set_boot_order_info
+            - state
+          properties:
+            set_boot_order_info:
+              $ref: "#/components/schemas/SetBootOrderInfo"
+            state:
+              type: string
+              enum:
+                - setbootorder
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - lockhost
+    HostReprovisionState:
+      oneOf:
+        - type: string
+          enum:
+            - checkingfirmware
+            - checkingfirmwarerepeat
+        - type: object
+          required:
+            - initialreset
+          properties:
+            initialreset:
+              type: object
+              required:
+                - last_time
+                - phase
+              properties:
+                last_time:
+                  type: string
+                  format: date-time
+                phase:
+                  $ref: "#/components/schemas/InitialResetPhase"
+          additionalProperties: false
+        - type: object
+          required:
+            - waitingforscript
+          properties:
+            waitingforscript:
+              type: object
+          additionalProperties: false
+        - type: object
+          required:
+            - waitingforupload
+          properties:
+            waitingforupload:
+              type: object
+              required:
+                - final_version
+                - firmware_type
+              properties:
+                final_version:
+                  type: string
+                firmware_number:
+                  type:
+                    - integer
+                    - "null"
+                  format: uint32
+                  minimum: 0.0
+                firmware_type:
+                  $ref: "#/components/schemas/FirmwareComponentType"
+                power_drains_needed:
+                  type:
+                    - integer
+                    - "null"
+                  format: uint32
+                  minimum: 0.0
+          additionalProperties: false
+        - type: object
+          required:
+            - waitingforfirmwareupgrade
+          properties:
+            waitingforfirmwareupgrade:
+              type: object
+              required:
+                - final_version
+                - firmware_type
+                - task_id
+              properties:
+                final_version:
+                  type: string
+                firmware_number:
+                  type:
+                    - integer
+                    - "null"
+                  format: uint32
+                  minimum: 0.0
+                firmware_type:
+                  $ref: "#/components/schemas/FirmwareComponentType"
+                power_drains_needed:
+                  type:
+                    - integer
+                    - "null"
+                  format: uint32
+                  minimum: 0.0
+                started_waiting:
+                  type:
+                    - string
+                    - "null"
+                  format: date-time
+                task_id:
+                  type: string
+          additionalProperties: false
+        - type: object
+          required:
+            - resetfornewfirmware
+          properties:
+            resetfornewfirmware:
+              type: object
+              required:
+                - final_version
+                - firmware_type
+              properties:
+                delay_until:
+                  type:
+                    - integer
+                    - "null"
+                  format: int64
+                final_version:
+                  type: string
+                firmware_type:
+                  $ref: "#/components/schemas/FirmwareComponentType"
+                last_power_drain_operation:
+                  anyOf:
+                    - $ref: "#/components/schemas/PowerDrainState"
+                    - type: "null"
+                power_drains_needed:
+                  type:
+                    - integer
+                    - "null"
+                  format: uint32
+                  minimum: 0.0
+          additionalProperties: false
+        - type: object
+          required:
+            - newfirmwarereportedwait
+          properties:
+            newfirmwarereportedwait:
+              type: object
+              required:
+                - final_version
+                - firmware_type
+              properties:
+                final_version:
+                  type: string
+                firmware_type:
+                  $ref: "#/components/schemas/FirmwareComponentType"
+                previous_reset_time:
+                  type:
+                    - integer
+                    - "null"
+                  format: int64
+          additionalProperties: false
+        - type: object
+          required:
+            - failedfirmwareupgrade
+          properties:
+            failedfirmwareupgrade:
+              type: object
+              required:
+                - firmware_type
+              properties:
+                firmware_type:
+                  $ref: "#/components/schemas/FirmwareComponentType"
+                reason:
+                  type:
+                    - string
+                    - "null"
+                report_time:
+                  type:
+                    - string
+                    - "null"
+                  format: date-time
+          additionalProperties: false
+    InitialResetPhase:
+      type: string
+      enum:
+        - start
+        - bmcwasreset
+        - waithostboot
+    InstallDpuOsState:
+      oneOf:
+        - type: object
+          required:
+            - installdpuosstate
+          properties:
+            installdpuosstate:
+              type: string
+              enum:
+                - installingbfb
+        - type: object
+          required:
+            - installdpuosstate
+            - progress
+            - task_id
+          properties:
+            installdpuosstate:
+              type: string
+              enum:
+                - waitforinstallcomplete
+            progress:
+              type: string
+            task_id:
+              type: string
+        - type: object
+          required:
+            - installdpuosstate
+          properties:
+            installdpuosstate:
+              type: string
+              enum:
+                - completed
+        - type: object
+          required:
+            - installdpuosstate
+            - msg
+          properties:
+            installdpuosstate:
+              type: string
+              enum:
+                - installationerror
+            msg:
+              type: string
+    InstanceState:
+      description: Possible Instance state-machine implementation, for when the machine host is assigned to a tenant
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - init
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfornetworksegmenttobeready
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfornetworkconfig
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingforstorageconfig
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - dpaprovisioning
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfordpatobeready
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingforextensionservicesconfig
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingforreboottoready
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - ready
+        - type: object
+          required:
+            - platform_config_state
+            - state
+          properties:
+            platform_config_state:
+              $ref: "#/components/schemas/HostPlatformConfigurationState"
+            state:
+              type: string
+              enum:
+                - hostplatformconfiguration
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfordpustoup
+        - type: object
+          required:
+            - state
+          properties:
+            retry:
+              default:
+                count: 0
+              allOf:
+                - $ref: "#/components/schemas/RetryInfo"
+            state:
+              type: string
+              enum:
+                - bootingwithdiscoveryimage
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - switchtoadminnetwork
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfornetworkreconfig
+        - type: object
+          required:
+            - dpu_states
+            - state
+          properties:
+            dpu_states:
+              $ref: "#/components/schemas/DpuReprovisionStates"
+            state:
+              type: string
+              enum:
+                - dpureprovision
+        - type: object
+          required:
+            - details
+            - machine_id
+            - state
+          properties:
+            details:
+              $ref: "#/components/schemas/FailureDetails"
+            machine_id:
+              $ref: "#/components/schemas/MachineId"
+            state:
+              type: string
+              enum:
+                - failed
+        - type: object
+          required:
+            - reprovision_state
+            - state
+          properties:
+            reprovision_state:
+              $ref: "#/components/schemas/HostReprovisionState"
+            state:
+              type: string
+              enum:
+                - hostreprovision
+        - type: object
+          required:
+            - network_config_update_state
+            - state
+          properties:
+            network_config_update_state:
+              $ref: "#/components/schemas/NetworkConfigUpdateState"
+            state:
+              type: string
+              enum:
+                - networkconfigupdate
+    LockdownInfo:
+      type: object
+      required:
+        - mode
+        - state
+      properties:
+        mode:
+          $ref: "#/components/schemas/LockdownMode"
+        state:
+          $ref: "#/components/schemas/LockdownState"
+    LockdownMode:
+      description: Whether lockdown should be enabled or disabled in an operation
+      type: string
+      enum:
+        - enable
+        - disable
+    LockdownState:
+      type: string
+      enum:
+        - setlockdown
+        - timewaitfordpudown
+        - waitfordpuup
+        - pollinglockdownstatus
+    MachineId:
+      type: string
+    MachineState:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - init
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - enableipmioverlan
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingforplatformconfiguration
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - pollingbiossetup
+        - type: object
+          required:
+            - state
+          properties:
+            set_boot_order_info:
+              anyOf:
+                - $ref: "#/components/schemas/SetBootOrderInfo"
+                - type: "null"
+            state:
+              type: string
+              enum:
+                - setbootorder
+        - type: object
+          required:
+            - state
+            - uefi_setup_info
+          properties:
+            state:
+              type: string
+              enum:
+                - uefisetup
+            uefi_setup_info:
+              $ref: "#/components/schemas/UefiSetupInfo"
+        - type: object
+          required:
+            - measuring_state
+            - state
+          properties:
+            measuring_state:
+              $ref: "#/components/schemas/MeasuringState"
+            state:
+              type: string
+              enum:
+                - measuring
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitingfordiscovery
+        - type: object
+          required:
+            - state
+          properties:
+            skip_reboot_wait:
+              default: false
+              type: boolean
+            state:
+              type: string
+              enum:
+                - discovered
+        - description: Lockdown handling.
+          type: object
+          required:
+            - lockdown_info
+            - state
+          properties:
+            lockdown_info:
+              $ref: "#/components/schemas/LockdownInfo"
+            state:
+              type: string
+              enum:
+                - waitingforlockdown
+    MachineValidatingState:
+      oneOf:
+        - type: object
+          required:
+            - reboothost
+          properties:
+            reboothost:
+              type: object
+              required:
+                - validation_id
+              properties:
+                validation_id:
+                  type: string
+                  format: uuid
+          additionalProperties: false
+        - type: object
+          required:
+            - machinevalidating
+          properties:
+            machinevalidating:
+              type: object
+              required:
+                - completed
+                - context
+                - id
+                - total
+              properties:
+                completed:
+                  type: integer
+                  format: uint
+                  minimum: 0.0
+                context:
+                  type: string
+                id:
+                  type: string
+                  format: uuid
+                is_enabled:
+                  default: true
+                  type: boolean
+                total:
+                  type: integer
+                  format: uint
+                  minimum: 0.0
+          additionalProperties: false
+    MeasuringState:
+      description: MeasuringState contains states used for host attestion (or measured boot).
+      oneOf:
+        - description:
+            WaitingForMeasurements is reported when the machine has reached a state where the API is now expecting measurements
+            from the machine, which Scout sends upon receiving an Action::Measure from the API.
+          type: string
+          enum:
+            - waitingformeasurements
+        - description:
+            PendingBundle is reported when the API has received measurements from the machine, but the measurements do
+            not match a known bundle. At this point, a matching bundle needs to be created, either via "promoting" a measurement
+            report from a machine (through manual interaction or trusted approval automation), or by manually creating a new bundle.
+          type: string
+          enum:
+            - pendingbundle
+    NetworkConfigUpdateState:
+      description:
+        Tenant has requested network config update for the existing instance. At this point, instance config, instance
+        network config version are already increased.
+      type: string
+      enum:
+        - waitingfornetworksegmenttobeready
+        - waitingforconfigsynced
+        - releaseoldresources
+    PerformPowerOperation:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - "off"
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - "on"
+    PowerDrainState:
+      type: string
+      enum:
+        - "off"
+        - powercycle
+        - "on"
+    ReprovisionState:
+      oneOf:
+        - type: string
+          enum:
+            - firmwareupgrade
+            - waitingfornetworkinstall
+            - poweringoffhost
+            - powerdown
+            - buffertime
+            - verifyfirmareversions
+            - waitingfornetworkconfig
+            - reboothostbmc
+            - reboothost
+            - notunderreprovision
+        - type: object
+          required:
+            - bmcfirmwareupgrade
+          properties:
+            bmcfirmwareupgrade:
+              type: object
+              required:
+                - substate
+              properties:
+                substate:
+                  $ref: "#/components/schemas/BmcFirmwareUpgradeSubstate"
+          additionalProperties: false
+        - type: object
+          required:
+            - installdpuos
+          properties:
+            installdpuos:
+              type: object
+              required:
+                - substate
+              properties:
+                substate:
+                  $ref: "#/components/schemas/InstallDpuOsState"
+          additionalProperties: false
+    RetryInfo:
+      type: object
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          format: uint64
+          minimum: 0.0
+    SecureEraseBossContext:
+      type: object
+      required:
+        - boss_controller_id
+        - secure_erase_boss_state
+      properties:
+        boss_controller_id:
+          type: string
+        iteration:
+          type:
+            - integer
+            - "null"
+          format: uint32
+          minimum: 0.0
+        secure_erase_boss_state:
+          $ref: "#/components/schemas/SecureEraseBossState"
+        secure_erase_jid:
+          type:
+            - string
+            - "null"
+    SecureEraseBossState:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - unlockhost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - secureeraseboss
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforjobcompletion
+        - type: object
+          required:
+            - failure
+            - power_state
+            - state
+          properties:
+            failure:
+              type: string
+            power_state:
+              type: string
+            state:
+              type: string
+              enum:
+                - handlejobfailure
+    SetBootOrderInfo:
+      type: object
+      required:
+        - set_boot_order_state
+      properties:
+        set_boot_order_jid:
+          type:
+            - string
+            - "null"
+        set_boot_order_state:
+          $ref: "#/components/schemas/SetBootOrderState"
+    SetBootOrderState:
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - setbootorder
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforsetbootorderjobscheduled
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - reboothost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforsetbootorderjobcompletion
+    SetSecureBootState:
+      oneOf:
+        - type: object
+          required:
+            - disablesecurebootstate
+          properties:
+            disablesecurebootstate:
+              type: string
+              enum:
+                - checksecurebootstatus
+        - type: object
+          required:
+            - disablesecurebootstate
+          properties:
+            disablesecurebootstate:
+              type: string
+              enum:
+                - disablesecureboot
+        - type: object
+          required:
+            - disablesecurebootstate
+          properties:
+            disablesecurebootstate:
+              type: string
+              enum:
+                - setsecureboot
+        - type: object
+          required:
+            - disablesecurebootstate
+            - reboot_count
+          properties:
+            disablesecurebootstate:
+              type: string
+              enum:
+                - rebootdpu
+            reboot_count:
+              type: integer
+              format: uint32
+              minimum: 0.0
+        - type: object
+          required:
+            - disablesecurebootstate
+            - task_id
+          properties:
+            disablesecurebootstate:
+              type: string
+              enum:
+                - waitcertificateupload
+            task_id:
+              type: string
+    StateMachineArea:
+      type: string
+      enum:
+        - default
+        - hostinit
+        - mainflow
+        - assignedinstance
+    UefiSetupInfo:
+      type: object
+      required:
+        - uefi_setup_state
+      properties:
+        uefi_password_jid:
+          type:
+            - string
+            - "null"
+        uefi_setup_state:
+          $ref: "#/components/schemas/UefiSetupState"
+    UefiSetupState:
+      description: Substates of enabling/disabling lockdown
+      oneOf:
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - unlockhost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - setuefipassword
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforpasswordjobscheduled
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - powercyclehost
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - waitforpasswordjobcompletion
+        - type: object
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              enum:
+                - lockdownhost
+    ValidationState:
+      oneOf:
+        - description:
+            "Host machine validation placeholder for DPU machine validation TODO: add DPU validation state SKU validatioon
+            can also be moved here, so that all validation done @ one place"
+          type: object
+          required:
+            - machine_validation
+            - validation_type
+          properties:
+            machine_validation:
+              $ref: "#/components/schemas/MachineValidatingState"
+            validation_type:
+              type: string
+              enum:
+                - machinevalidation

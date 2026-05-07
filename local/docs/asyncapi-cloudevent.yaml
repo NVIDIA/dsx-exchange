@@ -1,0 +1,107 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+asyncapi: 3.0.0
+info:
+  title: Example CloudEvent AsyncAPI
+  version: 1.0.0
+  description: >
+    AsyncAPI 3.0 document describing publication of a single CloudEvent
+    (`com.example.someevent`) on the `mytopic` channel.
+defaultContentType: application/cloudevents+json
+servers:
+  mqttBroker:
+    host: broker.example.com:1883
+    protocol: mqtt
+    protocolVersion: 3.1.1
+    description: Example MQTT broker transporting CloudEvents.
+channels:
+  mytopic:
+    address: mytopic
+    description: CloudEvents describing `com.example.someevent`.
+    messages:
+      cloudEventMessage:
+        $ref: '#/components/messages/cloudEventMessage'
+operations:
+  publishSomeEvent:
+    action: send
+    channel:
+      $ref: '#/channels/mytopic'
+    summary: Publish CloudEvents of type `com.example.someevent`.
+    messages:
+      - $ref: '#/channels/mytopic/messages/cloudEventMessage'
+components:
+  schemas:
+    BaseCloudEvent:
+      type: object
+      description: Common CloudEvent attributes shared by all events.
+      required:
+        - specversion
+        - type
+        - source
+        - id
+        - time
+        - datacontenttype
+      properties:
+        specversion:
+          type: string
+          enum: ['1.0']
+          description: Version of the CloudEvents specification.
+        type:
+          type: string
+          description: Application-defined event type.
+        source:
+          type: string
+          description: Identifies the context in which an event happened.
+        subject:
+          type: string
+          description: Optional subject within the source.
+        id:
+          type: string
+          description: Unique identifier for the event.
+        time:
+          type: string
+          format: date-time
+          description: Timestamp for when the event occurred.
+        datacontenttype:
+          type: string
+          description: Content type of the `data` attribute.
+        dataschema:
+          type: string
+          format: uri
+          description: URI identifying the schema of the `data` attribute.
+    ExampleEvent:
+      allOf:
+        - $ref: '#/components/schemas/BaseCloudEvent'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExampleEventData'
+    ExampleEventData:
+      type: object
+      description: Application-specific payload for `com.example.someevent`.
+      additionalProperties: true
+      properties:
+        exampleField:
+          type: string
+          description: Placeholder attribute for domain-specific content.
+  messages:
+    cloudEventMessage:
+      name: CloudEventMessage
+      title: CloudEvent Wrapper
+      summary: CloudEvent published to `mytopic`.
+      contentType: application/cloudevents+json; charset=utf-8
+      payload:
+        $ref: '#/components/schemas/ExampleEvent'
+      examples:
+        - payload:
+            specversion: '1.0'
+            type: com.example.someevent
+            time: '2018-04-05T03:56:24Z'
+            id: '1234-1234-1234'
+            source: /mycontext/subcontext
+            datacontenttype: application/json; charset=utf-8
+            data:
+              exampleField: sample value

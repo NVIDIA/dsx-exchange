@@ -1,0 +1,19 @@
+# Now handle tag pushes with native stdin
+echo "pre-push received the arguments: $@"
+while read local_ref local_sha remote_ref remote_sha; do
+    echo "--------------------------------"
+    echo "Reading from stdin"
+    echo "--------------------------------"
+    echo "local_ref: $local_ref"
+    echo "local_sha: $local_sha"
+    echo "remote_ref: $remote_ref"
+    echo "remote_sha: $remote_sha"
+    echo "--------------------------------"
+    if [[ "$local_ref" == refs/tags/* ]]; then
+        tag_name="${local_ref#refs/tags/}"
+        echo "Tag push detected: $tag_name"
+        scripts/check-tag-appversion.sh $tag_name
+        # Your validation here
+        # exit 1 to abort
+    fi
+done

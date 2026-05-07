@@ -1,0 +1,78 @@
+{
+  "id": "event-bus",
+  "realm": "event-bus",
+  "enabled": true,
+  "displayName": "Event Bus Realm",
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "attributes": {
+    "frontendUrl": "http://172.18.200.1"
+  },
+  "clients": [
+    {
+      "clientId": "mqtt-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mqtt-client-secret",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["mqtt"],
+      "optionalClientScopes": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
+    },
+    {
+      "clientId": "mqtt-publisher",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mqtt-publisher-secret",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["mqtt"],
+      "optionalClientScopes": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
+    },
+    {
+      "clientId": "mqtt-subscriber",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "mqtt-subscriber-secret",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["mqtt"],
+      "optionalClientScopes": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "mqtt",
+      "description": "MQTT access scope",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      }
+    }
+  ],
+  "users": []
+}
+

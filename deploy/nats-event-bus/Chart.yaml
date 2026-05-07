@@ -1,0 +1,30 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: nats-event-bus
+description: NATS Event Bus with mTLS support
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: nats
+    version: "2.12.6"
+    repository: https://nats-io.github.io/k8s/helm/charts/
+    alias: nats
+  - name: nats
+    version: "2.12.6"
+    repository: https://nats-io.github.io/k8s/helm/charts/
+    alias: nats-mtls
+    condition: eventBus.mtls.enabled
+  - name: nack
+    version: "0.33.2"
+    repository: https://nats-io.github.io/k8s/helm/charts/
+  - name: auth-callout
+    version: "0.1.1"
+    repository: file://../../auth-callout/deploy
+    alias: auth-callout
+  - name: surveyor
+    version: "0.20.7"
+    repository: https://nats-io.github.io/k8s/helm/charts/

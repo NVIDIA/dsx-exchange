@@ -1,0 +1,20 @@
+🚀 {{ include "app.fullname" . }} has been deployed successfully!
+
+📍 Service Details:
+   Name: {{ include "app.fullname" . }}
+   Namespace: {{ .Release.Namespace }}
+
+{{- if .Values.vault.enabled }}
+🔐 Vault is enabled and will inject secrets via hot config
+   Secrets available at: /vault/secrets/config-secrets.yaml
+{{- end }}
+
+{{- if and .Values.serviceConfig (index .Values.serviceConfig "observability") }}
+{{- if (index .Values.serviceConfig "observability").metrics.enabled }}
+📊 Metrics available at:
+   http://{{ include "app.fullname" . }}:{{ (index .Values.serviceConfig "observability").metrics.prometheus.port }}/metrics
+{{- end }}
+{{- end }}
+
+🔍 To check status: kubectl get pods -n {{ .Release.Namespace }}
+📋 To view logs: kubectl logs -f deployment/{{ include "app.fullname" . }} -n {{ .Release.Namespace }}

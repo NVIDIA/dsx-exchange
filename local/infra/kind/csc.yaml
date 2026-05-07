@@ -1,0 +1,46 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: csc
+networking:
+  # CSC - Common Services Cluster
+  # Internal addresses can overlap since clusters communicate via gateway only
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+  # Disable default CNI so we can install our own if needed
+  disableDefaultCNI: false
+nodes:
+- role: control-plane
+  image: kindest/node:v1.31.9
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "layer=csc,topology.kubernetes.io/zone=zone-a"
+- role: worker
+  image: kindest/node:v1.31.9
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "layer=csc,topology.kubernetes.io/zone=zone-b"
+- role: worker
+  image: kindest/node:v1.31.9
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "layer=csc,topology.kubernetes.io/zone=zone-c"
+- role: worker
+  image: kindest/node:v1.31.9
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "layer=csc,topology.kubernetes.io/zone=zone-a"

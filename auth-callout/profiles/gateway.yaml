@@ -1,0 +1,38 @@
+# Gateway API Profile
+# Enables Gateway API routing instead of traditional Ingress
+# Gateway infrastructure is deployed by devspace-pipelines when this profile is active
+#
+# Usage:
+#   devspace dev -p gateway
+#   devspace dev -p gateway,obs
+#   devspace dev -p gateway,authz
+
+vars:
+  AUTH_CALLOUT_GATEWAY_DNS: ${DEVSPACE_NAME}.127-0-0-1.nip.io
+
+deployments:
+  auth-callout:
+    helm:
+      values:
+        # Disable Ingress
+        ingress:
+          enabled: false
+
+        # Enable Gateway API
+        gateway:
+          enabled: true
+          httpRoute:
+            parentRefs:
+              - name: vmaas-gateway
+                namespace: gateway
+            hostnames:
+              - ${AUTH_CALLOUT_GATEWAY_DNS}
+            routes:
+              - matches:
+                  - path: /
+                    pathType: PathPrefix
+
+dev:
+  auth-callout:
+    open:
+      - url: http://${AUTH_CALLOUT_GATEWAY_DNS}:8000/v1/

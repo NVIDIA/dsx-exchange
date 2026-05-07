@@ -1,0 +1,77 @@
+# Git
+.git
+.gitignore
+
+# DevSpace and development tools
+.devspace/
+devspace.yaml
+local-dev/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+README.md
+docs/
+*.md
+!cmd/*/README.md
+
+# Build artifacts and binaries
+bin/
+build/ci/
+.jfrogignore
+__debug*
+auth-callout
+tmp/
+.go/
+go.work*
+.gopath/
+
+# Test files and coverage reports
+test/
+*_test.go
+*.out
+coverage/
+coverage.html
+coverage.out
+
+# Deployment and CI/CD
+deploy/
+scripts/
+Makefile
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+.air.toml
+build-errors.log
+
+# IDE and editor files
+*.sublime-*
+*.vscode
+.idea
+
+# Log files
+*.log
+logs/
+
+# Dependencies that should be downloaded in container
+# (uncomment if you want to exclude go.sum)
+# go.sum
+
+# Tools and utilities
+tools/
+vault-agent/
+
+# Configuration files (add specific ones if they shouldn't be in the image)
+catalog-info.yaml
+.dockerignore
+
+# Swagger generated files
+api/proto/*/v[0-9]/*.swagger.json

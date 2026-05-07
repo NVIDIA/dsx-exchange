@@ -1,0 +1,83 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore DevSpace cache and log folder
+.devspace/
+devspace.env
+
+# Ignore binary
+auth-callout
+
+# But not the service code
+!cmd/auth-callout
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+coverage.html
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE files
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local configuration files
+config.yaml
+config.local.yaml
+config.override.yaml
+
+# Environment files for secrets.
+# Use .envrc for confiiguration
+.env
+.env.local
+.env.production
+
+# Build artifacts
+dist/
+# build/
+
+# Temporary files
+tmp/
+temp/
+
+# Editor backup files
+*~
+*.bak
+*.backup
+
+# Test artifacts
+test-results/
+test-reports/
+
+# Local gopath
+.gopath/
+examples/.gopath/

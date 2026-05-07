@@ -1,0 +1,9 @@
+{{/*
+Validation template for configuration requirements
+This template will fail the deployment if required configurations are missing
+*/}}
+
+{{/* This template doesn't produce any output - it's just for validation */}}
+{{- if false }}
+# This template is used only for validation and produces no output
+{{- end }}

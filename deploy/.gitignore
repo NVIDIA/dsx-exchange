@@ -1,0 +1,34 @@
+# Helm chart artifacts
+*.tgz
+Chart.lock
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+*.log
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Backup files
+*.backup
+*~
+

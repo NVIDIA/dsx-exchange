@@ -1,0 +1,26 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Cluster-specific environment variables for NATS pods.
+Values are derived from clusterType/clusterId so operators don't need to
+manually configure cluster names, JetStream domains, or server names.
+*/}}
+{{- $clusterType := .Values.eventBus.clusterType -}}
+{{- $clusterId := .Values.eventBus.clusterId -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-env-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: nats-config
+    app.kubernetes.io/part-of: nats-event-bus
+data:
+  NATS_CLUSTER_NAME: {{ if eq $clusterType "cpc" }}{{ printf "%s-%s" $clusterType $clusterId | quote }}{{ else }}{{ $clusterType | quote }}{{ end }}
+  NATS_JS_DOMAIN: {{ $clusterType | upper | quote }}
+{{- if .Values.eventBus.mtls.enabled }}
+  NATS_MTLS_SERVER_NAME: {{ if eq $clusterType "cpc" }}{{ printf "%s-%s-mtls" $clusterType $clusterId | quote }}{{ else }}{{ printf "%s-mtls" $clusterType | quote }}{{ end }}
+  MTLS_LEAF_ACCOUNT: {{ include "nats-event-bus.dcAccount" . | quote }}
+{{- end }}

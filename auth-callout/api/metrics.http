@@ -1,0 +1,72 @@
+# Metrics verification and Prometheus queries
+
+# NOTE: Prometheus provider runs on port 9090 (automatically port-forwarded with obs profile)
+# If not using obs profile, manually run: kubectl port-forward svc/auth-callout-metrics 9090:9090
+@metricsUrl = http://localhost:9090
+@prometheusUrl = http://prometheus.127-0-0-1.nip.io:8080
+
+# =============================================================================
+# Service Metrics Endpoint
+# =============================================================================
+
+### Get All Metrics
+# Returns all metrics in Prometheus/OpenMetrics format
+GET {{metricsUrl}}/metrics
+
+# =============================================================================
+# Prometheus Queries (requires obs profile - NO port-forward needed)
+# =============================================================================
+# IMPORTANT: Prometheus scrapes every 15 seconds (configurable in serviceMonitor.interval)
+# - First scrape happens 15-30 seconds after service starts
+# - If queries return empty, wait 30 seconds and retry
+# - Check /api/v1/targets to verify scraping is working
+# =============================================================================
+
+### Query Custom Metric Count
+# Total number of auth requests
+GET {{prometheusUrl}}/api/v1/query?query=auth_requests_total
+
+### Query Auth Errors
+# Total number of auth errors
+GET {{prometheusUrl}}/api/v1/query?query=auth_errors_total
+
+### Query Auth Request Duration
+# Duration of auth requests
+GET {{prometheusUrl}}/api/v1/query?query=auth_request_duration_seconds_bucket
+
+### Query Average Auth Duration
+# Calculate average duration (sum / count)
+GET {{prometheusUrl}}/api/v1/query?query=rate(auth_request_duration_seconds_sum[5m])/rate(auth_request_duration_seconds_count[5m])
+
+### Query 95th Percentile Auth Latency
+# 95th percentile of auth request duration
+GET {{prometheusUrl}}/api/v1/query?query=histogram_quantile(0.95,rate(auth_request_duration_seconds_bucket[5m]))
+
+### Query HTTP Server Request Count
+# Automatically created by OTel HTTP server instrumentation
+GET {{prometheusUrl}}/api/v1/query?query={__name__="http.server.request.duration_seconds_count"}
+
+### Check Scrape Targets
+# Verify Prometheus is scraping your service (look for target state="up")
+GET {{prometheusUrl}}/api/v1/targets
+
+# =============================================================================
+# Common Metrics Available
+# =============================================================================
+#
+# NATS Auth Callout Metrics:
+#   auth_requests_total
+#   auth_errors_total
+#   auth_request_duration_seconds_bucket/count/sum
+#
+# HTTP Server Metrics (OTel auto-instrumentation):
+#   http.server.request.duration_seconds_bucket/count/sum
+#   http.server.request.body.size_bytes_bucket/count/sum
+#   http.server.response.body.size_bytes_bucket/count/sum
+#
+# Go Runtime & Process Metrics:
+#   go_goroutines
+#   go_memstats_alloc_bytes
+#   go_gc_duration_seconds
+#   process_cpu_seconds_total
+#   process_resident_memory_bytes

@@ -1,0 +1,27 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Outbound leaf node connections for CPC clusters to connect to CSC.
+CSC clusters accept incoming connections and don't need outbound config.
+*/}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-leafnodes-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: nats-config
+    app.kubernetes.io/part-of: nats-event-bus
+data:
+  leafnodes.conf: |
+{{- if and (eq .Values.eventBus.clusterType "cpc") .Values.eventBus.cscEndpoint }}
+    remotes: [
+      {
+        urls: [{{ .Values.eventBus.cscEndpoint | quote }}]
+        nkey: $LEAF_USER_SEED
+        account: CSC
+      }
+    ]
+{{- end }}

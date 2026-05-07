@@ -1,0 +1,59 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Common CPC values - shared across all CPC clusters
+#
+# This file contains operator-facing configuration only.
+# Internal NATS accounts, mappings, and leaf nodes are auto-generated
+# by the nats-event-bus Helm chart based on eventBus.clusterType.
+
+# Event Bus Configuration
+eventBus:
+  clusterType: cpc
+  # clusterId is set in cpc-1.yaml, cpc-2.yaml, etc.
+  cscEndpoint: "nats://172.18.200.1:7422"
+
+  # Cross-layer subject routing
+  crossLayer:
+    # Subjects CSC exports to all CPCs (imported unmodified)
+    cscExports:
+      - "broadcast.>"
+    # Subjects CSC exports with cpc.{id}. prefix (prefix stripped on import)
+    cscPrefixedExports:
+      - "command.>"
+    # Subjects CPC exports to CSC (prefixed with cpc.{id}. on CSC side)
+    cpcExports:
+      - "sensor.>"
+
+  # Auth permissions for CPC account
+  auth:
+    permissions:
+      oauth2:
+        mqtt-client:
+          azp: "mqtt-client"
+          account: "CPC"
+          permissions:
+            pub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+            sub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+        mqtt-publisher:
+          azp: "mqtt-publisher"
+          account: "CPC"
+          permissions:
+            pub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+            sub:
+              allow: ["dummy.>"]
+        mqtt-subscriber:
+          azp: "mqtt-subscriber"
+          account: "CPC"
+          permissions:
+            pub:
+              allow: ["dummy.>"]
+            sub:
+              allow: ["test.>", "perf.>", "cpc.*.test.>"]
+      # mTLS permissions defined per-cluster in cpc-N.yaml
+      mtls: {}
+      noauth:
+        account: "CPC"

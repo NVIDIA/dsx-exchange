@@ -1,0 +1,10 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Output files
+dist/
+
+.DS_Store

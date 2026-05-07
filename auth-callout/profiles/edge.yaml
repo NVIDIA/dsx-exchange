@@ -1,0 +1,7 @@
+deployments:
+  auth-callout:
+    helm:
+      values:
+        image:
+          repository: ${runtime.images.auth-callout.image}
+          tag: ${runtime.images.auth-callout.tag}
