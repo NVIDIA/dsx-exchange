@@ -383,7 +383,7 @@ vault:
         {{`{{- end }}`}}
 ```
 
-See `docs/examples/values-vault-example.yaml` for a complete working example.
+See `../docs/examples/values-vault-example.yaml` for a complete working example.
 
 ## Values File Structure
 

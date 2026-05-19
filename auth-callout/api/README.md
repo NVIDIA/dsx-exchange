@@ -14,7 +14,7 @@ This is a form of executable documentation that can be used to invoke API calls 
 
 ### Configuration
 
-Copy `.env.example` in this directory to `.env` and populate with the required secrets for your testing.
+Copy `env.example` in this directory to `.env` and populate with the required secrets for your testing.
 
 For local/devspace development and testing, the example contents are valid for the necessary operations.
 

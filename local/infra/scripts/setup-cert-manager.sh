@@ -25,12 +25,17 @@ deploy_to_cluster() {
 }
 
 # Deploy to all clusters in parallel
+pids=()
+
 for cluster in csc cpc-1 cpc-2; do
     if kind get clusters 2>/dev/null | grep -q "^${cluster}$"; then
         deploy_to_cluster "$cluster" &
+        pids+=("$!")
     fi
 done
-wait
+
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo "cert-manager deployed successfully"
-

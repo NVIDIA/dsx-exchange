@@ -66,6 +66,14 @@ func Generate(collector *metrics.Collector, brokerURL string, scenario ScenarioC
 	if err != nil {
 		return nil, err
 	}
+	if collector.NumPublishers != 0 || collector.NumSubscribers != 0 || collector.NumTopics != 0 {
+		scenario.NumPublishers = collector.NumPublishers
+		scenario.NumSubscribers = collector.NumSubscribers
+		scenario.NumTopics = collector.NumTopics
+	}
+	if collector.MessageSize != 0 {
+		scenario.MessageSize = collector.MessageSize
+	}
 
 	report := &Report{
 		Metadata: Metadata{

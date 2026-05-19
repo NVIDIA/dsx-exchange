@@ -55,7 +55,58 @@ SECRETS_DIR="${SCRIPT_DIR}/secrets/${cluster}"
 CLUSTER_XKEY_FILE="${SCRIPT_DIR}/keys/${cluster}/xkey.nk"
 SECRETS_NKEYS_DIR="${SECRETS_DIR}/nkeys"
 
-if [ ! -d "${SECRETS_NKEYS_DIR}" ]; then
+nkeys_complete() {
+  local required_files=(
+    "auth-callout-keys/issuer-seed"
+    "auth-callout-keys/nkey-seed"
+    "auth-callout-keys/xkey-seed"
+    "nats-auth-signing/pubkey"
+    "nats-auth-signing/seed"
+    "nats-authx-user/pubkey"
+    "nats-authx-user/seed"
+    "nats-mtls-authx-leaf/pubkey"
+    "nats-mtls-authx-leaf/seed"
+    "nats-mtls-leaf/pubkey"
+    "nats-mtls-leaf/seed"
+    "nats-mtls-sys-leaf/pubkey"
+    "nats-mtls-sys-leaf/seed"
+    "nats-nack-user/nack-user.nk"
+    "nats-nack-user/pubkey"
+    "nats-nack-user/seed"
+    "nats-surveyor/pubkey"
+    "nats-surveyor/seed"
+    "nats-xkey/pubkey"
+    "nats-xkey/seed"
+    "xkey.nk"
+  )
+
+  if [ "${cluster}" = "csc" ]; then
+    local cpc_id
+    local cpc_ids
+    cpc_ids=$(yq -r '.eventBus.cpcIds[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true)
+    for cpc_id in ${cpc_ids}; do
+      required_files+=("nats-leaf-cpc-${cpc_id}/pubkey")
+      required_files+=("nats-leaf-cpc-${cpc_id}/seed")
+    done
+  fi
+
+  local rel
+  for rel in "${required_files[@]}"; do
+    if [ ! -s "${SECRETS_NKEYS_DIR}/${rel}" ]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+if ! nkeys_complete; then
+  if [ -d "${SECRETS_NKEYS_DIR}" ]; then
+    echo "Existing auth keys for ${cluster} are incomplete; regenerating..."
+    rm -rf "${SECRETS_DIR}"
+    rm -f "${CLUSTER_XKEY_FILE}"
+  fi
+
   echo "Generating auth keys for ${cluster}..."
   mkdir -p "${SECRETS_DIR}" "$(dirname "${CLUSTER_XKEY_FILE}")"
 
@@ -85,7 +136,23 @@ fi
 
 # Generate mTLS certificates if they don't exist
 CERTS_DIR="${SCRIPT_DIR}/certs/${cluster}"
-if [ ! -d "${CERTS_DIR}" ]; then
+
+certs_complete() {
+  for cert_file in ca.pem server.pem server-key.pem client.pem client-key.pem; do
+    if [ ! -s "${CERTS_DIR}/${cert_file}" ]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+if ! certs_complete; then
+  if [ -d "${CERTS_DIR}" ]; then
+    echo "Existing mTLS certificates for ${cluster} are incomplete; regenerating..."
+    rm -rf "${CERTS_DIR}"
+  fi
+
   echo "Generating mTLS certificates..."
   "${SCRIPT_DIR}/gen-mtls-certs.sh"
 fi

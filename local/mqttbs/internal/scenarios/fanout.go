@@ -40,10 +40,7 @@ func (s *FanOut1K) Config() report.ScenarioConfig {
 }
 
 func (s *FanOut1K) Run(ctx context.Context, config *benchmark.Config, collector *metrics.Collector) error {
-	const (
-		numSubscribers = 1000
-	)
-
+	numSubscribers := config.FanOutSubscribers
 	duration := config.Duration
 	msgRate := config.PublishRate
 	messageSize := config.MessageSize

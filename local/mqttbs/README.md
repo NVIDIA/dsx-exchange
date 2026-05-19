@@ -22,6 +22,17 @@ go build -o mqttbs ./cmd/mqttbs
 
 # Run all Basic scenarios
 ./mqttbs run basic-suite --broker tcp://localhost:1883
+
+# Run a smoke-sized Basic suite
+./mqttbs run basic-suite --broker tcp://localhost:1883 \
+  --duration 5s \
+  --connection-clients 50 \
+  --connection-rate 25 \
+  --fanout-subscribers 20 \
+  --p2p-clients 20 \
+  --fanin-publishers 20 \
+  --fanin-subscribers 3 \
+  --fanin-topics 20
 ```
 
 ## Scenarios
@@ -35,6 +46,8 @@ go build -o mqttbs ./cmd/mqttbs
 | `basic-suite` | Run all above scenarios sequentially |
 
 All scenarios use MQTT 3.1.1 with QoS 1.
+
+The scenario names preserve the Open MQTT Benchmark Suite shape, but the CLI scale flags can reduce the counts for local smoke validation. The `local` Makefile uses those flags for `make benchmark-basic`; use `make benchmark-basic-full` for the full 10k/1k suite.
 
 ## Metrics
 

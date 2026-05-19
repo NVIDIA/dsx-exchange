@@ -36,14 +36,22 @@ specification for standardized MQTT broker performance testing.`,
 
 func runCmd() *cobra.Command {
 	var (
-		brokerURL   string
-		username    string
-		password    string
-		reportDir   string
-		duration    time.Duration
-		publishRate int
-		messageSize int
+		brokerURL         string
+		username          string
+		password          string
+		reportDir         string
+		duration          time.Duration
+		publishRate       int
+		messageSize       int
+		connectionClients int
+		connectionRate    int
+		fanOutSubscribers int
+		p2pClients        int
+		fanInPublishers   int
+		fanInSubscribers  int
+		fanInTopics       int
 	)
+	defaultConfig := benchmark.NewConfig()
 
 	cmd := &cobra.Command{
 		Use:   "run [scenario]",
@@ -71,10 +79,21 @@ Examples:
 			config.PublishRate = publishRate
 			config.MessageSize = messageSize
 			config.Duration = duration
+			config.ConnectionClients = connectionClients
+			config.ConnectionRate = connectionRate
+			config.FanOutSubscribers = fanOutSubscribers
+			config.P2PClients = p2pClients
+			config.FanInPublishers = fanInPublishers
+			config.FanInSubscribers = fanInSubscribers
+			config.FanInTopics = fanInTopics
 
 			// Validate message size
 			if messageSize < 8 {
 				return fmt.Errorf("message size must be at least 8 bytes")
+			}
+			if connectionClients <= 0 || connectionRate <= 0 || fanOutSubscribers <= 0 ||
+				p2pClients <= 0 || fanInPublishers <= 0 || fanInSubscribers <= 0 || fanInTopics <= 0 {
+				return fmt.Errorf("scenario scale values must be positive")
 			}
 
 			return runScenario(cmd, args[0], config)
@@ -88,6 +107,13 @@ Examples:
 	cmd.Flags().DurationVar(&duration, "duration", 1*time.Minute, "Scenario duration (e.g. 30s, 1m, 5m)")
 	cmd.Flags().IntVar(&publishRate, "publish-rate", 1, "Messages per second per publisher")
 	cmd.Flags().IntVar(&messageSize, "message-size", 16, "Message payload size in bytes")
+	cmd.Flags().IntVar(&connectionClients, "connection-clients", defaultConfig.ConnectionClients, "Number of clients for connection scenario")
+	cmd.Flags().IntVar(&connectionRate, "connection-rate", defaultConfig.ConnectionRate, "Connections per second for connection scenario")
+	cmd.Flags().IntVar(&fanOutSubscribers, "fanout-subscribers", defaultConfig.FanOutSubscribers, "Number of subscribers for fanout scenario")
+	cmd.Flags().IntVar(&p2pClients, "p2p-clients", defaultConfig.P2PClients, "Number of publisher/subscriber pairs for point-to-point scenario")
+	cmd.Flags().IntVar(&fanInPublishers, "fanin-publishers", defaultConfig.FanInPublishers, "Number of publishers for fan-in scenario")
+	cmd.Flags().IntVar(&fanInSubscribers, "fanin-subscribers", defaultConfig.FanInSubscribers, "Number of subscribers for fan-in scenario")
+	cmd.Flags().IntVar(&fanInTopics, "fanin-topics", defaultConfig.FanInTopics, "Number of topics for fan-in scenario")
 
 	return cmd
 }

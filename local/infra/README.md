@@ -176,7 +176,7 @@ kubectl top pods -n event-bus-nats --context kind-csc
 
 ## Keycloak (OAuth2 Authentication)
 
-Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1).
+Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side tests use localhost port-forwarding because Docker-network LoadBalancer IPs are not reachable from every workstation environment.
 
 **Deployment:**
 
@@ -199,11 +199,18 @@ make setup-keycloak
 
 **Access:**
 
-Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. All clusters access Keycloak at this address.
+Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. All clusters access Keycloak at this address. From the host, prefer `make test-functional` or `make test-performance`; those targets port-forward Keycloak to `http://127.0.0.1:18080` automatically.
 
 ```bash
-# Verify Keycloak is accessible
+# Verify Keycloak from inside the Docker network
 curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
+
+# Verify Keycloak from the host
+kubectl port-forward -n envoy-gateway-system svc/$(kubectl get svc \
+  --context kind-csc -n envoy-gateway-system \
+  -l gateway.envoyproxy.io/owning-gateway-name=shared-gateway \
+  -o jsonpath='{.items[0].metadata.name}') 18080:80 --context kind-csc
+curl http://127.0.0.1:18080/realms/event-bus/.well-known/openid-configuration
 ```
 
 **Token Endpoint (all clusters):**

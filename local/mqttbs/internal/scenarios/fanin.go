@@ -41,12 +41,9 @@ func (s *FanIn1K) Config() report.ScenarioConfig {
 }
 
 func (s *FanIn1K) Run(ctx context.Context, config *benchmark.Config, collector *metrics.Collector) error {
-	const (
-		numPublishers  = 1000
-		numSubscribers = 5
-		numTopics      = 1000
-	)
-
+	numPublishers := config.FanInPublishers
+	numSubscribers := config.FanInSubscribers
+	numTopics := config.FanInTopics
 	duration := config.Duration
 	msgRate := config.PublishRate
 	messageSize := config.MessageSize
@@ -201,8 +198,8 @@ func (s *FanIn1K) Run(ctx context.Context, config *benchmark.Config, collector *
 		go func(pubIdx int) {
 			defer wg.Done()
 
-			// Each publisher publishes to its own topic with unique suffix
-			topic := fmt.Sprintf("test/%s/%d", config.TestRunID, pubIdx+1)
+			// Each publisher publishes to a deterministic topic from the configured set.
+			topic := fmt.Sprintf("test/%s/%d", config.TestRunID, (pubIdx%numTopics)+1)
 			ticker := time.NewTicker(time.Second / time.Duration(msgRate))
 			defer ticker.Stop()
 

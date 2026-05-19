@@ -56,7 +56,7 @@ sudo brew services restart chipmk/tap/docker-mac-net-connect
 
 ```bash
 # Create all three Kind clusters and deploy infrastructure
-make setup-clusters setup-infra
+make setup-infra
 
 # Verify infrastructure is ready
 make verify-infra
@@ -75,11 +75,17 @@ make deploy-nats
 # Run functional tests against all candidates
 make test-functional
 
-# Run performance benchmarks
+# Run performance e2e smoke tests
 make test-performance
 
-# Run benchmark suite
+# Run full performance benchmarks
+make benchmark-performance
+
+# Run MQTT benchmark smoke suite
 make benchmark-basic
+
+# Run full MQTT benchmark suite
+make benchmark-basic-full
 ```
 
 ## Testing Strategy
@@ -96,11 +102,16 @@ make benchmark-basic
 
 ### Performance Tests
 
+- Default e2e smoke coverage for local Kind
+- Local and federated throughput paths
+- Retained and non-retained messages
+- QoS 0 and QoS 1 publish paths
+- Latency percentiles (p50, p95, p99)
+
+Run `make benchmark-performance` for the full requirement thresholds:
+
 - Throughput: 200k msgs/sec target
 - Persistent messages: 20k msgs/sec target
-- Concurrent connections: 10k target
-- Message sizes: 1KB to 4MB
-- Latency percentiles (p50, p95, p99)
 
 ## Common Commands
 
@@ -122,8 +133,10 @@ make validate-nats           # Validate NATS deployment
 
 # Testing
 make test-functional         # Run functional tests (MQTT + federation)
-make test-performance        # Run performance benchmarks
-make benchmark-basic         # Run MQTT benchmark basic suite
+make test-performance        # Run performance e2e smoke tests
+make benchmark-performance   # Run full performance benchmarks
+make benchmark-basic         # Run MQTT benchmark smoke suite
+make benchmark-basic-full    # Run full MQTT benchmark basic suite
 
 # Monitoring & Cleanup
 make status                  # Check deployment status

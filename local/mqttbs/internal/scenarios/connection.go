@@ -40,18 +40,20 @@ func (s *Connection10K) Config() report.ScenarioConfig {
 }
 
 func (s *Connection10K) Run(ctx context.Context, config *benchmark.Config, collector *metrics.Collector) error {
-	const (
-		numClients = 10000
-		connRate   = 100 // connections per second
-	)
+	numClients := config.ConnectionClients
+	connRate := config.ConnectionRate
 
 	holdDuration := config.Duration
+	collector.NumPublishers = 0
+	collector.NumSubscribers = int64(numClients)
+	collector.NumTopics = 0
+	collector.MessageSize = 0
 
 	fmt.Printf("Connecting %d clients at %d conn/sec...\n", numClients, connRate)
 
 	var wg sync.WaitGroup
 	clients := make([]mqtt.Client, numClients)
-	ticker := time.NewTicker(time.Second / connRate)
+	ticker := time.NewTicker(time.Second / time.Duration(connRate))
 	defer ticker.Stop()
 
 	connStart := time.Now()

@@ -25,6 +25,13 @@ func getMTLSBrokerURL() string {
 	return "ssl://172.18.200.1:8883"
 }
 
+func getTCPBrokerURL() string {
+	if url := os.Getenv("MQTT_TCP_BROKER"); url != "" {
+		return url
+	}
+	return "tcp://172.18.200.1:1883"
+}
+
 // getMTLSCertPaths returns paths to mTLS certificates
 // These should be extracted from the Kubernetes secrets or generated locally
 func getMTLSCertPaths() (cert, key, ca string) {
@@ -233,7 +240,7 @@ func TestMTLSPubSub(t *testing.T) {
 // TestMTLSToTCPRouting tests that messages published via mTLS are received by TCP clients
 func TestMTLSToTCPRouting(t *testing.T) {
 	mtlsBroker := getMTLSBrokerURL()
-	tcpBroker := "tcp://172.18.200.1:1883" // Core NATS via TCP
+	tcpBroker := getTCPBrokerURL()
 	cert, key, ca := getMTLSCertPaths()
 
 	// Fail test if certificates don't exist
@@ -325,7 +332,7 @@ func TestMTLSToTCPRouting(t *testing.T) {
 // TestTCPToMTLSRouting tests that messages published via TCP are received by mTLS clients
 func TestTCPToMTLSRouting(t *testing.T) {
 	mtlsBroker := getMTLSBrokerURL()
-	tcpBroker := "tcp://172.18.200.1:1883" // Core NATS via TCP
+	tcpBroker := getTCPBrokerURL()
 	cert, key, ca := getMTLSCertPaths()
 
 	// Fail test if certificates don't exist

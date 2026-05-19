@@ -807,7 +807,7 @@ components:
       description: OAuth2 SSA token in MQTT password field (username "oauthtoken").
       flows:
         clientCredentials:
-          tokenUrl: https://auth.nvidia.com/token
+          tokenUrl: https://auth.example.com/token
           availableScopes:
             mqtt: Access to MQTT topics
 

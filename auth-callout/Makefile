@@ -1,6 +1,6 @@
 # Auth-callout Service Makefile
 
-.PHONY: add-license-headers build check-license-headers clean clean-modcache deps-update dev dev-build dev-debug dev-debug-suspend dev-debug-suspend-with-delve-logs dev-debug-with-delve-logs dev-lint devspace-all devspace-macos docker-build docker-run fmt godoc help init-hooks init-project install-tools lint pre-commit-run release run run-client run-service test test-helm test-integration test-integration-devspace third-party-licenses version
+.PHONY: add-license-headers build check-license-headers clean clean-modcache deps-update dev dev-build dev-debug dev-debug-suspend dev-debug-suspend-with-delve-logs dev-debug-with-delve-logs dev-lint devspace-all devspace-macos docker-build docker-run fmt godoc help init-hooks init-project install-tools lint pre-commit-run release run run-service test test-helm test-integration test-integration-devspace third-party-licenses version
 
 # Variables
 BINARY_NAME=auth-callout
@@ -9,12 +9,15 @@ DOCKERFILE_PATH=build/package/Dockerfile
 GOFLAGS=-mod=vendor
 TEST_FLAGS=-race -v -count 1
 GOCMD=go
-GO_LICENSES_VERSION=v2.0.1
+GO_LICENSES_VERSION=v1.6.0
 ADDLICENSE_VERSION=v1.2.0
 COPYRIGHT_HOLDER=NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 COPYRIGHT_YEAR=2026
+GIT_HOOKS_DIR=$(shell git rev-parse --git-path hooks 2>/dev/null || echo .git/hooks)
+TOOLS_BIN=$(CURDIR)/tmp/bin
+GO_LICENSES=$(TOOLS_BIN)/go-licenses
 
-build: deps-update ## Build the binary
+build: ## Build the binary
 	go build $(GOFLAGS) -o $(BINARY_NAME) src/cmd/auth_callout/main.go
 
 clean: ## Clean build artifacts
@@ -125,31 +128,28 @@ godoc: ## Generate and serve documentation locally
 help: ## Show this help message
   ## Shows all targets in this file with a  '<target name>:  ##<description>' format
 	@echo "Available commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 init-git-hooks: ## Initialize git hooks
 	@echo "#====================================================================================================================="
 	@echo "# ==> Initializing git hooks..."
 	@echo "#====================================================================================================================="
-	cp scripts/pre-push .git/hooks/pre-push
-	chmod +x .git/hooks/pre-push
+	mkdir -p "$(GIT_HOOKS_DIR)"
+	cp scripts/pre-push "$(GIT_HOOKS_DIR)/pre-push"
+	chmod +x "$(GIT_HOOKS_DIR)/pre-push"
 	@echo "Git hooks initialized successfully"
 
 init-pre-commit-hooks: ## Initialize pre-commit hooks
 	@echo "#====================================================================================================================="
 	@echo "# ==> Initializing pre-commit hooks..."
 	@echo "#====================================================================================================================="
-	@mkdir -p .git/hooks
-	echo "#!/bin/sh\nmake pre-commit-run" > .git/hooks/pre-commit
-	chmod +x .git/hooks/pre-commit
+	@mkdir -p "$(GIT_HOOKS_DIR)"
+	printf '%s\n%s\n' '#!/bin/sh' 'make -C auth-callout pre-commit-run' > "$(GIT_HOOKS_DIR)/pre-commit"
+	chmod +x "$(GIT_HOOKS_DIR)/pre-commit"
 	pre-commit install --hook-type commit-msg
 	@echo "Pre-commit hooks initialized successfully"
 
 init-project: install-tools ## Initialize project
-	@echo "#====================================================================================================================="
-	@echo "# ==> Initializing environment files..."
-	@echo "#====================================================================================================================="
-	cp devspace.env.example devspace.env
 	cp api/env.example api/.env
 	@echo "#====================================================================================================================="
 	@echo "# ==> Using namespace auth-callout for devspace..."
@@ -172,7 +172,7 @@ install-tools: init-pre-commit-hooks ## Install development tools
 	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install github.com/go-delve/delve/cmd/dlv@latest'
 	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install golang.org/x/tools/gopls@latest'
 	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install sigs.k8s.io/kind@latest'
-	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install github.com/google/go-licenses/v2@$(GO_LICENSES_VERSION)'
+	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install github.com/google/go-licenses@$(GO_LICENSES_VERSION)'
 	@bash -c 'GOBIN=$$(go env GOPATH)/bin $(GOCMD) install github.com/google/addlicense@$(ADDLICENSE_VERSION)'
 	@bash -c 'echo "Tools installed to: $$(go env GOPATH)/bin"'
 	@echo "Make sure Go's bin directory is in your PATH"
@@ -198,10 +198,6 @@ release: clean build lint test test-integration ## Prepare release build
 run: build ## Run the service locally
 	./$(BINARY_NAME)
 
-run-client: ## Run the client
-	cd examples && go mod tidy && go get ./... &&  go run shared_client.go
-	@echo Check otel for the trace
-
 run-service: build ## Run the service
 	./$(BINARY_NAME)
 
@@ -224,8 +220,12 @@ add-license-headers: ## Add SPDX license headers to source files
 check-license-headers: ## Verify SPDX license headers are present
 	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y $(COPYRIGHT_YEAR) -ignore "vendor/**" -ignore "tests/**" -check src/
 
-third-party-licenses: ## Regenerate THIRD_PARTY_LICENSES.csv
-	GOOS=linux GOARCH=amd64 GOFLAGS=$(GOFLAGS) go-licenses report ./... > THIRD_PARTY_LICENSES.csv
+$(GO_LICENSES):
+	@mkdir -p "$(TOOLS_BIN)"
+	GOBIN="$(TOOLS_BIN)" GOFLAGS= $(GOCMD) install github.com/google/go-licenses@$(GO_LICENSES_VERSION)
+
+third-party-licenses: $(GO_LICENSES) ## Regenerate THIRD_PARTY_LICENSES.csv
+	PATH="$(TOOLS_BIN):$$PATH" bash scripts/regenerate-third-party-licenses.sh ../THIRD_PARTY_LICENSES.csv
 
 version: ## Show current version
 	@echo "auth-callout version $$(git describe --tags --abbrev=0 2>/dev/null || echo 'no-tag')"

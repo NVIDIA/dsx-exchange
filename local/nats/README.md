@@ -25,11 +25,14 @@ Each layer runs a 3-node NATS cluster with MQTT support, JetStream for persisten
 ### Deploy to All Layers
 
 ```bash
-# From project root
-make deploy-nats
+# From the repository root
+make -C local deploy-nats
 
 # Or manually
-./scripts/deploy-nats.sh
+cd local/nats
+./deploy.sh csc
+./deploy.sh cpc-1
+./deploy.sh cpc-2
 ```
 
 ### Deploy to Single Layer
@@ -203,7 +206,7 @@ Check JetStream stream usage and adjust retention policies as needed.
 ## References
 
 - [NATS Documentation](https://docs.nats.io/)
-- [NATS MQTT Support](https://docs.nats.io/running-a-nats-service/nats_admin/mqtt)
+- [NATS MQTT Support](https://docs.nats.io/running-a-nats-service/configuration/mqtt)
 - [JetStream](https://docs.nats.io/nats-concepts/jetstream)
 - [Leaf Nodes](https://docs.nats.io/running-a-nats-service/configuration/leafnodes)
 - [NATS Helm Chart](https://github.com/nats-io/k8s/tree/main/helm/charts/nats)

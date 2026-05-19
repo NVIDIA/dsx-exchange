@@ -51,15 +51,18 @@ deploy_to_cluster() {
 
 # Deploy to all clusters in parallel
 echo "Deploying Envoy Gateway to all clusters in parallel..."
+pids=()
 
 for cluster in csc cpc-1 cpc-2; do
     if kind get clusters | grep -q "^${cluster}$"; then
         deploy_to_cluster "$cluster" &
+        pids+=("$!")
     fi
 done
 
 # Wait for all deployments to complete
-wait
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo "Envoy Gateway deployed successfully"
-

@@ -162,9 +162,9 @@ Final file content:
 ```yaml
 # NATS Auth Callout secrets
 nats:
-  nkey-seed: "SUAIBDPBAUTWCWBKIO6XHQN..."
-  issuer-seed: "SAANJIBNEKGCRUWSO5XKJYR..."
-  xkey-seed: "SXAIBDPBAUTWCWBKIO6XHQN..."
+  nkey-seed: "<NATS_NKEY_SEED>"
+  issuer-seed: "<NATS_ISSUER_SEED>"
+  xkey-seed: "<NATS_XKEY_SEED>"
 ```
 
 **Notice:**
@@ -344,7 +344,7 @@ However, when using the **HTTP API directly** (which is what Vault Agent does in
 ```bash
 # 1. Store secret using CLI (no /data/)
 vault kv put secret/myapp/nats \
-  nkey_seed="SUAIBDPBAUTWCWBKIO6XHQN..."
+  nkey_seed="<NATS_NKEY_SEED>"
 
 # 2. Reference in template (with /data/)
 {{`{{- with secret "secret/data/myapp/nats" }}`}}

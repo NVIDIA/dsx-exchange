@@ -31,6 +31,7 @@ type TestConfig struct {
 	PublisherBroker  string
 	SubscriberBroker string
 	Topic            string
+	SubscriberTopic  string
 	QoS              byte
 	Retained         bool
 	Pairs            int
@@ -81,14 +82,82 @@ type testStats struct {
 // MessageHeaderSize is the size of the timestamp header in bytes
 const MessageHeaderSize = 8 // 8 bytes: Unix nano timestamp
 
-// Default test configuration values
-const (
-	DefaultWarmupDuration = 2 * time.Second
-	DefaultDuration       = 10 * time.Second
-	DefaultMessageSize    = 1024
-	DefaultPairs          = 8
-	ReportsDir            = "reports"
+// Default test configuration values.
+var (
+	DefaultWarmupDuration = envDuration("PERF_TEST_WARMUP", 2*time.Second)
+	DefaultDuration       = envDuration("PERF_TEST_DURATION", 10*time.Second)
+	DefaultMessageSize    = envInt("PERF_TEST_MESSAGE_SIZE", 1024)
+	DefaultPairs          = envInt("PERF_TEST_PAIRS", 8)
+	DefaultPublishDelay   = envDuration("PERF_PUBLISH_DELAY", 0)
 )
+
+const ReportsDir = "reports"
+
+func envInt(name string, fallback int) int {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return fallback
+	}
+
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		panic(fmt.Sprintf("invalid %s=%q: must be a positive integer", name, raw))
+	}
+
+	return value
+}
+
+func envDuration(name string, fallback time.Duration) time.Duration {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return fallback
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil || value <= 0 {
+		panic(fmt.Sprintf("invalid %s=%q: must be a positive duration", name, raw))
+	}
+
+	return value
+}
+
+func envFloat(name string, fallback float64) float64 {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return fallback
+	}
+
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || value < 0 {
+		panic(fmt.Sprintf("invalid %s=%q: must be a non-negative number", name, raw))
+	}
+
+	return value
+}
+
+func effectiveTargetThroughput(targetThroughput float64) float64 {
+	switch targetThroughput {
+	case 200000:
+		return envFloat("PERF_TARGET_QOS0", targetThroughput)
+	case 20000:
+		return envFloat("PERF_TARGET_QOS1", targetThroughput)
+	default:
+		return targetThroughput
+	}
+}
+
+func effectiveMinSuccessRate() float64 {
+	return envFloat("PERF_MIN_SUCCESS_RATE", 99.0)
+}
+
+func subscriberQoS(cfg TestConfig) byte {
+	if cfg.PublisherBroker != cfg.SubscriberBroker {
+		// Cross-account MQTT subscriptions are currently limited to QoS 0 by NATS.
+		return 0
+	}
+
+	return cfg.QoS
+}
 
 // addTestReport adds a test report to the global collection
 func addTestReport(report TestReport) {
@@ -180,6 +249,9 @@ func generateTextReport(timestamp string) error {
 		fmt.Fprintf(file, "  Publisher:   %s\n", report.Config.PublisherBroker)
 		fmt.Fprintf(file, "  Subscriber:  %s\n", report.Config.SubscriberBroker)
 		fmt.Fprintf(file, "  Topic:       %s\n", report.Config.Topic)
+		if report.Config.SubscriberTopic != "" {
+			fmt.Fprintf(file, "  Subscriber Topic: %s\n", report.Config.SubscriberTopic)
+		}
 		fmt.Fprintf(file, "  QoS:         %d\n", report.Config.QoS)
 		fmt.Fprintf(file, "  Retained:    %v\n", report.Config.Retained)
 		fmt.Fprintf(file, "  Pairs:       %d\n", report.Config.Pairs)
@@ -223,6 +295,9 @@ func runThroughputTest(t *testing.T, cfg TestConfig) TestResult {
 
 	t.Logf("Starting test: %d pairs, duration %s", cfg.Pairs, cfg.Duration)
 	t.Logf("Broker(s): pub=%s, sub=%s", cfg.PublisherBroker, cfg.SubscriberBroker)
+	if DefaultPublishDelay > 0 {
+		t.Logf("Publish delay: %s", DefaultPublishDelay)
+	}
 
 	// Preallocate histograms for all pairs
 	pairHists := make([]*hdrhistogram.Histogram, cfg.Pairs)
@@ -318,7 +393,13 @@ func runThroughputTest(t *testing.T, cfg TestConfig) TestResult {
 }
 
 func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, pairHist *hdrhistogram.Histogram, startPublishing <-chan struct{}, t *testing.T) error {
-	topic := fmt.Sprintf("%s/%d", cfg.Topic, id)
+	topicSuffix := fmt.Sprintf("%d/%s", id, uuid.New().String())
+	pubTopic := fmt.Sprintf("%s/%s", cfg.Topic, topicSuffix)
+	subTopicBase := cfg.SubscriberTopic
+	if subTopicBase == "" {
+		subTopicBase = cfg.Topic
+	}
+	subTopic := fmt.Sprintf("%s/%s", subTopicBase, topicSuffix)
 	t.Logf("Pair %d: Starting", id)
 
 	// Local mutex to protect histogram (MQTT client may invoke handler concurrently)
@@ -358,7 +439,7 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 		ClientID: subClientID,
 		Username: cfg.Username,
 		Password: cfg.Password,
-		QoS:      cfg.QoS,
+		QoS:      subscriberQoS(cfg),
 		TLS:      false,
 	}
 
@@ -416,7 +497,7 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 			metrics.RecordEndToEndLatency(
 				cfg.PublisherBroker,
 				cfg.SubscriberBroker,
-				topic,
+				subTopic,
 				strconv.Itoa(int(cfg.QoS)),
 				strconv.FormatBool(cfg.Retained),
 				"", // federation flag - empty for now
@@ -425,8 +506,8 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 		}
 	}
 
-	t.Logf("Pair %d: Subscribing to topic '%s'...", id, topic)
-	if err := subClient.Subscribe(topic, cfg.QoS, handler); err != nil {
+	t.Logf("Pair %d: Subscribing to topic '%s'...", id, subTopic)
+	if err := subClient.Subscribe(subTopic, subscriberQoS(cfg), handler); err != nil {
 		return fmt.Errorf("pair %d: failed to subscribe: %w", id, err)
 	}
 	t.Logf("Pair %d: Subscribed successfully", id)
@@ -458,6 +539,11 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 
 			// Mark publishing as done
 			publishingDone.Store(true)
+			if inFlight.Load() == 0 {
+				allReceivedOnce.Do(func() {
+					close(allReceived)
+				})
+			}
 
 			// Wait for channel to close (when in-flight reaches 0)
 			ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
@@ -479,7 +565,7 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 			// Encode timestamp into payload (only field needed for latency)
 			binary.LittleEndian.PutUint64(payload[0:8], uint64(time.Now().UnixNano()))
 
-			if err := pubClient.Publish(topic, payload, cfg.QoS, cfg.Retained); err != nil {
+			if err := pubClient.Publish(pubTopic, payload, cfg.QoS, cfg.Retained); err != nil {
 				// Decrement on error and signal if zero
 				if inFlight.Add(-1) == 0 {
 					allReceivedOnce.Do(func() {
@@ -492,12 +578,21 @@ func runTestPair(ctx context.Context, id int, cfg TestConfig, stats *testStats, 
 			stats.publishedCount.Add(1)
 			pairPublished.Add(1)
 			sequence++
+
+			if DefaultPublishDelay > 0 {
+				select {
+				case <-ctx.Done():
+				case <-time.After(DefaultPublishDelay):
+				}
+			}
 		}
 	}
 }
 
 func logResults(t *testing.T, testName string, result TestResult, targetThroughput float64, cfg TestConfig, passed bool) {
 	t.Helper()
+
+	targetThroughput = effectiveTargetThroughput(targetThroughput)
 
 	t.Logf("=== %s ===", testName)
 	t.Logf("Duration:       %.2fs", result.Duration)
@@ -525,6 +620,8 @@ func assertThroughput(t *testing.T, result TestResult, targetThroughput float64,
 	t.Helper()
 
 	passed := true
+	targetThroughput = effectiveTargetThroughput(targetThroughput)
+	minSuccessRate := effectiveMinSuccessRate()
 
 	if result.Throughput < targetThroughput*tolerance {
 		t.Errorf("Throughput %.2f msg/s is below target %.0f msg/s (with %.0f%% tolerance)",
@@ -532,8 +629,8 @@ func assertThroughput(t *testing.T, result TestResult, targetThroughput float64,
 		passed = false
 	}
 
-	if result.SuccessRate < 99.0 {
-		t.Errorf("Success rate %.2f%% is below 99%%", result.SuccessRate)
+	if result.SuccessRate < minSuccessRate {
+		t.Errorf("Success rate %.2f%% is below %.2f%%", result.SuccessRate, minSuccessRate)
 		passed = false
 	}
 
@@ -668,7 +765,8 @@ func TestThroughputQoS0_CPCtoCSC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  cpc1,
 		SubscriberBroker: csc,
-		Topic:            "perf/qos0-c2c",
+		Topic:            "sensor/perf/qos0-c2c",
+		SubscriberTopic:  "cpc/1/sensor/perf/qos0-c2c",
 		QoS:              0,
 		Retained:         false,
 		Pairs:            DefaultPairs,
@@ -691,7 +789,8 @@ func TestThroughputQoS0Retained_CPCtoCSC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  cpc1,
 		SubscriberBroker: csc,
-		Topic:            "perf/qos0-retained-c2c",
+		Topic:            "sensor/perf/qos0-retained-c2c",
+		SubscriberTopic:  "cpc/1/sensor/perf/qos0-retained-c2c",
 		QoS:              0,
 		Retained:         true,
 		Pairs:            DefaultPairs,
@@ -714,7 +813,8 @@ func TestThroughputQoS1_CPCtoCSC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  cpc1,
 		SubscriberBroker: csc,
-		Topic:            "perf/qos1-c2c",
+		Topic:            "sensor/perf/qos1-c2c",
+		SubscriberTopic:  "cpc/1/sensor/perf/qos1-c2c",
 		QoS:              1,
 		Retained:         false,
 		Pairs:            DefaultPairs,
@@ -737,7 +837,8 @@ func TestThroughputQoS1Retained_CPCtoCSC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  cpc1,
 		SubscriberBroker: csc,
-		Topic:            "perf/qos1-retained-c2c",
+		Topic:            "sensor/perf/qos1-retained-c2c",
+		SubscriberTopic:  "cpc/1/sensor/perf/qos1-retained-c2c",
 		QoS:              1,
 		Retained:         true,
 		Pairs:            DefaultPairs,
@@ -763,7 +864,8 @@ func TestThroughputQoS0_CSCtoCPC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  csc,
 		SubscriberBroker: cpc1,
-		Topic:            "perf/qos0-c2p",
+		Topic:            "cpc/1/command/perf/qos0-c2p",
+		SubscriberTopic:  "command/perf/qos0-c2p",
 		QoS:              0,
 		Retained:         false,
 		Pairs:            DefaultPairs,
@@ -786,7 +888,8 @@ func TestThroughputQoS0Retained_CSCtoCPC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  csc,
 		SubscriberBroker: cpc1,
-		Topic:            "perf/qos0-retained-c2p",
+		Topic:            "cpc/1/command/perf/qos0-retained-c2p",
+		SubscriberTopic:  "command/perf/qos0-retained-c2p",
 		QoS:              0,
 		Retained:         true,
 		Pairs:            DefaultPairs,
@@ -809,7 +912,8 @@ func TestThroughputQoS1_CSCtoCPC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  csc,
 		SubscriberBroker: cpc1,
-		Topic:            "perf/qos1-c2p",
+		Topic:            "cpc/1/command/perf/qos1-c2p",
+		SubscriberTopic:  "command/perf/qos1-c2p",
 		QoS:              1,
 		Retained:         false,
 		Pairs:            DefaultPairs,
@@ -832,7 +936,8 @@ func TestThroughputQoS1Retained_CSCtoCPC(t *testing.T) {
 	cfg := TestConfig{
 		PublisherBroker:  csc,
 		SubscriberBroker: cpc1,
-		Topic:            "perf/qos1-retained-c2p",
+		Topic:            "cpc/1/command/perf/qos1-retained-c2p",
+		SubscriberTopic:  "command/perf/qos1-retained-c2p",
 		QoS:              1,
 		Retained:         true,
 		Pairs:            DefaultPairs,

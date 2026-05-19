@@ -102,22 +102,27 @@ EOF
 
 # Deploy to all clusters in parallel with assigned IP pool numbers
 echo "Deploying MetalLB to all clusters in parallel..."
+pids=()
 
 if kind get clusters | grep -q "^csc$"; then
     deploy_to_cluster "csc" "200" &
+    pids+=("$!")
 fi
 
 if kind get clusters | grep -q "^cpc-1$"; then
     deploy_to_cluster "cpc-1" "201" &
+    pids+=("$!")
 fi
 
 if kind get clusters | grep -q "^cpc-2$"; then
     deploy_to_cluster "cpc-2" "202" &
+    pids+=("$!")
 fi
 
 # Wait for all deployments to complete
-wait
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo "MetalLB deployed successfully"
 echo "IP Pools: ${DOCKER_BASE}.200.x, ${DOCKER_BASE}.201.x, ${DOCKER_BASE}.202.x"
-

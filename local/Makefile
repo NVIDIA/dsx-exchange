@@ -1,27 +1,28 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-nats deploy-nats test-functional test-performance validate-nats status lint benchmark-basic
+.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-nats deploy-nats test-functional test-performance validate-nats status lint benchmark-basic benchmark-basic-full benchmark-performance
+
+PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_TARGET_QOS0=1 PERF_TARGET_QOS1=1 PERF_MIN_SUCCESS_RATE=99
+BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
 
 help: ## Show this help message
 	@echo "DSX Event Bus - Evaluation Framework"
 	@echo ""
 	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-25s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-25s %s\n", $$1, $$2}'
 
 # ============================================================================
 # Infrastructure Setup
 # ============================================================================
 
 setup-infra: setup-clusters ## Setup complete infrastructure (clusters + metallb + envoy-gateway + cert-manager + metrics-server + keycloak + prometheus)
-	@echo "Deploying MetalLB, Envoy Gateway, cert-manager, Metrics Server, Keycloak, and Prometheus in parallel..."
-	@./infra/scripts/setup-metallb.sh & \
-	./infra/scripts/setup-envoy-gateway.sh & \
-	./infra/scripts/setup-cert-manager.sh & \
-	./infra/scripts/setup-metrics-server.sh & \
-	./infra/scripts/setup-keycloak.sh & \
-	./infra/scripts/setup-observability.sh & \
-	wait
+	$(MAKE) setup-metallb
+	$(MAKE) setup-envoy-gateway
+	$(MAKE) setup-cert-manager
+	$(MAKE) setup-metrics-server
+	$(MAKE) setup-observability
+	$(MAKE) setup-keycloak
 	@echo "Infrastructure setup complete"
 
 setup-clusters: ## Create all Kind clusters (CSC, CPC-1, CPC-2)
@@ -61,21 +62,41 @@ clean-nats: ## Delete NATS namespaces from all clusters
 
 deploy-nats: ## Deploy NATS to all layers
 	@cd nats && ./deploy.sh csc
-	@echo "Deploying NATS to CPC clusters in parallel..."
-	@cd nats && ./deploy.sh cpc-1 & \
-	cd nats && ./deploy.sh cpc-2 & \
-	wait
+	@echo "Deploying NATS to CPC clusters..."
+	@cd nats && ./deploy.sh cpc-1
+	@cd nats && ./deploy.sh cpc-2
 	@echo "CPC NATS deployments complete"
 
 # ============================================================================
 # Testing
 # ============================================================================
 
-test-functional: ## Run functional tests (MQTT + federation)
-	cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout 60s
+check-e2e-env: ## Check local Kind/NATS prerequisites for e2e tests
+	@echo "Checking local e2e prerequisites..."
+	@for cluster in csc cpc-1 cpc-2; do \
+		kind get clusters | grep -q "^$${cluster}$$" || { \
+			echo "Missing Kind cluster: $${cluster}. Run 'make -C local setup-infra deploy-nats' first."; \
+			exit 1; \
+		}; \
+	done
+	@for context in kind-csc kind-cpc-1 kind-cpc-2; do \
+		kubectl get namespace event-bus --context "$${context}" >/dev/null 2>&1 || { \
+			echo "Missing event-bus namespace in $${context}. Run 'make -C local deploy-nats' first."; \
+			exit 1; \
+		}; \
+	done
+	@for context in kind-csc kind-cpc-1 kind-cpc-2; do \
+		kubectl get gateway shared-gateway -n envoy-gateway-system --context "$${context}" -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}' | grep -q True || { \
+			echo "shared-gateway is not programmed in $${context}. Run 'make -C local validate-nats' for details."; \
+			exit 1; \
+		}; \
+	done
 
-test-performance: ## Run performance benchmarks
-	cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m
+test-functional: check-e2e-env ## Run functional tests (MQTT + federation)
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout 60s'
+
+test-performance: check-e2e-env ## Run performance e2e smoke tests
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m'
 
 validate-nats: ## Validate NATS deployment on all clusters
 	@echo "Validating CSC..."
@@ -114,6 +135,11 @@ lint: ## Run linters
 # MQTT Benchmark Suite
 # ============================================================================
 
-benchmark-basic: ## Run MQTT benchmark basic suite
-	@GATEWAY_IP=$$(kubectl --context kind-csc get gateway -A -l app.kubernetes.io/component=event-bus-gateway -o jsonpath='{.items[0].status.addresses[0].value}') && \
-	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker tcp://$$GATEWAY_IP:1883
+benchmark-basic: check-e2e-env ## Run MQTT benchmark basic suite
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$$CSC_BROKER_URL" $(BENCHMARK_BASIC_FLAGS)'
+
+benchmark-basic-full: check-e2e-env ## Run full MQTT benchmark basic suite
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$$CSC_BROKER_URL"'
+
+benchmark-performance: check-e2e-env ## Run full performance benchmarks with requirement thresholds
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m'

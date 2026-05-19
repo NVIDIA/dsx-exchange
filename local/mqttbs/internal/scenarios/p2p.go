@@ -41,10 +41,7 @@ func (s *PointToPoint1K) Config() report.ScenarioConfig {
 }
 
 func (s *PointToPoint1K) Run(ctx context.Context, config *benchmark.Config, collector *metrics.Collector) error {
-	const (
-		numClients = 1000
-	)
-
+	numClients := config.P2PClients
 	duration := config.Duration
 	msgRate := config.PublishRate
 	messageSize := config.MessageSize

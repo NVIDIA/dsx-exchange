@@ -18,8 +18,11 @@ go test ./pkg/...
 # Run functional tests
 go test ./tests/functional/...
 
-# Run performance tests
-go test ./tests/performance/...
+# Run performance e2e smoke tests from repo root
+make -C .. test-performance
+
+# Run full performance benchmarks from repo root
+make -C .. benchmark-performance
 
 # Run all tests with coverage
 go test -cover ./...
@@ -46,66 +49,65 @@ Performance tests validate throughput under different conditions:
 - **Local**: Publishers and subscribers on same cluster
 - **Federation**: Publishers on one cluster, subscribers on another
 
-**8 Test Combinations:**
+**12 Test Combinations:**
 
 1. Local + QoS 0
 2. Local + QoS 0 + Retained
 3. Local + QoS 1 (persistence)
 4. Local + QoS 1 + Retained (persistence)
-5. Federation + QoS 0
-6. Federation + QoS 0 + Retained
-7. Federation + QoS 1 (persistence)
-8. Federation + QoS 1 + Retained (persistence)
+5. CPC to CSC + QoS 0
+6. CPC to CSC + QoS 0 + Retained
+7. CPC to CSC + QoS 1 (persistence)
+8. CPC to CSC + QoS 1 + Retained (persistence)
+9. CSC to CPC + QoS 0
+10. CSC to CPC + QoS 0 + Retained
+11. CSC to CPC + QoS 1 (persistence)
+12. CSC to CPC + QoS 1 + Retained (persistence)
 
 ### Local Performance Tests
 
 Test throughput on a single cluster:
 
 ```bash
-# Set broker URL using MetalLB LoadBalancer IP
-export CSC_BROKER_URL=tcp://172.18.200.1:1883
+# From local/
+make test-performance
 
-# Run local tests
-go test -v ./tests/performance/ -run TestLocal
+# Or run directly when broker URLs are already exported
+go test -v ./tests/performance/ -run 'TestThroughput.*_Local'
 ```
 
 **Tests:**
 
-- `TestLocalThroughputQoS0`: Target 200k msgs/sec
-- `TestLocalThroughputQoS0Retained`: QoS 0 with retained
-- `TestLocalThroughputQoS1`: Target 20k msgs/sec (with persistence)
-- `TestLocalThroughputQoS1Retained`: QoS 1 with retained (persistence)
+- `TestThroughputQoS0_Local`: Target 200k msgs/sec
+- `TestThroughputQoS0Retained_Local`: QoS 0 with retained
+- `TestThroughputQoS1_Local`: Target 20k msgs/sec (with persistence)
+- `TestThroughputQoS1Retained_Local`: QoS 1 with retained (persistence)
 
 ### Federation Performance Tests
 
 Test cross-cluster throughput (CPC1 <-> CSC):
 
 ```bash
-# Set broker URLs
-export CSC_BROKER_URL=tcp://172.18.200.1:1883
-export CPC1_BROKER_URL=tcp://172.18.201.1:1883
+# From local/
+make test-performance
 
-# Run federation tests
-go test -v ./tests/performance/ -run TestFederation
+# Or run directly when broker URLs are already exported
+go test -v ./tests/performance/ -run 'TestThroughput.*_(CPCtoCSC|CSCtoCPC)'
 ```
 
 **Tests (CPC1 -> CSC):**
 
-- `TestFederationThroughputQoS0_CPCtoCSC`
-- `TestFederationThroughputQoS0Retained_CPCtoCSC`
-- `TestFederationThroughputQoS1_CPCtoCSC` (with persistence)
-- `TestFederationThroughputQoS1Retained_CPCtoCSC` (persistence)
+- `TestThroughputQoS0_CPCtoCSC`
+- `TestThroughputQoS0Retained_CPCtoCSC`
+- `TestThroughputQoS1_CPCtoCSC` (with persistence)
+- `TestThroughputQoS1Retained_CPCtoCSC` (persistence)
 
 **Tests (CSC -> CPC1):**
 
-- `TestFederationThroughputQoS0_CSCtoCPC`
-- `TestFederationThroughputQoS0Retained_CSCtoCPC`
-- `TestFederationThroughputQoS1_CSCtoCPC` (with persistence)
-- `TestFederationThroughputQoS1Retained_CSCtoCPC` (persistence)
-
-**Latency Analysis:**
-
-- `TestFederationLatencyOverhead`: Compare federation vs local latency
+- `TestThroughputQoS0_CSCtoCPC`
+- `TestThroughputQoS0Retained_CSCtoCPC`
+- `TestThroughputQoS1_CSCtoCPC` (with persistence)
+- `TestThroughputQoS1Retained_CSCtoCPC` (persistence)
 
 ### Performance Targets
 
@@ -163,14 +165,16 @@ The performance tests expose Prometheus metrics:
 ## Quick Start
 
 ```bash
-# Set broker URLs (adjust for your environment)
-export CSC_BROKER_URL=tcp://172.18.200.1:1883
-export CPC1_BROKER_URL=tcp://172.18.201.1:1883
+# From local/, use the Makefile targets to create localhost port-forwards.
+make test-functional
+make test-performance
 
-# Run all tests
-go test -v ./tests/...
+# Run full performance benchmarks instead of the e2e smoke profile.
+make benchmark-performance
 
-# Run only performance tests
+# Direct test runs require reachable broker URLs.
+export CSC_BROKER_URL=tcp://127.0.0.1:11883
+export CPC1_BROKER_URL=tcp://127.0.0.1:11884
 go test -v ./tests/performance/
 
 # Run specific test
@@ -195,7 +199,7 @@ go test -short ./tests/...
 docker run -d -p 1883:1883 eclipse-mosquitto:latest
 
 # Set broker URL
-export CSC_BROKER_URL=tcp://172.18.200.1:1883
+export CSC_BROKER_URL=tcp://127.0.0.1:1883
 
 # Run tests
 go test -v ./tests/functional/

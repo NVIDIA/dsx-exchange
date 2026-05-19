@@ -61,20 +61,33 @@ create_cluster() {
   fi
 }
 
+pids=()
+
 # Create all clusters in parallel
 create_cluster "csc" "$PROJECT_ROOT/infra/kind/csc.yaml" &
+pids+=("$!")
 create_cluster "cpc-1" "$PROJECT_ROOT/infra/kind/cpc-1.yaml" &
+pids+=("$!")
 create_cluster "cpc-2" "$PROJECT_ROOT/infra/kind/cpc-2.yaml" &
+pids+=("$!")
 
 # Wait for all cluster creations to complete
-wait
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 # Wait for all clusters to be ready (in parallel)
 echo "Waiting for clusters to be ready..."
+pids=()
 kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-csc" &
+pids+=("$!")
 kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-cpc-1" &
+pids+=("$!")
 kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-cpc-2" &
-wait
+pids+=("$!")
+
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo "Clusters created successfully"
-

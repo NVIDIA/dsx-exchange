@@ -41,10 +41,16 @@ deploy_to_cluster() {
 }
 
 # Deploy to all clusters in parallel
+pids=()
+
 for cluster in ${CLUSTERS}; do
   deploy_to_cluster "${cluster}" &
+  pids+=("$!")
 done
-wait
+
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo ""
 echo "Observability stack deployed to all clusters"

@@ -35,13 +35,19 @@ deploy_to_cluster() {
 }
 
 # Deploy to all clusters in parallel
+pids=()
+
 deploy_to_cluster "csc" &
+pids+=("$!")
 deploy_to_cluster "cpc-1" &
+pids+=("$!")
 deploy_to_cluster "cpc-2" &
+pids+=("$!")
 
 # Wait for all deployments to complete
-wait
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
 
 echo "Metrics-server deployed successfully to all clusters"
 echo "Test with: kubectl top nodes --context kind-csc"
-

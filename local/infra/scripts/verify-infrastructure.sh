@@ -19,7 +19,7 @@ check() {
   else
     echo "FAIL: ${name}"
     FAIL=$((FAIL + 1))
-    return 1
+    return 0
   fi
 }
 
