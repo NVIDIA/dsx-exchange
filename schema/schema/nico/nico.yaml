@@ -13,7 +13,7 @@ info:
 
     The MQTT topic path should follow the following format:
 
-    - **State Changes**: nico/v1/machine/{machineId}/state
+    - **State Changes**: NICO/v1/machine/{machineId}/state
 
 servers:
   production:
@@ -23,7 +23,7 @@ servers:
 
 channels:
   managedHostState:
-    address: "nico/v1/machine/{machineId}/state"
+    address: "NICO/v1/machine/{machineId}/state"
     parameters:
       machineId:
         description: Unique identifier for the managed host machine.
