@@ -26,7 +26,7 @@ env:
 jobs:
   commitlint:
     name: Commit Lint
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +35,7 @@ jobs:
 
   license-headers:
     name: License Headers
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/license-headers@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -49,7 +49,7 @@ jobs:
 
   go-lint:
     name: Go Lint (auth-callout)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -60,7 +60,7 @@ jobs:
 
   unit-test:
     name: Unit Test (auth-callout)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -72,7 +72,7 @@ jobs:
 
   unit-test-local-mqtt:
     name: Unit Test (local/mqtt-client)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -85,7 +85,7 @@ jobs:
 
   unit-test-local-mqttbs:
     name: Unit Test (local/mqttbs)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -98,7 +98,7 @@ jobs:
 
   third-party-licenses:
     name: Third-Party Licenses
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -118,7 +118,7 @@ jobs:
 
   docker-build:
     name: Docker Build (auth-callout)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -132,7 +132,7 @@ jobs:
 
   codeql-scan:
     name: CodeQL SAST
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     permissions:
       contents: read
       security-events: write
@@ -152,7 +152,7 @@ jobs:
 
   trufflehog-scan:
     name: Secret Scan
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     permissions:
       contents: read
       pull-requests: write
@@ -168,7 +168,7 @@ jobs:
   security-container-scan:
     name: Container Scan (auth-callout)
     needs: docker-build
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -185,7 +185,7 @@ jobs:
 
   helm-validate-auth-callout:
     name: Helm Validate (auth-callout)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -194,7 +194,7 @@ jobs:
 
   helm-validate-nats-event-bus:
     name: Helm Validate (nats-event-bus)
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
       - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
@@ -222,7 +222,7 @@ jobs:
       - security-container-scan
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
-    runs-on: linux-amd64-cpu4
+    runs-on: ubuntu-latest # FIXME: linux-amd64-cpu4
     environment: notifications
     env:
       CI_STATUS: ${{ contains(needs.*.result, 'failure') && 'FAILED' || 'PASSED' }}
