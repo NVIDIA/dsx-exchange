@@ -1,36 +1,237 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Security note: No untrusted input is used in run commands. All ${{ ... }}
+# expressions reference repository metadata, env vars, or secrets only.
+
 name: CI
 
 on:
-  pull_request:
   push:
     branches:
       - main
-
+      - "pull-request/[0-9]+"
+      - ci/migrate-github-workflows
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.25.5"
+  GO_FLAGS: "-mod=vendor"
+
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  commitlint:
+    name: Commit Lint
+    runs-on: linux-amd64-cpu4
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
         with:
-          go-version: "1.25"
-          cache-dependency-path: |
-            auth-callout/go.sum
-            auth-callout/tests/go.sum
-            local/mqtt-client/go.sum
-            local/mqttbs/go.sum
+          fetch-depth: 0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/commitlint@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
+  license-headers:
+    name: License Headers
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/license-headers@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          license: apache
+          copyright-holder: "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+          year: "2026"
+          paths: "auth-callout/src/ deploy/ local/ schema/"
+          ignore: "**/vendor/**,**/tests/**,auth-callout/tests/**"
+          go-version: "1.25.5"
 
-      - name: Install addlicense
-        run: go install github.com/google/addlicense@latest
+  go-lint:
+    name: Go Lint (auth-callout)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          go-version: "1.25.5"
+          go-flags: "-mod=vendor"
+          working-directory: auth-callout
 
-      - name: Run checks
-        run: make check
+  unit-test:
+    name: Unit Test (auth-callout)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          go-version: "1.25.5"
+          go-flags: "-mod=vendor"
+          test-flags: "-v -count=1 -timeout=10m"
+          working-directory: auth-callout
+
+  unit-test-local-mqtt:
+    name: Unit Test (local/mqtt-client)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.5"
+          cache-dependency-path: local/mqtt-client/go.sum
+      - name: Run tests
+        working-directory: local/mqtt-client
+        run: go test ./pkg/...
+
+  unit-test-local-mqttbs:
+    name: Unit Test (local/mqttbs)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.5"
+          cache-dependency-path: local/mqttbs/go.sum
+      - name: Run tests
+        working-directory: local/mqttbs
+        run: go test ./...
+
+  third-party-licenses:
+    name: Third-Party Licenses
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.5"
+          cache: true
+          cache-dependency-path: auth-callout/go.sum
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses/v2@v2.0.1
+      - name: Verify THIRD_PARTY_LICENSES.csv is up-to-date
+        working-directory: auth-callout
+        env:
+          GOFLAGS: "-mod=vendor"
+        run: |
+          GOOS=linux GOARCH=amd64 go-licenses report ./... > ../THIRD_PARTY_LICENSES.csv
+          git diff --exit-code ../THIRD_PARTY_LICENSES.csv
+
+  docker-build:
+    name: Docker Build (auth-callout)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          image: dsx-exchange-auth-callout
+          tags: ci-validation
+          context: auth-callout
+          dockerfile: auth-callout/build/package/Dockerfile
+          platforms: linux/amd64
+          push: "false"
+
+  codeql-scan:
+    name: CodeQL SAST
+    runs-on: linux-amd64-cpu4
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.5"
+          cache: false
+      - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          languages: go
+          upload-sarif: "false"
+          post-pr-comment: "true"
+
+  trufflehog-scan:
+    name: Secret Scan
+    runs-on: linux-amd64-cpu4
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/trufflehog-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          post-pr-comment: "true"
+          fail-on-findings: "true"
+
+  security-container-scan:
+    name: Container Scan (auth-callout)
+    needs: docker-build
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          image: dsx-exchange-auth-callout
+          tags: scan-validation
+          context: auth-callout
+          dockerfile: auth-callout/build/package/Dockerfile
+          platforms: linux/amd64
+          push: "false"
+      - uses: NVIDIA/dsx-github-actions/.github/actions/security-container-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          image: dsx-exchange-auth-callout:scan-validation
+
+  helm-validate-auth-callout:
+    name: Helm Validate (auth-callout)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          chart-path: auth-callout/deploy
+
+  helm-validate-nats-event-bus:
+    name: Helm Validate (nats-event-bus)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          chart-path: deploy/nats-event-bus
+          lint: "true"
+          # Skip template rendering — requires NGC auth for dependency resolution.
+          # Full dependency build happens on GitLab publish pipeline.
+          template: "false"
+
+  slack-notify:
+    name: Slack Notification
+    if: github.ref == 'refs/heads/main' && always()
+    needs:
+      - commitlint
+      - license-headers
+      - go-lint
+      - unit-test
+      - unit-test-local-mqtt
+      - unit-test-local-mqttbs
+      - third-party-licenses
+      - docker-build
+      - codeql-scan
+      - trufflehog-scan
+      - security-container-scan
+      - helm-validate-auth-callout
+      - helm-validate-nats-event-bus
+    runs-on: linux-amd64-cpu4
+    environment: notifications
+    env:
+      CI_STATUS: ${{ contains(needs.*.result, 'failure') && 'FAILED' || 'PASSED' }}
+      RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: NVIDIA/dsx-github-actions/.github/actions/slack-notify@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel-id: C09VC8R4E92
+          message: |
+            *dsx-exchange CI* on `main` — *${{ env.CI_STATUS }}*
+            <${{ env.RUN_URL }}|View run>

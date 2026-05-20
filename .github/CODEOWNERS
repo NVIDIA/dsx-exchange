@@ -1,0 +1,8 @@
+# Default: DSX developers team reviews all changes
+* @NVIDIA/dsx-sw-developers
+
+# CI/CD workflow changes require additional review
+.github/ @NVIDIA/dsx-sw-admins
+
+# Security-sensitive files
+SECURITY.md @NVIDIA/dsx-sw-admins
