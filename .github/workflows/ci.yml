@@ -11,7 +11,7 @@ on:
     branches:
       - main
       - "pull-request/[0-9]+"
-      - ci/migrate-github-workflows
+
 permissions:
   contents: read
 
