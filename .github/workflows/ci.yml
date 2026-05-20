@@ -106,15 +106,15 @@ jobs:
           go-version: "1.25.5"
           cache: true
           cache-dependency-path: auth-callout/go.sum
-      - name: Install go-licenses
-        run: go install github.com/google/go-licenses/v2@v2.0.1
-      - name: Verify THIRD_PARTY_LICENSES.csv is up-to-date
-        working-directory: auth-callout
+      - name: Regenerate THIRD_PARTY_LICENSES.csv via Makefile
+        # Uses auth-callout/scripts/regenerate-third-party-licenses.sh which
+        # filters local packages and applies multi-license overrides.
+        # LC_ALL=C ensures `sort -u` produces stable output across runner locales.
         env:
-          GOFLAGS: "-mod=vendor"
-        run: |
-          GOOS=linux GOARCH=amd64 go-licenses report ./... > ../THIRD_PARTY_LICENSES.csv
-          git diff --exit-code ../THIRD_PARTY_LICENSES.csv
+          LC_ALL: C
+        run: make -C auth-callout third-party-licenses
+      - name: Verify THIRD_PARTY_LICENSES.csv is up-to-date
+        run: git diff --exit-code THIRD_PARTY_LICENSES.csv
 
   docker-build:
     name: Docker Build (auth-callout)

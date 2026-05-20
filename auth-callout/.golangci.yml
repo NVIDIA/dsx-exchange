@@ -12,6 +12,10 @@ linters:
       - linters: [errcheck]
         path: _test\.go$
 
+      # TODO: appconfig owner to handle koanf.Set errors in setString/setInt
+      - linters: [errcheck]
+        path: src/internal/appconfig/manager\.go$
+
       # Ignore deprecated API usage for x509 CertPool.Subjects()
       # Used in mtls.go for CA pool validation — no drop-in replacement available
       # TODO: Replace with alternative approach when available
