@@ -20,3 +20,4 @@ make check
 - [ ] License headers are present on applicable source files.
 - [ ] Third-party license inventory updated, if dependencies changed.
 - [ ] Security-sensitive changes were reviewed privately before public disclosure.
+- [ ] My commits are signed off (`git commit -s`) per the DCO.
