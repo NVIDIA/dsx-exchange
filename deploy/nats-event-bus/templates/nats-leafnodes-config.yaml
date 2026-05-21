@@ -16,12 +16,19 @@ metadata:
     app.kubernetes.io/part-of: nats-event-bus
 data:
   leafnodes.conf: |
+{{- $serverTls := .Values.eventBus.cscLeafServerTLS | default dict }}
+{{- $remoteTls := .Values.eventBus.cpcLeafClientTLS | default dict }}
+{{- if and (eq .Values.eventBus.clusterType "csc") (not (empty $serverTls)) }}
+{{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $serverTls) | nindent 4 }}
+{{- end }}
 {{- if and (eq .Values.eventBus.clusterType "cpc") .Values.eventBus.cscEndpoint }}
     remotes: [
       {
         urls: [{{ .Values.eventBus.cscEndpoint | quote }}]
         nkey: $LEAF_USER_SEED
         account: CSC
+        {{- if not (empty $remoteTls) }}
+{{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $remoteTls) | nindent 8 }}{{- end }}
       }
     ]
 {{- end }}

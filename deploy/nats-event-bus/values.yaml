@@ -29,7 +29,28 @@ eventBus:
 
   # CSC endpoint for CPC leaf node connections
   # Required when clusterType is "cpc"
-  cscEndpoint: ""  # e.g., "nats://172.18.200.1:7422"
+  cscEndpoint: ""  # e.g., "nats://172.18.200.1:7422" or "tls://csc-gateway:7422"
+
+  # CSC accepting-side leafnode TLS
+  # The certificate files need to mounted into the nats container as volumes in the expected paths.
+  # https://docs.nats.io/running-a-nats-service/configuration/leafnodes/leafnode_conf
+  cscLeafServerTLS: {}
+    # Example (TLS-first handshake, NATS v2.10+):
+    # handshake_first: true
+    # cert_file: /etc/nats-certs/leafnodes/tls.crt
+    # key_file: /etc/nats-certs/leafnodes/tls.key
+    # ca_file: /etc/nats-certs/leafnodes/ca.crt
+    # verify: true
+
+  # CPC outbound remote leafnode TLS.
+  # The certificate files need to mounted into the nats container as volumes in the expected paths.
+  cpcLeafClientTLS: {}
+    # Example:
+    # handshake_first: true
+    # cert_file: /etc/nats-certs/leafnodes/tls.crt
+    # key_file: /etc/nats-certs/leafnodes/tls.key
+    # ca_file: /etc/nats-certs/leafnodes/ca.crt
+    # verify: true
 
   # List of CPC IDs that will connect to this CSC (CSC only)
   # Used to generate leaf node users for cross-cluster connections
