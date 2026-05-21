@@ -6,7 +6,7 @@ Publish managed host state change events when a host transitions between states 
 
 ## Channel
 
-```
+```text
 nico/v1/machine/{machineId}/state
 ```
 
@@ -26,8 +26,7 @@ nico/v1/machine/{machineId}/state
 |------|------|----------|-------------|
 | `machine_id` | string | Yes | Unique identifier for the managed host machine. |
 | `timestamp` | string (date-time) | Yes | ISO 8601 timestamp of the state change. |
-| `managed_host_state` | [ManagedHostState](#managedhoststate) | Yes | Possible Machine state-machine implementation Possible ManagedHost state-machine implementation Only DPU machine field in DB will contain state. Host will be empty. DPU state field will be used to ... |
-
+| `managed_host_state` | [ManagedHostState](schema-nico-schemas.mdx#managedhoststate) | Yes | Possible Machine state-machine implementation Possible ManagedHost state-machine implementation Only DPU machine field in DB will contain state. Host will be empty. DPU state field will be used to ... |
 
 <details>
 <summary>Example payload</summary>
@@ -48,4 +47,3 @@ nico/v1/machine/{machineId}/state
 ```
 
 </details>
-

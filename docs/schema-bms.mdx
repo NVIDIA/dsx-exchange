@@ -4,9 +4,8 @@ Telemetry and control event catalog for the Building Management System (BMS)
 over MQTT. Provides real-time point values and point metadata for all supported
 object and point types.
 
-
-
 Each monitored point follows a **Value / Metadata** pattern:
+
 - **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
   Subscribe to a value channel to receive real-time telemetry.
   Values are published whenever they change and republished every 100 seconds
@@ -14,8 +13,6 @@ Each monitored point follows a **Value / Metadata** pattern:
 - **Metadata** messages describe the point (units, identifiers, relationships).
   **Always receive metadata before interpreting values.** Metadata is retained and published
   once at startup. It is subsequently published every 100 seconds.
-
-
 
 | Publisher   | Topic Type | Pattern                                                               |
 |-------------|------------|-----------------------------------------------------------------------|
@@ -30,16 +27,12 @@ Use `#` to subscribe to all topics under a given hierarchy (multi-level wildcard
 
 Use `+` to match exactly one topic level (single-level wildcard).
 
-
-
 - **BMS** publishes all metadata — including for points whose values are
   written by integrations.
 - **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
 - **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`.
- Integrations do **not** publish metadata.
 
-
-
+  Integrations do **not** publish metadata.
 
 > **This rule applies globally to every integration-published point across all
 > objectTypes.**
@@ -52,8 +45,6 @@ that point's value.
 | Metadata field | Type | Meaning |
 |----------------|------|---------|
 | `integration` | string | Identifier of the integration that must publish the value for this point |
-
-
 
 The value topic is derived **methodically** from the respective metadata topic (published by BMS) that
 carried the `integration` field. DSX Exchange Access Control Lists will
@@ -70,11 +61,11 @@ subscribe to specific namespaces that align with the `[Publisher]`:
 
 In other words, the Publisher integration will derive the following value topic to publish based on the corresponding BMS metadata:
 
-    BMS/v1/PUB/Metadata/\{objectType\}/\{pointType\}/\{tagPath\}
-            ↓  replace PUB → \{integration\},  Metadata → Value
-    BMS/v1/\{integration\}/Value/\{objectType\}/\{pointType\}/\{tagPath\}
-
-
+```text
+BMS/v1/PUB/Metadata/\{objectType\}/\{pointType\}/\{tagPath\}
+        ↓  replace PUB → \{integration\},  Metadata → Value
+BMS/v1/\{integration\}/Value/\{objectType\}/\{pointType\}/\{tagPath\}
+```
 
 When an integration receives a BMS metadata message and the `integration`
 field **matches its own identifier**, the integration **MUST**:
@@ -89,12 +80,12 @@ Integrations **MUST NOT**:
 
 - Publish values for points whose metadata `integration` field does not
   match their own identifier.
+
 - Publish metadata (BMS is the sole metadata publisher).
 
-
-
+    ```text
     BMS publishes metadata →
-      Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+      Topic: BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
       Payload: \{ ..., "integration": "MEPAI", ... \}
 
     Integration "MEPAI" receives the metadata, recognises its identifier,
@@ -102,6 +93,7 @@ Integrations **MUST NOT**:
       BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
                 ↓ PUB→MEPAI, Metadata→Value
       BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+    ```
 
     MEPAI publishes its setpoint reading to that derived topic.
 
@@ -111,9 +103,6 @@ Integrations **MUST NOT**:
   `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
   Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
   integration metadata, the BMS writes to the value and not the integration.
-
-
-
 
 - **objectType**: Object Types are restricted to specific strings in accordance
   with this AsyncAPI. They typically represent BMS equipment or devices.
@@ -221,4 +210,3 @@ Integrations **MUST NOT**:
 - **integration**: Integration metadata is used to indicate which integration a
   point is associated with. It also indicates the namespace `[Publisher]` an
   integration is required to write the corresponding value back to.
-

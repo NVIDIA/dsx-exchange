@@ -6,13 +6,14 @@ Subscribe to BMS-published metadata for all PowerMeter points.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Metadata/PowerMeter/{pointType}/{tagPath}
 ```
 
 BMS-published metadata for all PowerMeter points.
 
 **MQTT wildcard examples**
+
 - All power meter metadata: `BMS/v1/PUB/Metadata/PowerMeter/#`
 
 ### Parameters
@@ -36,7 +37,6 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-
 
 <details>
 <summary>Example payload</summary>
@@ -70,7 +70,6 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -102,7 +101,6 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-
 
 <details>
 <summary>Example payload</summary>
@@ -137,7 +135,6 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -170,7 +167,6 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-
 
 <details>
 <summary>Example payload</summary>
@@ -205,7 +201,6 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -238,7 +233,6 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-
 
 <details>
 <summary>Example payload</summary>
@@ -274,7 +268,6 @@ BMS-published metadata for all PowerMeter points.
 | `engUnit` | string | Yes |  |
 | `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -302,7 +295,6 @@ BMS-published metadata for all PowerMeter points.
 
 Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is required.
 
-
 `engUnit` and `stateText` are both optional but **mutually exclusive** — include at most one. See the two variants below.
 
 ### Continuous measurement with a known engineering unit. When `engUnit` is prese...
@@ -311,14 +303,11 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 |------|------|----------|-------------|
 | `engUnit` | string | No | Engineering unit for the measurement. |
 
-
 ### Binary or enumerated state point. When `stateText` is present, `engUnit` must...
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -342,4 +331,3 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 ```
 
 </details>
-

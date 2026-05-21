@@ -93,7 +93,7 @@ Some points are owned by external integrations rather than the BMS. For these po
 
 **Topic derivation rule:** The integration derives its value topic from the BMS metadata topic by substituting the publisher segment and topic type:
 
-```
+```text
 BMS/v1/  PUB      /Metadata/{objectType}/{pointType}/{tagPath}
          ↓ replace PUB → {integration}, Metadata → Value
 BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}
@@ -118,7 +118,7 @@ Integrations MUST NOT:
 
 **Example flow:**
 
-```
+```text
 BMS publishes metadata →
   Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
   Payload: { ..., "integration": "MEPAI", ... }

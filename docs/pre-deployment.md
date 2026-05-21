@@ -115,7 +115,7 @@ A script generates all required secrets for a cluster:
 
 Output structure:
 
-```
+```text
 secrets/{cluster}/
   nkeys/
     nats-auth-signing/

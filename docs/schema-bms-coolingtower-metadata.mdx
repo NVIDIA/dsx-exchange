@@ -6,13 +6,14 @@ Subscribe to BMS-published metadata for CoolingTower points.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Metadata/CoolingTower/{pointType}/{tagPath}
 ```
 
 BMS-published metadata for CoolingTower points.
 
 **MQTT wildcard examples**
+
 - All CoolingTower metadata: `BMS/v1/PUB/Metadata/CoolingTower/#`
 
 ### Parameters
@@ -45,7 +46,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -57,8 +57,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -89,14 +87,11 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -123,14 +118,11 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -157,14 +149,11 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -200,7 +189,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -212,8 +200,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -253,7 +239,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -265,8 +250,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -297,14 +280,11 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -331,14 +311,11 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -365,14 +342,11 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -399,14 +373,11 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -442,7 +413,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -454,8 +424,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -486,14 +454,11 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -520,14 +485,11 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -554,14 +516,11 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -588,14 +547,11 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -631,7 +587,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -643,8 +598,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -669,7 +622,6 @@ via the parent `oneOf`.
 
 Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is required.
 
-
 `engUnit` and `stateText` are both optional but **mutually exclusive** — include at most one. See the two variants below.
 
 ### Object Mode
@@ -687,7 +639,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -699,8 +650,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -716,4 +665,3 @@ via the parent `oneOf`.
 ```
 
 </details>
-

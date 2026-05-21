@@ -6,13 +6,14 @@ Subscribe to real-time BMS-published values for Chiller points.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Value/Chiller/{pointType}/{tagPath}
 ```
 
 Real-time values published by the BMS for Chiller points.
 
 **MQTT wildcard examples**
+
 - All Chiller values: `BMS/v1/PUB/Value/Chiller/#`
 
 ### Parameters
@@ -34,10 +35,9 @@ metadata message.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `value` | number | null | Yes | Live reading for the point (float). May be null when the BMS has no valid reading available. |
+| `value` | number | null | Yes |
 | `timestamp` | integer | Yes | Unix timestamp in epoch milliseconds (source event time). |
 | `quality` | integer | Yes | `1` = good quality. Any other integer indicates value is not trustworthy |
-
 
 <details>
 <summary>Example payload</summary>
@@ -51,4 +51,3 @@ metadata message.
 ```
 
 </details>
-

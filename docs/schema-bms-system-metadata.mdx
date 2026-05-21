@@ -6,13 +6,14 @@ Subscribe to System metadata for all System point types.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Metadata/System/{pointType}/{tagPath}
 ```
 
 BMS-published metadata for all System point types.
 
 **MQTT wildcard examples**
+
 - All System metadata: `BMS/v1/PUB/Metadata/System/#`
 
 ### Parameters
@@ -33,7 +34,6 @@ BMS-published metadata for all System point types.
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatTimestampBms` |
 | `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -60,7 +60,6 @@ BMS-published metadata for all System point types.
 | `pointType` | string | Yes | Values: `HeartbeatEchoBms` |
 | `integration` | string | Yes | Integration whose timestamp is being echoed. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -85,7 +84,6 @@ BMS-published metadata for all System point types.
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HearbeatTimestampIntegration` |
 | `integration` | string | Yes | Integration identifier. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -113,7 +111,6 @@ BMS-published metadata for all System point types.
 | `integration` | string | Yes | Integration identifier. |
 | `scope` | string | No | BMS scope being echoed (optional). |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -127,4 +124,3 @@ BMS-published metadata for all System point types.
 ```
 
 </details>
-

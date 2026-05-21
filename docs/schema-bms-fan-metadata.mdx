@@ -6,13 +6,14 @@ Subscribe to BMS-published metadata for Fan points.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Metadata/Fan/{pointType}/{tagPath}
 ```
 
 BMS-published metadata for Fan points.
 
 **MQTT wildcard examples**
+
 - All Fan metadata: `BMS/v1/PUB/Metadata/Fan/#`
 
 ### Parameters
@@ -36,14 +37,11 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 |------|------|----------|-------------|
 | `engUnit` | string | Yes | Engineering unit for the measurement. |
 
-
 ### Required for state/status/alarm points that carry no engineering unit.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -79,7 +77,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -91,8 +88,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -117,7 +112,6 @@ via the parent `oneOf`.
 
 Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is required.
 
-
 `engUnit` and `stateText` are both optional but **mutually exclusive** — include at most one. See the two variants below.
 
 ### Object Mode
@@ -135,7 +129,6 @@ the parent `oneOf`.
 | `objectId` | string | Yes | Stable unique identifier for the equipment. |
 | `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
 
-
 ### Associate Mode
 
 - `associateId` is **required**.
@@ -147,8 +140,6 @@ via the parent `oneOf`.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
-
-
 
 <details>
 <summary>Example payload</summary>
@@ -164,4 +155,3 @@ via the parent `oneOf`.
 ```
 
 </details>
-

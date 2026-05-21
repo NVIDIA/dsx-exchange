@@ -6,7 +6,7 @@ Subscribe to BMS-published metadata for all Rack point types.
 
 ## Channel
 
-```
+```text
 BMS/v1/PUB/Metadata/Rack/{pointType}/{tagPath}
 ```
 
@@ -14,6 +14,7 @@ BMS-published metadata for all Rack points.
 Includes integration-owned points which carries the `integration` field.
 
 **MQTT wildcard examples**
+
 - All rack metadata: `BMS/v1/PUB/Metadata/Rack/#`
 
 ### Parameters
@@ -36,7 +37,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `C` |
-
 
 <details>
 <summary>Example payload</summary>
@@ -67,7 +67,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `C` |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -97,7 +96,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `LPM` |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -126,7 +124,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `kPa` |
-
 
 <details>
 <summary>Example payload</summary>
@@ -158,7 +155,6 @@ Includes integration-owned points which carries the `integration` field.
 | `engUnit` | string | Yes | Values: `kPa` |
 | `isSetpoint` | boolean | No | Optional inclusion. Indicates this point is a target value written to control equipment behavior. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -189,7 +185,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `%` |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -219,7 +214,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `kW` |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -248,7 +242,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak detection. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -288,7 +281,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak sensor fault status. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -326,7 +318,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -366,7 +357,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation status. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -404,7 +394,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation status. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -444,7 +433,6 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation request. |
-
 
 <details>
 <summary>Example payload</summary>
@@ -486,7 +474,6 @@ Includes integration-owned points which carries the `integration` field.
 | `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation request. |
 
-
 <details>
 <summary>Example payload</summary>
 
@@ -511,4 +498,3 @@ Includes integration-owned points which carries the `integration` field.
 ```
 
 </details>
-

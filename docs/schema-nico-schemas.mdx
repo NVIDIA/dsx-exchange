@@ -16,7 +16,6 @@ Dpu was discovered by a site-explorer and is being configuring via redfish.
 | `dpu_states.states` | map\&lt;string, [DpuDiscoveringState](#dpudiscoveringstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpudiscoveringstate` |
 
-
 ### dpuinit
 
 DPU is not yet ready.
@@ -27,7 +26,6 @@ DPU is not yet ready.
 | `dpu_states.states` | map\&lt;string, [DpuInitState](#dpuinitstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpuinit` |
 
-
 ### hostinit
 
 DPU is ready, Host is not yet Ready.
@@ -36,7 +34,6 @@ DPU is ready, Host is not yet Ready.
 |------|------|----------|-------------|
 | `machine_state` | [MachineState](#machinestate) | Yes |  |
 | `state` | string | Yes | Values: `hostinit` |
-
 
 ### validation
 
@@ -47,7 +44,6 @@ Host validation state for machine and DPU validation
 | `state` | string | Yes | Values: `validation` |
 | `validation_state` | [ValidationState](#validationstate) | Yes |  |
 
-
 ### ready
 
 Host is Ready for instance creation.
@@ -55,7 +51,6 @@ Host is Ready for instance creation.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `ready` |
-
 
 ### assigned
 
@@ -66,7 +61,6 @@ Host is assigned to an Instance.
 | `instance_state` | [InstanceState](#instancestate) | Yes | Possible Instance state-machine implementation, for when the machine host is assigned to a tenant |
 | `state` | string | Yes | Values: `assigned` |
 
-
 ### waitingforcleanup
 
 Some cleanup is going on.
@@ -76,7 +70,6 @@ Some cleanup is going on.
 | `cleanup_state` | [CleanupState](#cleanupstate) | Yes |  |
 | `state` | string | Yes | Values: `waitingforcleanup` |
 
-
 ### forcedeletion
 
 A forced deletion process has been triggered by the admin CLI State controller will no longer manage the Machine
@@ -85,7 +78,6 @@ A forced deletion process has been triggered by the admin CLI State controller w
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `forcedeletion` |
 
-
 ### created
 
 A dummy state used to create DPU in beginning. State will sync to Init when host will be created.
@@ -93,7 +85,6 @@ A dummy state used to create DPU in beginning. State will sync to Init when host
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `created` |
-
 
 ### failed
 
@@ -109,7 +100,6 @@ Machine moved to failed state. Recovery will be based on FailedCause
 | `retry_count` | integer (uint32) | No |  |
 | `state` | string | Yes | Values: `failed` |
 
-
 ### dpureprovision
 
 State used to indicate that DPU reprovisioning is going on.
@@ -119,7 +109,6 @@ State used to indicate that DPU reprovisioning is going on.
 | `dpu_states` | [DpuReprovisionStates](#dpureprovisionstates) | Yes |  |
 | `dpu_states.states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
-
 
 ### hostreprovision
 
@@ -131,7 +120,6 @@ State used to indicate that host reprovisioning is going on
 | `retry_count` | integer (uint32) | No |  |
 | `state` | string | Yes | Values: `hostreprovision` |
 
-
 ### measuring
 
 State used to indicate the API is currently waiting on the machine to send attestation measurements, or waiting for measurements to match a valid/approved measurement bundle, before continuing on towards a Ready state.
@@ -141,7 +129,6 @@ State used to indicate the API is currently waiting on the machine to send attes
 | `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `measuring` |
 
-
 ### postassignedmeasuring
 
 | Name | Type | Required | Description |
@@ -149,15 +136,12 @@ State used to indicate the API is currently waiting on the machine to send attes
 | `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `postassignedmeasuring` |
 
-
 ### bomvalidating
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bom_validating_state` | [BomValidating](#bomvalidating) | Yes |  |
 | `state` | string | Yes | Values: `bomvalidating` |
-
-
 
 ---
 
@@ -169,7 +153,6 @@ State used to indicate the API is currently waiting on the machine to send attes
 |------|------|----------|-------------|
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `checkfwversion` |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
@@ -178,7 +161,6 @@ State used to indicate the API is currently waiting on the machine to send attes
 | `firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
 | `task_id` | string | Yes |  |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
@@ -186,20 +168,17 @@ State used to indicate the API is currently waiting on the machine to send attes
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `reboot` |
 | `count` | integer (uint32) | Yes |  |
 
-
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `waitforerotbackgroundcopytocomplete` |
 
-
 ### Variant 5
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `hostpowercycle` |
-
 
 ### Variant 6
 
@@ -208,14 +187,11 @@ State used to indicate the API is currently waiting on the machine to send attes
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `failed` |
 | `failure_details` | string | Yes |  |
 
-
 ### Variant 7
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `fwupdatecompleted` |
-
-
 
 ---
 
@@ -226,55 +202,48 @@ State used to indicate the API is currently waiting on the machine to send attes
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `MatchingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `MatchingSku.machine_validation_context` | string | null | No |  |
-| `MatchingSku.reboot_retry_count` | integer | null | No |  |
-
+| `MatchingSku.machine_validation_context` | string | null | No |
+| `MatchingSku.reboot_retry_count` | integer | null | No |
 
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `UpdatingInventory` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `UpdatingInventory.machine_validation_context` | string | null | No |  |
-| `UpdatingInventory.reboot_retry_count` | integer | null | No |  |
-
+| `UpdatingInventory.machine_validation_context` | string | null | No |
+| `UpdatingInventory.reboot_retry_count` | integer | null | No |
 
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `VerifyingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `VerifyingSku.machine_validation_context` | string | null | No |  |
-| `VerifyingSku.reboot_retry_count` | integer | null | No |  |
-
+| `VerifyingSku.machine_validation_context` | string | null | No |
+| `VerifyingSku.reboot_retry_count` | integer | null | No |
 
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `SkuVerificationFailed` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuVerificationFailed.machine_validation_context` | string | null | No |  |
-| `SkuVerificationFailed.reboot_retry_count` | integer | null | No |  |
-
+| `SkuVerificationFailed.machine_validation_context` | string | null | No |
+| `SkuVerificationFailed.reboot_retry_count` | integer | null | No |
 
 ### Variant 5
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `WaitingForSkuAssignment` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `WaitingForSkuAssignment.machine_validation_context` | string | null | No |  |
-| `WaitingForSkuAssignment.reboot_retry_count` | integer | null | No |  |
-
+| `WaitingForSkuAssignment.machine_validation_context` | string | null | No |
+| `WaitingForSkuAssignment.reboot_retry_count` | integer | null | No |
 
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `SkuMissing` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuMissing.machine_validation_context` | string | null | No |  |
-| `SkuMissing.reboot_retry_count` | integer | null | No |  |
-
-
+| `SkuMissing.machine_validation_context` | string | null | No |
+| `SkuMissing.reboot_retry_count` | integer | null | No |
 
 ---
 
@@ -284,9 +253,8 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `machine_validation_context` | string | null | No |  |
-| `reboot_retry_count` | integer | null | No |  |
-
+| `machine_validation_context` | string | null | No |
+| `reboot_retry_count` | integer | null | No |
 
 ---
 
@@ -298,26 +266,23 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `init` |
 
-
 ### secureeraseboss
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `secure_erase_boss_context` | [SecureEraseBossContext](#secureerasebosscontext) | Yes |  |
 | `secure_erase_boss_context.boss_controller_id` | string | Yes |  |
-| `secure_erase_boss_context.iteration` | integer | null | No |  |
+| `secure_erase_boss_context.iteration` | integer | null | No |
 | `secure_erase_boss_context.secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_boss_context.secure_erase_jid` | string | null | No |  |
+| `secure_erase_boss_context.secure_erase_jid` | string | null | No |
 | `state` | string | Yes | Values: `secureeraseboss` |
-
 
 ### hostcleanup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `boss_controller_id` | string | null | No |  |
+| `boss_controller_id` | string | null | No |
 | `state` | string | Yes | Values: `hostcleanup` |
-
 
 ### createbossvolume
 
@@ -325,19 +290,16 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `create_boss_volume_context` | [CreateBossVolumeContext](#createbossvolumecontext) | Yes |  |
 | `create_boss_volume_context.boss_controller_id` | string | Yes |  |
-| `create_boss_volume_context.create_boss_volume_jid` | string | null | No |  |
+| `create_boss_volume_context.create_boss_volume_jid` | string | null | No |
 | `create_boss_volume_context.create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `create_boss_volume_context.iteration` | integer | null | No |  |
+| `create_boss_volume_context.iteration` | integer | null | No |
 | `state` | string | Yes | Values: `createbossvolume` |
-
 
 ### disablebiosbmclockdown
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `disablebiosbmclockdown` |
-
-
 
 ---
 
@@ -346,10 +308,9 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `create_boss_volume_jid` | string | null | No |  |
+| `create_boss_volume_jid` | string | null | No |
 | `create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `iteration` | integer | null | No |  |
-
+| `iteration` | integer | null | No |
 
 ---
 
@@ -361,13 +322,11 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `createbossvolume` |
 
-
 ### waitforjobscheduled
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforjobscheduled` |
-
 
 ### reboothost
 
@@ -375,13 +334,11 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `reboothost` |
 
-
 ### waitforjobcompletion
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforjobcompletion` |
-
 
 ### handlejobfailure
 
@@ -391,14 +348,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `power_state` | string | Yes |  |
 | `state` | string | Yes | Values: `handlejobfailure` |
 
-
 ### lockhost
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `lockhost` |
-
-
 
 ---
 
@@ -410,20 +364,17 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `dpudiscoverystate` | string | Yes | Values: `initializing` |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpudiscoverystate` | string | Yes | Values: `configuring` |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpudiscoverystate` | string | Yes | Values: `rebootalldpus` |
-
 
 ### Variant 4
 
@@ -433,7 +384,6 @@ A context for passing information between states thoughout the BOM validation pr
 | `dpudiscoverystate` | string | Yes | Values: `enablesecureboot` |
 | `enable_secure_boot_state` | [SetSecureBootState](#setsecurebootstate) | Yes |  |
 
-
 ### Variant 5
 
 | Name | Type | Required | Description |
@@ -442,21 +392,17 @@ A context for passing information between states thoughout the BOM validation pr
 | `disable_secure_boot_state` | any | No |  |
 | `dpudiscoverystate` | string | Yes | Values: `disablesecureboot` |
 
-
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpudiscoverystate` | string | Yes | Values: `setuefihttpboot` |
 
-
 ### Variant 7
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpudiscoverystate` | string | Yes | Values: `enablershim` |
-
-
 
 ---
 
@@ -465,7 +411,6 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `states` | map\&lt;string, [DpuDiscoveringState](#dpudiscoveringstate)\> | Yes |  |
-
 
 ---
 
@@ -478,13 +423,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `dpustate` | string | Yes | Values: `installdpuos` |
 | `substate` | [InstallDpuOsState](#installdpuosstate) | Yes |  |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `init` |
-
 
 ### Variant 3
 
@@ -493,13 +436,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `dpustate` | string | Yes | Values: `waitingforplatformpowercycle` |
 | `substate` | [PerformPowerOperation](#performpoweroperation) | Yes |  |
 
-
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `waitingforplatformconfiguration` |
-
 
 ### Variant 5
 
@@ -507,21 +448,17 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `pollingbiossetup` |
 
-
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `waitingfornetworkconfig` |
 
-
 ### Variant 7
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `waitingfornetworkinstall` |
-
-
 
 ---
 
@@ -531,7 +468,6 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `states` | map\&lt;string, [DpuInitState](#dpuinitstate)\> | Yes |  |
 
-
 ---
 
 ## DpuReprovisionStates
@@ -539,7 +475,6 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
-
 
 ---
 
@@ -549,14 +484,12 @@ A context for passing information between states thoughout the BOM validation pr
 
 **Allowed values:** `noerror`
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `nvmecleanfailed` | object | Yes |  |
 | `nvmecleanfailed.err` | string | Yes |  |
-
 
 ### Variant 3
 
@@ -565,14 +498,12 @@ A context for passing information between states thoughout the BOM validation pr
 | `discovery` | object | Yes |  |
 | `discovery.err` | string | Yes |  |
 
-
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `reprovisioning` | object | Yes |  |
 | `reprovisioning.err` | string | Yes |  |
-
 
 ### Variant 5
 
@@ -581,14 +512,12 @@ A context for passing information between states thoughout the BOM validation pr
 | `machinevalidation` | object | Yes |  |
 | `machinevalidation.err` | string | Yes |  |
 
-
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `unhandledstate` | object | Yes |  |
 | `unhandledstate.err` | string | Yes |  |
-
 
 ### Variant 7
 
@@ -597,14 +526,12 @@ A context for passing information between states thoughout the BOM validation pr
 | `measurementsfailedsignaturecheck` | object | Yes |  |
 | `measurementsfailedsignaturecheck.err` | string | Yes |  |
 
-
 ### Variant 8
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `measurementsretired` | object | Yes |  |
 | `measurementsretired.err` | string | Yes |  |
-
 
 ### Variant 9
 
@@ -613,15 +540,12 @@ A context for passing information between states thoughout the BOM validation pr
 | `measurementsrevoked` | object | Yes |  |
 | `measurementsrevoked.err` | string | Yes |  |
 
-
 ### Variant 10
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `measurementscavalidationfailed` | object | Yes |  |
 | `measurementscavalidationfailed.err` | string | Yes |  |
-
-
 
 ---
 
@@ -633,7 +557,6 @@ A context for passing information between states thoughout the BOM validation pr
 | `failed_at` | string (date-time) | Yes |  |
 | `source` | [FailureSource](#failuresource) | Yes |  |
 
-
 ---
 
 ## FailureSource
@@ -642,21 +565,17 @@ A context for passing information between states thoughout the BOM validation pr
 
 **Allowed values:** `noerror`, `scout`, `statemachine`
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `statemachinearea` | [StateMachineArea](#statemachinearea) | Yes | Values: `default`, `hostinit`, `mainflow`, `assignedinstance` |
 
-
-
 ---
 
 ## FirmwareComponentType
 
 **Allowed values:** `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, `gpu`, `unknown`
-
 
 ---
 
@@ -669,13 +588,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `power_on` | boolean | Yes |  |
 | `state` | string | Yes | Values: `powercycle` |
 
-
 ### checkhostconfig
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `checkhostconfig` |
-
 
 ### unlockhost
 
@@ -683,13 +600,11 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `unlockhost` |
 
-
 ### configurebios
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `configurebios` |
-
 
 ### pollingbiossetup
 
@@ -697,24 +612,20 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `pollingbiossetup` |
 
-
 ### setbootorder
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `set_boot_order_info` | [SetBootOrderInfo](#setbootorderinfo) | Yes |  |
-| `set_boot_order_info.set_boot_order_jid` | string | null | No |  |
+| `set_boot_order_info.set_boot_order_jid` | string | null | No |
 | `set_boot_order_info.set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
 | `state` | string | Yes | Values: `setbootorder` |
-
 
 ### lockhost
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `lockhost` |
-
-
 
 ---
 
@@ -724,7 +635,6 @@ A context for passing information between states thoughout the BOM validation pr
 
 **Allowed values:** `checkingfirmware`, `checkingfirmwarerepeat`
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
@@ -733,13 +643,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `initialreset.last_time` | string (date-time) | Yes |  |
 | `initialreset.phase` | [InitialResetPhase](#initialresetphase) | Yes | Values: `start`, `bmcwasreset`, `waithostboot` |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `waitingforscript` | object | Yes |  |
-
 
 ### Variant 4
 
@@ -747,10 +655,9 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforupload` | object | Yes |  |
 | `waitingforupload.final_version` | string | Yes |  |
-| `waitingforupload.firmware_number` | integer | null | No |  |
+| `waitingforupload.firmware_number` | integer | null | No |
 | `waitingforupload.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforupload.power_drains_needed` | integer | null | No |  |
-
+| `waitingforupload.power_drains_needed` | integer | null | No |
 
 ### Variant 5
 
@@ -758,24 +665,22 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforfirmwareupgrade` | object | Yes |  |
 | `waitingforfirmwareupgrade.final_version` | string | Yes |  |
-| `waitingforfirmwareupgrade.firmware_number` | integer | null | No |  |
+| `waitingforfirmwareupgrade.firmware_number` | integer | null | No |
 | `waitingforfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforfirmwareupgrade.power_drains_needed` | integer | null | No |  |
-| `waitingforfirmwareupgrade.started_waiting` | string | null | No |  |
+| `waitingforfirmwareupgrade.power_drains_needed` | integer | null | No |
+| `waitingforfirmwareupgrade.started_waiting` | string | null | No |
 | `waitingforfirmwareupgrade.task_id` | string | Yes |  |
-
 
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `resetfornewfirmware` | object | Yes |  |
-| `resetfornewfirmware.delay_until` | integer | null | No |  |
+| `resetfornewfirmware.delay_until` | integer | null | No |
 | `resetfornewfirmware.final_version` | string | Yes |  |
 | `resetfornewfirmware.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
 | `resetfornewfirmware.last_power_drain_operation` | any | No |  |
-| `resetfornewfirmware.power_drains_needed` | integer | null | No |  |
-
+| `resetfornewfirmware.power_drains_needed` | integer | null | No |
 
 ### Variant 7
 
@@ -784,8 +689,7 @@ A context for passing information between states thoughout the BOM validation pr
 | `newfirmwarereportedwait` | object | Yes |  |
 | `newfirmwarereportedwait.final_version` | string | Yes |  |
 | `newfirmwarereportedwait.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `newfirmwarereportedwait.previous_reset_time` | integer | null | No |  |
-
+| `newfirmwarereportedwait.previous_reset_time` | integer | null | No |
 
 ### Variant 8
 
@@ -793,17 +697,14 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `failedfirmwareupgrade` | object | Yes |  |
 | `failedfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `failedfirmwareupgrade.reason` | string | null | No |  |
-| `failedfirmwareupgrade.report_time` | string | null | No |  |
-
-
+| `failedfirmwareupgrade.reason` | string | null | No |
+| `failedfirmwareupgrade.report_time` | string | null | No |
 
 ---
 
 ## InitialResetPhase
 
 **Allowed values:** `start`, `bmcwasreset`, `waithostboot`
-
 
 ---
 
@@ -815,7 +716,6 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `installdpuosstate` | string | Yes | Values: `installingbfb` |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
@@ -824,13 +724,11 @@ A context for passing information between states thoughout the BOM validation pr
 | `progress` | string | Yes |  |
 | `task_id` | string | Yes |  |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `installdpuosstate` | string | Yes | Values: `completed` |
-
 
 ### Variant 4
 
@@ -838,8 +736,6 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `installdpuosstate` | string | Yes | Values: `installationerror` |
 | `msg` | string | Yes |  |
-
-
 
 ---
 
@@ -855,13 +751,11 @@ Possible Instance state-machine implementation, for when the machine host is ass
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `init` |
 
-
 ### waitingfornetworksegmenttobeready
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfornetworksegmenttobeready` |
-
 
 ### waitingfornetworkconfig
 
@@ -869,13 +763,11 @@ Possible Instance state-machine implementation, for when the machine host is ass
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfornetworkconfig` |
 
-
 ### waitingforstorageconfig
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingforstorageconfig` |
-
 
 ### dpaprovisioning
 
@@ -883,13 +775,11 @@ Possible Instance state-machine implementation, for when the machine host is ass
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `dpaprovisioning` |
 
-
 ### waitingfordpatobeready
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfordpatobeready` |
-
 
 ### waitingforextensionservicesconfig
 
@@ -897,20 +787,17 @@ Possible Instance state-machine implementation, for when the machine host is ass
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingforextensionservicesconfig` |
 
-
 ### waitingforreboottoready
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingforreboottoready` |
 
-
 ### ready
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `ready` |
-
 
 ### hostplatformconfiguration
 
@@ -919,13 +806,11 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `platform_config_state` | [HostPlatformConfigurationState](#hostplatformconfigurationstate) | Yes |  |
 | `state` | string | Yes | Values: `hostplatformconfiguration` |
 
-
 ### waitingfordpustoup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfordpustoup` |
-
 
 ### bootingwithdiscoveryimage
 
@@ -935,20 +820,17 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `retry.count` | integer (uint64) | Yes |  |
 | `state` | string | Yes | Values: `bootingwithdiscoveryimage` |
 
-
 ### switchtoadminnetwork
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `switchtoadminnetwork` |
 
-
 ### waitingfornetworkreconfig
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfornetworkreconfig` |
-
 
 ### dpureprovision
 
@@ -957,7 +839,6 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `dpu_states` | [DpuReprovisionStates](#dpureprovisionstates) | Yes |  |
 | `dpu_states.states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
-
 
 ### failed
 
@@ -970,7 +851,6 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `machine_id` | [MachineId](#machineid) | Yes |  |
 | `state` | string | Yes | Values: `failed` |
 
-
 ### hostreprovision
 
 | Name | Type | Required | Description |
@@ -978,15 +858,12 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `reprovision_state` | [HostReprovisionState](#hostreprovisionstate) | Yes |  |
 | `state` | string | Yes | Values: `hostreprovision` |
 
-
 ### networkconfigupdate
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `network_config_update_state` | [NetworkConfigUpdateState](#networkconfigupdatestate) | Yes | Tenant has requested network config update for the existing instance. At this point, instance config, instance network config version are already increased. Values: `waitingfornetworksegmenttoberea... |
 | `state` | string | Yes | Values: `networkconfigupdate` |
-
-
 
 ---
 
@@ -997,7 +874,6 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | `mode` | [LockdownMode](#lockdownmode) | Yes | Whether lockdown should be enabled or disabled in an operation Values: `enable`, `disable` |
 | `state` | [LockdownState](#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
 
-
 ---
 
 ## LockdownMode
@@ -1006,22 +882,17 @@ Whether lockdown should be enabled or disabled in an operation
 
 **Allowed values:** `enable`, `disable`
 
-
 ---
 
 ## LockdownState
 
 **Allowed values:** `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus`
 
-
 ---
 
 ## MachineId
 
 **Type:** string
-
-
-
 
 ---
 
@@ -1033,13 +904,11 @@ Whether lockdown should be enabled or disabled in an operation
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `init` |
 
-
 ### enableipmioverlan
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `enableipmioverlan` |
-
 
 ### waitingforplatformconfiguration
 
@@ -1047,13 +916,11 @@ Whether lockdown should be enabled or disabled in an operation
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingforplatformconfiguration` |
 
-
 ### pollingbiossetup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `pollingbiossetup` |
-
 
 ### setbootorder
 
@@ -1062,16 +929,14 @@ Whether lockdown should be enabled or disabled in an operation
 | `set_boot_order_info` | any | No |  |
 | `state` | string | Yes | Values: `setbootorder` |
 
-
 ### uefisetup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `uefisetup` |
 | `uefi_setup_info` | [UefiSetupInfo](#uefisetupinfo) | Yes |  |
-| `uefi_setup_info.uefi_password_jid` | string | null | No |  |
+| `uefi_setup_info.uefi_password_jid` | string | null | No |
 | `uefi_setup_info.uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
-
 
 ### measuring
 
@@ -1080,13 +945,11 @@ Whether lockdown should be enabled or disabled in an operation
 | `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `measuring` |
 
-
 ### waitingfordiscovery
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitingfordiscovery` |
-
 
 ### discovered
 
@@ -1094,7 +957,6 @@ Whether lockdown should be enabled or disabled in an operation
 |------|------|----------|-------------|
 | `skip_reboot_wait` | boolean | No |  |
 | `state` | string | Yes | Values: `discovered` |
-
 
 ### waitingforlockdown
 
@@ -1107,8 +969,6 @@ Lockdown handling.
 | `lockdown_info.state` | [LockdownState](#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
 | `state` | string | Yes | Values: `waitingforlockdown` |
 
-
-
 ---
 
 ## MachineValidatingState
@@ -1120,7 +980,6 @@ Lockdown handling.
 | `reboothost` | object | Yes |  |
 | `reboothost.validation_id` | string (uuid) | Yes |  |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
@@ -1131,8 +990,6 @@ Lockdown handling.
 | `machinevalidating.id` | string (uuid) | Yes |  |
 | `machinevalidating.is_enabled` | boolean | No |  |
 | `machinevalidating.total` | integer (uint) | Yes |  |
-
-
 
 ---
 
@@ -1146,12 +1003,9 @@ MeasuringState contains states used for host attestion (or measured boot).
 
 **Allowed values:** `waitingformeasurements`
 
-
 ### PendingBundle is reported when the API has received measurements from the mac...
 
 **Allowed values:** `pendingbundle`
-
-
 
 ---
 
@@ -1160,7 +1014,6 @@ MeasuringState contains states used for host attestion (or measured boot).
 Tenant has requested network config update for the existing instance. At this point, instance config, instance network config version are already increased.
 
 **Allowed values:** `waitingfornetworksegmenttobeready`, `waitingforconfigsynced`, `releaseoldresources`
-
 
 ---
 
@@ -1172,21 +1025,17 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `off` |
 
-
 ### on
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `on` |
 
-
-
 ---
 
 ## PowerDrainState
 
 **Allowed values:** `off`, `powercycle`, `on`
-
 
 ---
 
@@ -1196,7 +1045,6 @@ Tenant has requested network config update for the existing instance. At this po
 
 **Allowed values:** `firmwareupgrade`, `waitingfornetworkinstall`, `poweringoffhost`, `powerdown`, `buffertime`, `verifyfirmareversions`, `waitingfornetworkconfig`, `reboothostbmc`, `reboothost`, `notunderreprovision`
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
@@ -1204,15 +1052,12 @@ Tenant has requested network config update for the existing instance. At this po
 | `bmcfirmwareupgrade` | object | Yes |  |
 | `bmcfirmwareupgrade.substate` | [BmcFirmwareUpgradeSubstate](#bmcfirmwareupgradesubstate) | Yes |  |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `installdpuos` | object | Yes |  |
 | `installdpuos.substate` | [InstallDpuOsState](#installdpuosstate) | Yes |  |
-
-
 
 ---
 
@@ -1222,7 +1067,6 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `count` | integer (uint64) | Yes |  |
 
-
 ---
 
 ## SecureEraseBossContext
@@ -1230,10 +1074,9 @@ Tenant has requested network config update for the existing instance. At this po
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `iteration` | integer | null | No |  |
+| `iteration` | integer | null | No |
 | `secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_jid` | string | null | No |  |
-
+| `secure_erase_jid` | string | null | No |
 
 ---
 
@@ -1245,20 +1088,17 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `unlockhost` |
 
-
 ### secureeraseboss
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `secureeraseboss` |
 
-
 ### waitforjobcompletion
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforjobcompletion` |
-
 
 ### handlejobfailure
 
@@ -1268,17 +1108,14 @@ Tenant has requested network config update for the existing instance. At this po
 | `power_state` | string | Yes |  |
 | `state` | string | Yes | Values: `handlejobfailure` |
 
-
-
 ---
 
 ## SetBootOrderInfo
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `set_boot_order_jid` | string | null | No |  |
+| `set_boot_order_jid` | string | null | No |
 | `set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
-
 
 ---
 
@@ -1290,13 +1127,11 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `setbootorder` |
 
-
 ### waitforsetbootorderjobscheduled
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforsetbootorderjobscheduled` |
-
 
 ### reboothost
 
@@ -1304,14 +1139,11 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `reboothost` |
 
-
 ### waitforsetbootorderjobcompletion
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforsetbootorderjobcompletion` |
-
-
 
 ---
 
@@ -1323,20 +1155,17 @@ Tenant has requested network config update for the existing instance. At this po
 |------|------|----------|-------------|
 | `disablesecurebootstate` | string | Yes | Values: `checksecurebootstatus` |
 
-
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `disablesecurebootstate` | string | Yes | Values: `disablesecureboot` |
 
-
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `disablesecurebootstate` | string | Yes | Values: `setsecureboot` |
-
 
 ### Variant 4
 
@@ -1345,7 +1174,6 @@ Tenant has requested network config update for the existing instance. At this po
 | `disablesecurebootstate` | string | Yes | Values: `rebootdpu` |
 | `reboot_count` | integer (uint32) | Yes |  |
 
-
 ### Variant 5
 
 | Name | Type | Required | Description |
@@ -1353,14 +1181,11 @@ Tenant has requested network config update for the existing instance. At this po
 | `disablesecurebootstate` | string | Yes | Values: `waitcertificateupload` |
 | `task_id` | string | Yes |  |
 
-
-
 ---
 
 ## StateMachineArea
 
 **Allowed values:** `default`, `hostinit`, `mainflow`, `assignedinstance`
-
 
 ---
 
@@ -1368,9 +1193,8 @@ Tenant has requested network config update for the existing instance. At this po
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `uefi_password_jid` | string | null | No |  |
+| `uefi_password_jid` | string | null | No |
 | `uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
-
 
 ---
 
@@ -1386,13 +1210,11 @@ Substates of enabling/disabling lockdown
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `unlockhost` |
 
-
 ### setuefipassword
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `setuefipassword` |
-
 
 ### waitforpasswordjobscheduled
 
@@ -1400,13 +1222,11 @@ Substates of enabling/disabling lockdown
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforpasswordjobscheduled` |
 
-
 ### powercyclehost
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `powercyclehost` |
-
 
 ### waitforpasswordjobcompletion
 
@@ -1414,14 +1234,11 @@ Substates of enabling/disabling lockdown
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `waitforpasswordjobcompletion` |
 
-
 ### lockdownhost
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `lockdownhost` |
-
-
 
 ---
 
@@ -1433,8 +1250,3 @@ Substates of enabling/disabling lockdown
 |------|------|----------|-------------|
 | `machine_validation` | [MachineValidatingState](#machinevalidatingstate) | Yes |  |
 | `validation_type` | string | Yes | Values: `machinevalidation` |
-
-
-
----
-

@@ -163,4 +163,3 @@ JetStream provides message persistence. MQTT QoS 1 messages and retained message
 | Dashboards | Grafana | Prometheus + Tempo data sources |
 
 The mTLS cluster's SYS account is federated to the main cluster via leaf node, enabling centralized monitoring of both NATS instances from a single Surveyor.
-
