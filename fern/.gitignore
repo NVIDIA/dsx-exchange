@@ -1,0 +1,14 @@
+
+.DS_Store
+node_modules
+package-lock.json
+dist-ssr
+*.local
+
+.fern/
+
+# Fern AI-generated API request/response examples
+**/ai_examples_override.yml
+
+# Dori artifacts
+.dori
