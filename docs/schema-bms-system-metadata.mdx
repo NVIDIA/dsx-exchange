@@ -1,0 +1,130 @@
+# System — Metadata
+
+Subscribe to System metadata for all System point types.
+
+**Direction:** Subscribe (receive)
+
+## Channel
+
+```
+BMS/v1/PUB/Metadata/System/{pointType}/{tagPath}
+```
+
+BMS-published metadata for all System point types.
+
+**MQTT wildcard examples**
+- All System metadata: `BMS/v1/PUB/Metadata/System/#`
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `pointType` | System point type. Values: `HeartbeatTimestampBms`, `HeartbeatEchoBms`, `HearbeatTimestampIntegration`, `HeartbeatEchoIntegration`, `Status`, `Available` ... (7 total) |
+| `tagPath` | Vendor-defined hierarchical tag path. |
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
+| `pointType` | string | Yes | Values: `HeartbeatTimestampBms` |
+| `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "string",
+  "pointType": "HeartbeatTimestampBms",
+  "scope": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
+| `pointType` | string | Yes | Values: `HeartbeatEchoBms` |
+| `integration` | string | Yes | Integration whose timestamp is being echoed. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "string",
+  "pointType": "HeartbeatEchoBms",
+  "integration": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
+| `pointType` | string | Yes | Values: `HearbeatTimestampIntegration` |
+| `integration` | string | Yes | Integration identifier. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "string",
+  "pointType": "HearbeatTimestampIntegration",
+  "integration": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
+| `pointType` | string | Yes | Values: `HeartbeatEchoIntegration` |
+| `integration` | string | Yes | Integration identifier. |
+| `scope` | string | No | BMS scope being echoed (optional). |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "string",
+  "pointType": "HeartbeatEchoIntegration",
+  "integration": "string",
+  "scope": "string"
+}
+```
+
+</details>
+

@@ -1,0 +1,514 @@
+# Rack — Metadata
+
+Subscribe to BMS-published metadata for all Rack point types.
+
+**Direction:** Subscribe (receive)
+
+## Channel
+
+```
+BMS/v1/PUB/Metadata/Rack/{pointType}/{tagPath}
+```
+
+BMS-published metadata for all Rack points.
+Includes integration-owned points which carries the `integration` field.
+
+**MQTT wildcard examples**
+- All rack metadata: `BMS/v1/PUB/Metadata/Rack/#`
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `pointType` | Rack point type. Values: `RackLiquidSupplyTemperature`, `RackLiquidReturnTemperature`, `RackLiquidFlow`, `RackLiquidDifferentialPressure`, `RackLiquidDifferentialPressureSp`, `RackControlValvePosition` ... (14 total) |
+| `tagPath` | Must match the tagPath of the corresponding value topic exactly. |
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidSupplyTemperature` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `C` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidSupplyTemperature",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "C"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidReturnTemperature` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `C` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidReturnTemperature",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "C"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidFlow` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `LPM` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidFlow",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "LPM"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidDifferentialPressure` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `kPa` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidDifferentialPressure",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "kPa"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidDifferentialPressureSp` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `kPa` |
+| `isSetpoint` | boolean | No | Optional inclusion. Indicates this point is a target value written to control equipment behavior. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidDifferentialPressureSp",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "kPa",
+  "isSetpoint": false
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackControlValvePosition` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `%` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackControlValvePosition",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "%"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackPower` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `engUnit` | string | Yes | Values: `kW` |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackPower",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "engUnit": "kW"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLeakDetect` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak detection. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLeakDetect",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NoLeak"
+    },
+    {
+      "value": 1,
+      "text": "Leak"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLeakSensorFault` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak sensor fault status. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLeakSensorFault",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NoFault"
+    },
+    {
+      "value": 1,
+      "text": "Fault"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLeakDetectTray` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLeakDetectTray",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NoLeak"
+    },
+    {
+      "value": 1,
+      "text": "Leak"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidIsolationStatus` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation status. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidIsolationStatus",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NotIsolated"
+    },
+    {
+      "value": 1,
+      "text": "Isolated"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackElectricalIsolationStatus` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation status. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackElectricalIsolationStatus",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NotIsolated"
+    },
+    {
+      "value": 1,
+      "text": "Isolated"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackLiquidIsolationRequest` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `integration` | string | Yes | Integration identifier responsible for publishing this value. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation request. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackLiquidIsolationRequest",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "integration": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NoIsolationRequested"
+    },
+    {
+      "value": 1,
+      "text": "IsolationRequested"
+    }
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectType` | string | Yes | Values: `Rack` |
+| `pointType` | string | Yes | Values: `RackElectricalIsolationRequest` |
+| `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
+| `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `integration` | string | Yes | Integration identifier responsible for publishing this value. |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation request. |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectType": "Rack",
+  "pointType": "RackElectricalIsolationRequest",
+  "rackLocationName": "string",
+  "rackLocationId": "string",
+  "integration": "string",
+  "stateText": [
+    {
+      "value": 0,
+      "text": "NoIsolationRequested"
+    },
+    {
+      "value": 1,
+      "text": "IsolationRequested"
+    }
+  ]
+}
+```
+
+</details>
+

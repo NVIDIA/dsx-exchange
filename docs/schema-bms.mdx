@@ -1,0 +1,224 @@
+# BMS Event Bus 2.1.0
+
+Telemetry and control event catalog for the Building Management System (BMS)
+over MQTT. Provides real-time point values and point metadata for all supported
+object and point types.
+
+
+
+Each monitored point follows a **Value / Metadata** pattern:
+- **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
+  Subscribe to a value channel to receive real-time telemetry.
+  Values are published whenever they change and republished every 100 seconds
+  when they do not change.
+- **Metadata** messages describe the point (units, identifiers, relationships).
+  **Always receive metadata before interpreting values.** Metadata is retained and published
+  once at startup. It is subsequently published every 100 seconds.
+
+
+
+| Publisher   | Topic Type | Pattern                                                               |
+|-------------|------------|-----------------------------------------------------------------------|
+| BMS         | Value      | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}`                |
+| BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`             |
+| Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`      |
+
+The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple
+`/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
+
+Use `#` to subscribe to all topics under a given hierarchy (multi-level wildcard).
+
+Use `+` to match exactly one topic level (single-level wildcard).
+
+
+
+- **BMS** publishes all metadata — including for points whose values are
+  written by integrations.
+- **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
+- **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`.
+ Integrations do **not** publish metadata.
+
+
+
+
+> **This rule applies globally to every integration-published point across all
+> objectTypes.**
+
+BMS publishes metadata for every monitored point — including points whose
+_values_ are written by external integrations. For such points the metadata
+payload contains an `integration` field identifying which integration owns
+that point's value.
+
+| Metadata field | Type | Meaning |
+|----------------|------|---------|
+| `integration` | string | Identifier of the integration that must publish the value for this point |
+
+
+
+The value topic is derived **methodically** from the respective metadata topic (published by BMS) that
+carried the `integration` field. DSX Exchange Access Control Lists will
+typically be created so that MQTT Clients are provided access to publish and
+subscribe to specific namespaces that align with the `[Publisher]`:
+
+ BMS/v1/**[Publisher]/[TopicType]**/\{objectType\}/\{pointType\}/\{tagPath\}
+
+| Segment | Metadata topic | Value topic |
+|---------|---------------|-------------|
+| Publisher | `PUB` | value of `integration` field in metadata |
+| TopicType | `Metadata` | `Value` |
+| Remainder | `{objectType}/{pointType}/{tagPath}` | `{objectType}/{pointType}/{tagPath}` |
+
+In other words, the Publisher integration will derive the following value topic to publish based on the corresponding BMS metadata:
+
+    BMS/v1/PUB/Metadata/\{objectType\}/\{pointType\}/\{tagPath\}
+            ↓  replace PUB → \{integration\},  Metadata → Value
+    BMS/v1/\{integration\}/Value/\{objectType\}/\{pointType\}/\{tagPath\}
+
+
+
+When an integration receives a BMS metadata message and the `integration`
+field **matches its own identifier**, the integration **MUST**:
+
+1. Note the full metadata topic it arrived on.
+2. Derive the value topic by substituting `PUB` → own identifier and
+   `Metadata` → `Value`, keeping `{objectType}/{pointType}/{tagPath}`
+   unchanged.
+3. Publish value messages to that derived topic.
+
+Integrations **MUST NOT**:
+
+- Publish values for points whose metadata `integration` field does not
+  match their own identifier.
+- Publish metadata (BMS is the sole metadata publisher).
+
+
+
+    BMS publishes metadata →
+      Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+      Payload: \{ ..., "integration": "MEPAI", ... \}
+
+    Integration "MEPAI" receives the metadata, recognises its identifier,
+    derives its value topic →
+      BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+                ↓ PUB→MEPAI, Metadata→Value
+      BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+
+    MEPAI publishes its setpoint reading to that derived topic.
+
+  The same contract governs all other integration-published points, including
+  `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
+  `System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
+  `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
+  Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
+  integration metadata, the BMS writes to the value and not the integration.
+
+
+
+
+- **objectType**: Object Types are restricted to specific strings in accordance
+  with this AsyncAPI. They typically represent BMS equipment or devices.
+
+  - **System**: A System can be the BMS or an Integration to the BMS.
+    Heartbeat points and system-to-system communication point types are
+    typically defined inside of a System object type. System Heartbeat point
+    types are expected to operate as follows. An integration may choose to use
+    the Echo points or not:
+
+    - **HeartbeatTimestampBms** — The BMS will publish a timestamp every 10 seconds.
+    - **HearbeatTimestampIntegration** — The Integration will publish a timestamp every 10 seconds.
+    - **HeartbeatEchoBms** — The BMS will publish an echo of the integration
+      timestamp (reads `HearbeatTimestampIntegration` value and re-publishes
+      the same value on this point type).
+    - **HeartbeatEchoIntegration** — The Integration will publish an echo of
+      the BMS timestamp (reads `HeartbeatEchoBms` value and re-publishes the
+      same value on this point type).
+
+  - **Rack**: A Rack is a special object type and has specific point types that
+    can only be used with a Rack object type. Many integrations and MQTT Clients
+    will only ingest data from the Rack object type. Other integrations will
+    consider Rack data as the most important or interesting data in the AI
+    Factory. Mechanical and Electrical design (and therefore BMS Data) at the
+    rack is also more standardized than mechanical and electrical systems as you
+    move out of the white space and to the gray space of the AI Factory. For
+    these reasons, the point types associated with a Rack object type are
+    generally more specific than any other object type, making ingesting and
+    understanding rack data more straight-forward.
+
+  - **PowerMeter**: A PowerMeter is a special object type and has specific point
+    types that can only be used with a PowerMeter object type. PowerMeter point
+    types contain the metadata needed to understand electrical power path. This
+    data is used by integrations / MQTT Clients for power management strategies.
+
+  - **Electrical Equipment**: This is a general category, and several object
+    types exist in this AsyncAPI for electrical equipment. Electrical equipment
+    point types typically use metadata to associate the object / equipment with
+    a power meter to show where the equipment lands in the power path.
+
+  - **Mechanical Equipment**: This is a general category, and several object
+    types exist in this AsyncAPI for mechanical equipment.
+
+  - **GenericObject**: This object type is reserved and should not be used
+    unless no other object type is applicable.
+
+- **pointType**: Point Types are restricted to specific strings in accordance
+  with this AsyncAPI. Point types are also restricted to specific object types.
+  Some point types apply to multiple object types while others are restricted
+  to specific object types.
+
+- **engUnit**: Engineering Units describe the units of measure for the point /
+  topic. If engineering units are used, then state text does not apply.
+
+- **stateText**: State Text describes what a binary or integer value means.
+  Each binary or integer value will have a state text identified. If state text
+  is used, then engineering units do not apply.
+
+- **rackLocationName**: This is the human readable name given to a rack location.
+
+- **rackLocationId**: This is the unique identifier for a rack location. It can
+  be the same as the rackLocationName if human readable and unique. This must
+  allow the IT side integrations and OT side BMS to associate a point with the
+  same physical rack (same identifier on both systems).
+
+- **objectName**: This is the human readable name given to the object.
+
+- **objectId**: This is the unique identifier for an object. It can be the same
+  as the objectName if human readable and unique.
+
+- **associateId**: This will list the objectId of an associated object. The
+  intent is for this object to be considered part of the other object, especially
+  for "servesId" metadata. Commonly used to prevent parallel power paths
+  (parallel "serves" relationships) when electrical equipment objects need to be
+  associated with power meters. Also applicable to mechanical equipment object
+  types to prevent liquid and air flow parallel paths where not intended.
+
+- **servesId**: This will list the objectId of the object that is served by
+  this object. Creates a one-way relationship. Typically used to indicate
+  electrical power path or liquid/air fluid flow path towards the rack.
+
+- **processArea**: This is used to provide more information on the point
+  location or purpose. In general, process area metadata should be used, in
+  conjunction with other metadata, to make points unique and allow integrations
+  / MQTT Clients to clearly understand what a point represents in the AI
+  factory. Example: for a CDU object type and LiquidTemperature point type, the
+  process area metadata could include "Secondary" and "Supply". This would make
+  it clear that the temperature sensor was located on the secondary side of the
+  CDU and on the supply line.
+
+- **phase**: This is used to identify which phase, of a 3-phase electrical
+  system, the point is associated with.
+
+- **isSetpoint**: This can be shown as "True" to indicate a point is a setpoint
+  as opposed to a sensor reading. A setpoint is a target or ideal value that a
+  system is trying to maintain a process variable at.
+
+- **scope**: Scope is used for System heartbeat points. If the BMS has multiple
+  MQTT Clients connected to DSX Exchange, each could be publishing different
+  data to the MQTT Broker. In this case each MQTT Client should have separate
+  heartbeat points. Scope can be used in this case to identify what MQTT Topics
+  / Namespace the heartbeat point is associated with — and thereby what topics
+  are impacted when a heartbeat is lost.
+
+- **integration**: Integration metadata is used to indicate which integration a
+  point is associated with. It also indicates the namespace `[Publisher]` an
+  integration is required to write the corresponding value back to.
+

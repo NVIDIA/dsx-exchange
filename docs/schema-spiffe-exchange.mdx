@@ -1,0 +1,12 @@
+# SPIRE SPIFFE Exchange - Public Keysets 1.0.0
+
+AsyncAPI specification for publishing JWK (JSON Web Key) public keys on the
+SPIFFE/SPIRE exchange topic. One JWK per message. Used to distribute public
+keys for a given tenant and key identifier so consumers can verify JWS or
+use keys for encryption.
+
+**Topic format:** `spiffe-exchange/v1/pub-keysets/tenant/{tenant_domain}/kid/{kid}`
+
+Payloads conform to RFC 7517 (JSON Web Key). Only public key material is
+published on this channel.
+

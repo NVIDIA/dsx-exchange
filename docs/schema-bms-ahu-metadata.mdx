@@ -1,0 +1,719 @@
+# AHU — Metadata
+
+Subscribe to BMS-published metadata for AHU points.
+
+**Direction:** Subscribe (receive)
+
+## Channel
+
+```
+BMS/v1/PUB/Metadata/AHU/{pointType}/{tagPath}
+```
+
+BMS-published metadata for AHU points.
+
+**MQTT wildcard examples**
+- All AHU metadata: `BMS/v1/PUB/Metadata/AHU/#`
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `pointType` | AHU point type. Values: `LiquidTemperature`, `LiquidDifferentialPressure`, `LiquidFlow`, `LiquidPressure`, `Status`, `Available` ... (17 total) |
+| `tagPath` | Vendor-defined hierarchical tag path. |
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-object XOR associate) and measurement (engUnit XOR stateText) constraints are independent and enforced by EquipmentMeasurementModeBase.
+
+### Requires a non-empty engUnit string (mutually exclusive with stateText).
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `engUnit` | string | Yes | Engineering unit for the measurement. |
+
+
+### Required for state/status/alarm points that carry no engineering unit.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "engUnit": "string"
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+0 = No Leak, 1 = Leak. No engUnit.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is required.
+
+
+`engUnit` and `stateText` are both optional but **mutually exclusive** — include at most one. See the two variants below.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+

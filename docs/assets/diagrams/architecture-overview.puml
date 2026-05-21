@@ -1,0 +1,74 @@
+@startuml Event Bus Architecture
+
+!theme plain
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+
+skinparam component {
+    BackgroundColor<<EventBus>> lightblue
+    BackgroundColor<<Service>> lightgray
+    BackgroundColor<<Gateway>> orange
+    BackgroundColor<<Auth>> lightyellow
+}
+
+skinparam package {
+    BackgroundColor<<CPC>> lightgreen
+}
+
+skinparam direction topToBottom
+
+package "CSC - Common Services Cluster" {
+    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CSC <<Gateway>>
+    component "NATS Cluster\n(CSC Topic Space)" as BUS_CSC <<EventBus>>
+    component "Auth Callout Service" as AUTH_CSC <<Auth>>
+    component "Operational Services\n(e.g., Mission Control)" as OPS_CSC <<Service>>
+    component "Prometheus Connector" as PC_CSC <<Service>>
+    component "Message Mapper" as MM_CSC <<Service>>
+}
+
+package "CPC 1 - Control Plane Cluster" <<CPC>> {
+    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CPC1 <<Gateway>>
+    component "NATS Cluster\n(CSC + CPC Topic Spaces)" as BUS_CPC1 <<EventBus>>
+    component "Auth Callout Service" as AUTH_CPC1 <<Auth>>
+    component "Tenant / Platform Services" as OPS_CPC1 <<Service>>
+    component "Prometheus Connector" as PC_CPC1 <<Service>>
+    component "Message Mapper" as MM_CPC1 <<Service>>
+}
+
+package "CPC 2..N - Control Plane Cluster" <<CPC>> {
+    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CPC2 <<Gateway>>
+    component "NATS Cluster\n(CSC + CPC Topic Spaces)" as BUS_CPC2 <<EventBus>>
+    component "Auth Callout Service" as AUTH_CPC2 <<Auth>>
+    component "Tenant / Platform Services" as OPS_CPC2 <<Service>>
+    component "Prometheus Connector" as PC_CPC2 <<Service>>
+    component "Message Mapper" as MM_CPC2 <<Service>>
+}
+
+component "External Client" as EXT_CLIENT1 <<Service>>
+component "External Client" as EXT_CLIENT2 <<Service>>
+component "External Client" as EXT_CLIENT3 <<Service>>
+component "External Client" as EXT_CLIENT4 <<Service>>
+
+BUS_CPC1 --> GW_CSC : NATS Leaf (7422/TCP over TLS)
+BUS_CPC2 --> GW_CSC : NATS Leaf (7422/TCP over TLS)
+GW_CSC --> BUS_CSC : TCP proxy (MQTT/NATS)
+AUTH_CSC --> BUS_CSC : NATS
+OPS_CSC --> BUS_CSC : MQTT 3.1.1
+PC_CSC --> BUS_CSC : MQTT 3.1.1
+MM_CSC --> BUS_CSC : MQTT 3.1.1
+GW_CPC1 --> BUS_CPC1 : TCP proxy
+AUTH_CPC1 --> BUS_CPC1 : NATS
+OPS_CPC1 --> BUS_CPC1 : MQTT 3.1.1
+PC_CPC1 --> BUS_CPC1 : MQTT 3.1.1
+MM_CPC1 --> BUS_CPC1 : MQTT 3.1.1
+GW_CPC2 --> BUS_CPC2 : TCP proxy
+AUTH_CPC2 --> BUS_CPC2 : NATS
+OPS_CPC2 --> BUS_CPC2 : MQTT 3.1.1
+PC_CPC2 --> BUS_CPC2 : MQTT 3.1.1
+MM_CPC2 --> BUS_CPC2 : MQTT 3.1.1
+EXT_CLIENT1 --> GW_CSC : mTLS (8883)
+EXT_CLIENT2 --> GW_CSC : TLS (1883)
+EXT_CLIENT3 --> GW_CPC1 : mTLS (8883)
+EXT_CLIENT4 --> GW_CPC2 : TLS (1883)
+
+@enduml

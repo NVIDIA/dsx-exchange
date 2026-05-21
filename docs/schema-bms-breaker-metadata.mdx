@@ -1,0 +1,186 @@
+# Breaker — Metadata
+
+Subscribe to BMS-published metadata for Breaker points.
+
+**Direction:** Subscribe (receive)
+
+## Channel
+
+```
+BMS/v1/PUB/Metadata/Breaker/{pointType}/{tagPath}
+```
+
+BMS-published metadata for Breaker points.
+
+**MQTT wildcard examples**
+- All Breaker metadata: `BMS/v1/PUB/Metadata/Breaker/#`
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `pointType` | Breaker point type. Values: `Status`, `Available`, `GenericPoint` |
+| `tagPath` | Vendor-defined hierarchical tag path. |
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Optional fields common to all generic equipment metadata, regardless of identifier mode.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+
+## Message: Message
+
+**Content Type:** `application/json`
+
+### Payload
+
+Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is required.
+
+
+`engUnit` and `stateText` are both optional but **mutually exclusive** — include at most one. See the two variants below.
+
+### Object Mode
+
+- `objectName` and `objectId` are **required**.
+- `servesId` is **optional** in Named-object mode.
+- `associateId` must **not** be present.
+
+Incompatible with `EquipmentAssociateMode` — validators enforce this via
+the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `objectName` | string | Yes | Human-readable equipment name. |
+| `objectId` | string | Yes | Stable unique identifier for the equipment. |
+| `servesId` | array\&lt;string\> | No | Optional list of objectIds of entities this equipment serves. Only valid in Named-object mode. Only valid in Named-object mode — must not appear in Associate mode. |
+
+
+### Associate Mode
+
+- `associateId` is **required**.
+- `objectName`, `objectId`, and `servesId` must **not** be present.
+
+Incompatible with `EquipmentNamedObjectMode` — validators enforce this
+via the parent `oneOf`.
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `associateId` | string | Yes | Identifier of the associated entity. |
+
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "objectName": "string",
+  "objectId": "string",
+  "servesId": [
+    "string"
+  ]
+}
+```
+
+</details>
+

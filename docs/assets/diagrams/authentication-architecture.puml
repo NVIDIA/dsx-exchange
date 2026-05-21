@@ -1,0 +1,58 @@
+@startuml Authentication Architecture
+!theme plain
+
+skinparam rectangle {
+    BackgroundColor<<tcp>> LightBlue
+    BackgroundColor<<mtls>> LightGreen
+    BackgroundColor<<auth>> LightYellow
+    BackgroundColor<<external>> White
+    BorderColor Black
+}
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+}
+
+package "Single Cluster (CSC or CPC)" {
+
+    rectangle "Main NATS Cluster" <<tcp>> {
+        component "MQTT/TCP Endpoint\nmqtt.bus.dc.svc.cluster.local" as mqtt_tcp
+        component "NATS Endpoint\nnats.bus.dc.svc.cluster.local" as nats_tcp
+        database "JetStream" as js
+
+        mqtt_tcp -[hidden]down- nats_tcp
+        nats_tcp -[hidden]down- js
+    }
+
+    rectangle "mTLS NATS Cluster" <<mtls>> {
+        component "MQTT/mTLS Endpoint\nmqtt.mtls-bus.dc.svc.cluster.local" as mqtt_mtls
+        component "NATS Endpoint\nnats.mtls-bus.dc.svc.cluster.local" as nats_leaf_tcp
+
+        mqtt_mtls -[hidden]down- nats_leaf_tcp
+    }
+
+    rectangle "Auth Callout Service" <<auth>> {
+        component "Auth Handler\n(OAuth2, mTLS, NKey)" as auth_handler
+    }
+
+    ' Connections
+    nats_leaf_tcp -[#blue,bold]-> nats_tcp : "Leaf Node\nConnection"
+
+    auth_handler -[#red,dashed]-> nats_tcp : "Register Handler\n(NATS/TCP)"
+
+    ' External clients
+    actor "MQTT Client" as client_tcp
+    actor "MQTT Client" as client_mtls
+
+    client_tcp -down-> mqtt_tcp : "TCP"
+    client_mtls -down-> mqtt_mtls : "mTLS"
+}
+
+rectangle "Vault" <<external>> as vault
+rectangle "SSA" <<external>> as ssa
+
+auth_handler -[#green]-> vault : "Vault Issued CA"
+auth_handler -[#orange]-> ssa : "OAuth2 JWKS"
+
+@enduml

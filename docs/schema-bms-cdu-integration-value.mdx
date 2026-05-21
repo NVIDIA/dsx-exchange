@@ -1,0 +1,56 @@
+# CDU Integration — Value
+
+Publish integration values for CDU control points.
+
+**Direction:** Publish (send)
+
+## Channel
+
+```
+BMS/v1/{integration}/Value/CDU/{pointType}/{tagPath}
+```
+
+Values published by integrations for CDU control points.
+Subscribe to `cduMetadata` first and read `integration` for the exact topic.
+
+**MQTT wildcard examples**
+- All integration CDU values: `BMS/v1/+/Value/CDU/#`
+
+### Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `integration` | Integration identifier. |
+| `pointType` | Integration-published CDU point type. Values: `LiquidTemperatureSpRequest` |
+| `tagPath` | Must match the tagPath from the corresponding BMS metadata exactly. |
+
+## Message: Point Value
+
+**Content Type:** `application/json`
+
+Live value message. Payload envelope is identical for all point types.
+The semantic meaning of `value` is determined by the corresponding
+metadata message.
+
+### Payload
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `value` | number | null | Yes | Live reading for the point (float). May be null when the BMS has no valid reading available. |
+| `timestamp` | integer | Yes | Unix timestamp in epoch milliseconds (source event time). |
+| `quality` | integer | Yes | `1` = good quality. Any other integer indicates value is not trustworthy |
+
+
+<details>
+<summary>Example payload</summary>
+
+```json
+{
+  "value": 22.96215,
+  "timestamp": 1743620423000,
+  "quality": 1
+}
+```
+
+</details>
+
