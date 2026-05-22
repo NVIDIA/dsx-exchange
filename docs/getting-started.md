@@ -84,6 +84,16 @@ eventBus:
         account: "CSC"
 ```
 
+If using OAuth2, configure the JWKS endpoint and issuer so the auth-callout can validate tokens. Without these, OAuth2 connections are silently rejected:
+
+```yaml
+auth-callout:
+  serviceConfig:
+    jwks:
+      url: "https://keycloak.example.com/realms/event-bus/protocol/openid-connect/certs"
+      issuer: "https://keycloak.example.com/realms/event-bus"
+```
+
 The CSC also needs CPC leaf user public keys to authorize incoming leaf connections:
 
 ```yaml

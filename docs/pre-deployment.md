@@ -2,6 +2,10 @@
 
 Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, Vault integration, certificate management, and Gateway setup.
 
+**Scope**: Most steps in this guide are **per-cluster** — they must be repeated for the CSC and each CPC. A 1-CSC + 2-CPC topology requires three full runs of secret generation, certificate provisioning, and Helm install. Steps that are global (e.g., Vault PKI Root CA setup) are noted as such.
+
+**This is the production deployment path.** For evaluation without Vault or production certificates, see [Deployment — Evaluation Install](getting-started.md) which uses the `local/` Makefile and takes ~10 minutes.
+
 ## Infrastructure Prerequisites
 
 The following must be installed in each Kubernetes cluster before deploying the event bus:
@@ -49,12 +53,23 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 
 ### Cross-Cluster Leaf Connections
 
-Each CPC gets a `nats-leaf-csc` secret. The CSC gets the pubkey for each CPC.
+The CSC generation script creates a `nats-leaf-cpc-{id}` keypair (seed + pubkey) for each CPC ID passed on the command line. These must be manually copied to each CPC and renamed to `nats-leaf-csc`:
 
-| Secret | Keys | Purpose |
-|--------|------|---------|
-| `nats-leaf-csc` | seed | CPC-to-CSC leaf connection (CPC only) |
-| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only, via auth-callout.extraEnvs) |
+```bash
+# On CSC, after running generate-nkeys.sh -c csc 1 2:
+# Copy the CPC-1 leaf seed to CPC-1's cluster as nats-leaf-csc
+kubectl create secret generic nats-leaf-csc -n dsx \
+  --from-file=seed=secrets/csc/nkeys/nats-leaf-cpc-1/seed
+
+# Repeat for CPC-2 on CPC-2's cluster
+kubectl create secret generic nats-leaf-csc -n dsx \
+  --from-file=seed=secrets/csc/nkeys/nats-leaf-cpc-2/seed
+```
+
+| Secret | Keys | Created By | Consumed By |
+|--------|------|-----------|-------------|
+| `nats-leaf-cpc-{id}` | seed, pubkey | CSC generation script | Pubkey stays on CSC (auth-callout.extraEnvs); seed copied to CPC |
+| `nats-leaf-csc` | seed | Manual copy from CSC's `nats-leaf-cpc-{id}/seed` | CPC chart (leaf node connection to CSC) |
 
 ### mTLS Secrets (when `eventBus.mtls.enabled: true`)
 
@@ -201,9 +216,16 @@ spec:
 
 cert-manager with a Vault Issuer handles TLS certificate lifecycle. Vault's PKI engine issues certificates signed by the event bus Root CA.
 
-### Server TLS Certificate
+There are two distinct TLS certificates with different consumers:
 
-All TLS-terminated Gateway listeners reference a cert-manager Certificate:
+| Certificate | Consumed By | Purpose |
+|-------------|------------|---------|
+| `event-bus-server-tls-certificate` | Gateway API controller listeners | TLS termination for external MQTT/NATS traffic. Not referenced by the event bus Helm chart. |
+| `nats-mtls-server-tls` | mTLS NATS StatefulSet (`nats-mtls` pods) | Pod-level TLS for client certificate verification. Only required when `eventBus.mtls.enabled: true`. |
+
+### Gateway TLS Certificate
+
+The Gateway controller terminates TLS for external clients. This certificate is referenced by the Gateway resource listeners, not by the event bus chart:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -218,6 +240,25 @@ spec:
   commonName: "event-bus.example.com"
   dnsNames:
     - "event-bus.example.com"
+```
+
+### mTLS NATS Server Certificate
+
+When `eventBus.mtls.enabled: true`, the mTLS NATS pods terminate TLS themselves (the Gateway uses TCP passthrough on port 8883). This certificate is referenced by the chart via the `nats-mtls-server-tls` secret:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nats-mtls-server-tls
+spec:
+  secretName: nats-mtls-server-tls
+  issuerRef:
+    name: event-bus-certificate-issuer
+    kind: Issuer
+  commonName: "nats-mtls.dsx.svc.cluster.local"
+  dnsNames:
+    - "nats-mtls.dsx.svc.cluster.local"
 ```
 
 ## Gateway Setup
