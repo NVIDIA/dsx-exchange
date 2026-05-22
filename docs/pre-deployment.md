@@ -105,18 +105,17 @@ nsc generate nkey --curve    # xkey (SX seed, X pubkey)
 
 ### Generation Script
 
-A script generates all required secrets for a cluster:
+A script generates all required secrets for a cluster. Without CPC IDs, only the CSC output is generated or left unchanged. With CPC IDs, CSC and the requested CPC outputs are generated or left unchanged. For example:
 
 ```bash
 ./deploy/scripts/generate-nkeys.sh [OPTIONS] [cpc-ids...]
 
 # Options:
-#   -c, --cluster CLUSTER    Cluster name: csc or cpc-{id} (default: csc)
-#   -o, --output DIR         Output directory (default: ./secrets/{cluster})
+#   cpc-ids                  Optional list of CPC IDs to generate with CSC
+#   -o, --output DIR         Output root directory (default: deploy/secrets)
 
-# Examples:
-./deploy/scripts/generate-nkeys.sh -c csc 1 2 3    # CSC with CPC IDs 1, 2, 3
-./deploy/scripts/generate-nkeys.sh -c cpc-1          # CPC-1
+# Example:
+./deploy/scripts/generate-nkeys.sh 1 2 3    # CSC with CPC IDs 1, 2, 3
 ```
 
 Each key is written as a subdirectory containing `seed` and `pubkey` files:
