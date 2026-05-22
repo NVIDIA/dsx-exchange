@@ -17,6 +17,13 @@ title: DSX Exchange
 # Content navigation from here down
 #==============================================================================
 
+check:
+  rules:
+    broken-links: error
+
+settings:
+  folder-title-source: frontmatter
+
 layout:
   searchbar-placement: header
   page-width: 1376px
@@ -55,283 +62,284 @@ navigation:
         contents:
           - page: Overview
             path: ../docs/schema-bms.mdx
-            slug: schema/bms
+            slug: overview
           - section: Operations
             contents:
               - section: AHU
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-ahu-metadata.mdx
-                    slug: schema/bms/ahu-metadata
+                    slug: ahu-metadata
                   - page: Value
                     path: ../docs/schema-bms-ahu-value.mdx
-                    slug: schema/bms/ahu-value
+                    slug: ahu-value
               - section: ATS
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-ats-metadata.mdx
-                    slug: schema/bms/ats-metadata
+                    slug: ats-metadata
                   - page: Value
                     path: ../docs/schema-bms-ats-value.mdx
-                    slug: schema/bms/ats-value
+                    slug: ats-value
               - section: BESS
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-bess-metadata.mdx
-                    slug: schema/bms/bess-metadata
+                    slug: bess-metadata
                   - page: Value
                     path: ../docs/schema-bms-bess-value.mdx
-                    slug: schema/bms/bess-value
+                    slug: bess-value
               - section: Breaker
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-breaker-metadata.mdx
-                    slug: schema/bms/breaker-metadata
+                    slug: breaker-metadata
                   - page: Value
                     path: ../docs/schema-bms-breaker-value.mdx
-                    slug: schema/bms/breaker-value
+                    slug: breaker-value
               - section: CDU
                 contents:
                   - page: Integration Value
                     path: ../docs/schema-bms-cdu-integration-value.mdx
-                    slug: schema/bms/cdu-integration-value
+                    slug: cdu-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-cdu-metadata.mdx
-                    slug: schema/bms/cdu-metadata
+                    slug: cdu-metadata
                   - page: Value
                     path: ../docs/schema-bms-cdu-value.mdx
-                    slug: schema/bms/cdu-value
+                    slug: cdu-value
               - section: Chiller
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-chiller-metadata.mdx
-                    slug: schema/bms/chiller-metadata
+                    slug: chiller-metadata
                   - page: Value
                     path: ../docs/schema-bms-chiller-value.mdx
-                    slug: schema/bms/chiller-value
+                    slug: chiller-value
               - section: Cooling Tower
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-coolingtower-metadata.mdx
-                    slug: schema/bms/coolingtower-metadata
+                    slug: coolingtower-metadata
                   - page: Value
                     path: ../docs/schema-bms-coolingtower-value.mdx
-                    slug: schema/bms/coolingtower-value
+                    slug: coolingtower-value
               - section: CRAC
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-crac-metadata.mdx
-                    slug: schema/bms/crac-metadata
+                    slug: crac-metadata
                   - page: Value
                     path: ../docs/schema-bms-crac-value.mdx
-                    slug: schema/bms/crac-value
+                    slug: crac-value
               - section: CRAH
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-crah-metadata.mdx
-                    slug: schema/bms/crah-metadata
+                    slug: crah-metadata
                   - page: Value
                     path: ../docs/schema-bms-crah-value.mdx
-                    slug: schema/bms/crah-value
+                    slug: crah-value
               - section: Damper
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-damper-metadata.mdx
-                    slug: schema/bms/damper-metadata
+                    slug: damper-metadata
                   - page: Value
                     path: ../docs/schema-bms-damper-value.mdx
-                    slug: schema/bms/damper-value
+                    slug: damper-value
               - section: Fan
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-fan-metadata.mdx
-                    slug: schema/bms/fan-metadata
+                    slug: fan-metadata
                   - page: Value
                     path: ../docs/schema-bms-fan-value.mdx
-                    slug: schema/bms/fan-value
+                    slug: fan-value
               - section: Generator
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-generator-metadata.mdx
-                    slug: schema/bms/generator-metadata
+                    slug: generator-metadata
                   - page: Value
                     path: ../docs/schema-bms-generator-value.mdx
-                    slug: schema/bms/generator-value
+                    slug: generator-value
               - section: Generic Object
                 contents:
                   - page: Integration Value
                     path: ../docs/schema-bms-genericobject-integration-value.mdx
-                    slug: schema/bms/genericobject-integration-value
+                    slug: genericobject-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-genericobject-metadata.mdx
-                    slug: schema/bms/genericobject-metadata
+                    slug: genericobject-metadata
                   - page: Value
                     path: ../docs/schema-bms-genericobject-value.mdx
-                    slug: schema/bms/genericobject-value
+                    slug: genericobject-value
               - section: HX
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-hx-metadata.mdx
-                    slug: schema/bms/hx-metadata
+                    slug: hx-metadata
                   - page: Value
                     path: ../docs/schema-bms-hx-value.mdx
-                    slug: schema/bms/hx-value
+                    slug: hx-value
               - section: Power Meter
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-powermeter-metadata.mdx
-                    slug: schema/bms/powermeter-metadata
+                    slug: powermeter-metadata
                   - page: Value
                     path: ../docs/schema-bms-powermeter-value.mdx
-                    slug: schema/bms/powermeter-value
+                    slug: powermeter-value
               - section: Pump
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-pump-metadata.mdx
-                    slug: schema/bms/pump-metadata
+                    slug: pump-metadata
                   - page: Value
                     path: ../docs/schema-bms-pump-value.mdx
-                    slug: schema/bms/pump-value
+                    slug: pump-value
               - section: Rack
                 contents:
                   - page: Integration Value
                     path: ../docs/schema-bms-rack-integration-value.mdx
-                    slug: schema/bms/rack-integration-value
+                    slug: rack-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-rack-metadata.mdx
-                    slug: schema/bms/rack-metadata
+                    slug: rack-metadata
                   - page: Value
                     path: ../docs/schema-bms-rack-value.mdx
-                    slug: schema/bms/rack-value
+                    slug: rack-value
               - section: Sensor
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-sensor-metadata.mdx
-                    slug: schema/bms/sensor-metadata
+                    slug: sensor-metadata
                   - page: Value
                     path: ../docs/schema-bms-sensor-value.mdx
-                    slug: schema/bms/sensor-value
+                    slug: sensor-value
               - section: Shunt
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-shunt-metadata.mdx
-                    slug: schema/bms/shunt-metadata
+                    slug: shunt-metadata
                   - page: Value
                     path: ../docs/schema-bms-shunt-value.mdx
-                    slug: schema/bms/shunt-value
+                    slug: shunt-value
               - section: System
                 contents:
                   - page: BMS Value
                     path: ../docs/schema-bms-system-bms-value.mdx
-                    slug: schema/bms/system-bms-value
+                    slug: system-bms-value
                   - page: Integration Value
                     path: ../docs/schema-bms-system-integration-value.mdx
-                    slug: schema/bms/system-integration-value
+                    slug: system-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-system-metadata.mdx
-                    slug: schema/bms/system-metadata
+                    slug: system-metadata
               - section: Tank
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-tank-metadata.mdx
-                    slug: schema/bms/tank-metadata
+                    slug: tank-metadata
                   - page: Value
                     path: ../docs/schema-bms-tank-value.mdx
-                    slug: schema/bms/tank-value
+                    slug: tank-value
               - section: UPS
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-ups-metadata.mdx
-                    slug: schema/bms/ups-metadata
+                    slug: ups-metadata
                   - page: Value
                     path: ../docs/schema-bms-ups-value.mdx
-                    slug: schema/bms/ups-value
+                    slug: ups-value
               - section: Valve
                 contents:
                   - page: Metadata
                     path: ../docs/schema-bms-valve-metadata.mdx
-                    slug: schema/bms/valve-metadata
+                    slug: valve-metadata
                   - page: Value
                     path: ../docs/schema-bms-valve-value.mdx
-                    slug: schema/bms/valve-value
+                    slug: valve-value
           - page: Messages
             path: ../docs/schema-bms-messages.mdx
-            slug: schema/bms/messages
+            slug: messages
           - page: Schemas
             path: ../docs/schema-bms-schemas.mdx
-            slug: schema/bms/schemas
+            slug: schemas
       - section: Power Management
         contents:
           - page: Overview
             path: ../docs/schema-power-management.mdx
-            slug: schema/power-management
+            slug: overview
           - section: Operations
             contents:
               - page: Publish Load Target Set
                 path: ../docs/schema-power-management-publishloadtargetset.mdx
-                slug: schema/power-management/publishloadtargetset
+                slug: publishloadtargetset
               - page: Publish Power Breach Alert
                 path: ../docs/schema-power-management-publishpowerbreachalert.mdx
-                slug: schema/power-management/publishpowerbreachalert
+                slug: publishpowerbreachalert
               - page: Publish Power Breach Enforcement
                 path: ../docs/schema-power-management-publishpowerbreachenforcement.mdx
-                slug: schema/power-management/publishpowerbreachenforcement
+                slug: publishpowerbreachenforcement
               - page: Publish Power State Status
                 path: ../docs/schema-power-management-publishpowerstatestatus.mdx
-                slug: schema/power-management/publishpowerstatestatus
+                slug: publishpowerstatestatus
               - page: Subscribe Load Target Set
                 path: ../docs/schema-power-management-subscribeloadtargetset.mdx
-                slug: schema/power-management/subscribeloadtargetset
+                slug: subscribeloadtargetset
               - page: Subscribe Power Breach Alert
                 path: ../docs/schema-power-management-subscribepowerbreachalert.mdx
-                slug: schema/power-management/subscribepowerbreachalert
+                slug: subscribepowerbreachalert
               - page: Subscribe Power Breach Enforcement
                 path: ../docs/schema-power-management-subscribepowerbreachenforcement.mdx
-                slug: schema/power-management/subscribepowerbreachenforcement
+                slug: subscribepowerbreachenforcement
               - page: Subscribe Power State Status
                 path: ../docs/schema-power-management-subscribepowerstatestatus.mdx
-                slug: schema/power-management/subscribepowerstatestatus
+                slug: subscribepowerstatestatus
           - page: Messages
             path: ../docs/schema-power-management-messages.mdx
-            slug: schema/power-management/messages
+            slug: messages
           - page: Schemas
             path: ../docs/schema-power-management-schemas.mdx
-            slug: schema/power-management/schemas
+            slug: schemas
       - section: NICo Host State
+        slug: nico
         contents:
           - page: Overview
             path: ../docs/schema-nico.mdx
-            slug: schema/nico
+            slug: overview
           - section: Operations
             contents:
               - page: Publish Managed Host State Change
                 path: ../docs/schema-nico-publishmanagedhoststatechange.mdx
-                slug: schema/nico/publishmanagedhoststatechange
+                slug: publishmanagedhoststatechange
               - page: Subscribe Managed Host State Change
                 path: ../docs/schema-nico-subscribemanagedhoststatechange.mdx
-                slug: schema/nico/subscribemanagedhoststatechange
+                slug: subscribemanagedhoststatechange
           - page: Messages
             path: ../docs/schema-nico-messages.mdx
-            slug: schema/nico/messages
+            slug: messages
           - page: Schemas
             path: ../docs/schema-nico-schemas.mdx
-            slug: schema/nico/schemas
+            slug: schemas
       - section: SPIFFE Exchange
         contents:
           - page: Overview
             path: ../docs/schema-spiffe-exchange.mdx
-            slug: schema/spiffe-exchange
+            slug: overview
           - section: Operations
             contents:
               - page: Publish Pub Key Set
                 path: ../docs/schema-spiffe-exchange-publishpubkeyset.mdx
-                slug: schema/spiffe-exchange/publishpubkeyset
+                slug: publishpubkeyset
               - page: Subscribe Pub Key Set
                 path: ../docs/schema-spiffe-exchange-subscribepubkeyset.mdx
-                slug: schema/spiffe-exchange/subscribepubkeyset
+                slug: subscribepubkeyset
           - page: Messages
             path: ../docs/schema-spiffe-exchange-messages.mdx
-            slug: schema/spiffe-exchange/messages
+            slug: messages
           - page: Schemas
             path: ../docs/schema-spiffe-exchange-schemas.mdx
-            slug: schema/spiffe-exchange/schemas
+            slug: schemas
