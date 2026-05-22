@@ -50,9 +50,9 @@ package "Single Cluster (CSC or CPC)" {
 }
 
 rectangle "Vault" <<external>> as vault
-rectangle "SSA" <<external>> as ssa
+rectangle "OAuth2 Provider" <<external>> as oauth2
 
 auth_handler -[#green]-> vault : "Vault Issued CA"
-auth_handler -[#orange]-> ssa : "OAuth2 JWKS"
+auth_handler -[#orange]-> oauth2 : "OAuth2 JWKS"
 
 @enduml

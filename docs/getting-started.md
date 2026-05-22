@@ -27,7 +27,7 @@ Before starting, ensure all infrastructure prerequisites, secrets, and certifica
 
 ## Install Order
 
-1. Infrastructure (Envoy Gateway, MetalLB, cert-manager)
+1. Infrastructure (Gateway API controller, MetalLB, cert-manager)
 2. Keycloak or OIDC provider (if using OAuth2)
 3. CSC cluster event bus
 4. CPC cluster event buses (connect to CSC via leaf nodes)
@@ -136,7 +136,7 @@ Cross-layer settings control which topics are copied between the CPC local topic
 
 ## Gateway Configuration
 
-Configure Envoy Gateway listeners and TCPRoute/TLSRoute resources for external access:
+Configure Gateway API listeners and TCPRoute/TLSRoute resources for external access:
 
 ```yaml
 gateway:

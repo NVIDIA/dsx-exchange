@@ -9,7 +9,7 @@ A single auth-callout instance handles authentication for both the main NATS clu
 ```mermaid
 sequenceDiagram
     participant C as MQTT/NATS Client
-    participant GW as Envoy Gateway
+    participant GW as Gateway
     participant N as NATS Server
     participant A as Auth Callout
     participant K as OIDC Provider
@@ -50,7 +50,7 @@ auth-callout:
 
 ### mTLS (X.509 Client Certificates)
 
-BMS and OT devices connect to the mTLS NATS endpoint (port 8883) with a client certificate. TLS is terminated at the NATS pod (Envoy Gateway uses TCP passthrough for this listener). The auth-callout extracts the certificate's Common Name and matches it to a permissions entry.
+BMS and OT devices connect to the mTLS NATS endpoint (port 8883) with a client certificate. TLS is terminated at the NATS pod (the Gateway API controller uses TCP passthrough for this listener). The auth-callout extracts the certificate's Common Name and matches it to a permissions entry.
 
 Configure the CA certificate path:
 

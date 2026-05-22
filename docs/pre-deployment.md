@@ -152,7 +152,7 @@ flowchart TB
         VSO[Vault Secrets Operator]
         VSS[VaultStaticSecret Resources]
 
-        subgraph Gateway[Envoy Gateway]
+        subgraph Gateway[Gateway API Controller]
             GW_Listeners[Listeners — MQTT: 1883, 8883 / NATS: 4222, 7422]
         end
 
@@ -222,7 +222,7 @@ spec:
 
 ## Gateway Setup
 
-A Gateway controller (Envoy Gateway) must be installed before deploying the event bus. The Gateway resource defines the external listeners that route traffic to the NATS pods.
+A Gateway API controller must be installed before deploying the event bus. The Gateway resource defines the external listeners that route traffic to the NATS pods.
 
 ### Gateway Resource
 

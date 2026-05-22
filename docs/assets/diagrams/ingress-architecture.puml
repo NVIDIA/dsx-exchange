@@ -15,7 +15,7 @@ skinparam component {
 
 package "Single Cluster (CSC or CPC)" {
 
-    rectangle "Envoy" <<gateway>> {
+    rectangle "Gateway API Controller" <<gateway>> {
         component "Gateway" as gateway_ingress
     }
 

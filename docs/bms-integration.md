@@ -11,7 +11,7 @@ DSX Exchange is the integration layer within DSX OS that connects the systems in
 The data contract is defined at the MQTT layer, not at the BMS layer:
 
 - Your BMS can use any internal point naming convention.
-- Your BMS can be any platform — Ignition, Aveva, Schneider EcoStruxure, Siemens Desigo, Niagara, or any other SCADA or DDC software appropriate for a critical environment.
+- Your BMS can be any platform — any SCADA or DDC software appropriate for a critical environment.
 - The only requirement is that when your BMS publishes to DSX Exchange, it follows the topic structure and payload format defined in the AsyncAPI spec.
 
 The BMS does not deploy or manage the MQTT broker. You configure your BMS MQTT client to connect, publish, and subscribe.

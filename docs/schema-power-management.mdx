@@ -44,7 +44,7 @@ Examples:
 - grid.powerstate.status.v1 — Power Agent publishes power state snapshots
 - grid.powerbreach.alert.v1 — Power Agent publishes breach alerts
 - grid.powerbreach.enforcement.v1 — Infra Agent publishes enforcement outcomes
-- Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2 SSA)
+- Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2)
 - Data Field: MUST be signed (JWS RFC 7515) — broker never sees verified plaintext
 
 The `data` field uses cryptographic protection per RFC 7515 (JWS):

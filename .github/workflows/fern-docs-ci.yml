@@ -1,0 +1,51 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Fern Docs CI
+
+on:
+  push:
+    branches:
+      - main
+      - "pull-request/[0-9]+"
+    paths:
+      - 'docs/**'
+      - 'fern/**'
+      - 'tools/check-docs-mdx'
+      - '.github/workflows/fern-docs-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fern-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fern-check:
+    name: Fern Check
+    runs-on: linux-amd64-cpu4
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Fern CLI
+        run: npm install -g fern-api
+
+      - name: Check MDX safety
+        run: ./tools/check-docs-mdx
+
+      - name: Fern check
+        run: fern check
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress 'docs/**/*.md' 'docs/**/*.mdx'
+          fail: true

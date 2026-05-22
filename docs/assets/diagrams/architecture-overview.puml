@@ -18,7 +18,7 @@ skinparam package {
 skinparam direction topToBottom
 
 package "CSC - Common Services Cluster" {
-    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CSC <<Gateway>>
+    component "Gateway\n(Gateway API TCP listeners)" as GW_CSC <<Gateway>>
     component "NATS Cluster\n(CSC Topic Space)" as BUS_CSC <<EventBus>>
     component "Auth Callout Service" as AUTH_CSC <<Auth>>
     component "Operational Services\n(e.g., Mission Control)" as OPS_CSC <<Service>>
@@ -27,7 +27,7 @@ package "CSC - Common Services Cluster" {
 }
 
 package "CPC 1 - Control Plane Cluster" <<CPC>> {
-    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CPC1 <<Gateway>>
+    component "Gateway\n(Gateway API TCP listeners)" as GW_CPC1 <<Gateway>>
     component "NATS Cluster\n(CSC + CPC Topic Spaces)" as BUS_CPC1 <<EventBus>>
     component "Auth Callout Service" as AUTH_CPC1 <<Auth>>
     component "Tenant / Platform Services" as OPS_CPC1 <<Service>>
@@ -36,7 +36,7 @@ package "CPC 1 - Control Plane Cluster" <<CPC>> {
 }
 
 package "CPC 2..N - Control Plane Cluster" <<CPC>> {
-    component "Envoy Gateway\n(Gateway API TCP listeners)" as GW_CPC2 <<Gateway>>
+    component "Gateway\n(Gateway API TCP listeners)" as GW_CPC2 <<Gateway>>
     component "NATS Cluster\n(CSC + CPC Topic Spaces)" as BUS_CPC2 <<EventBus>>
     component "Auth Callout Service" as AUTH_CPC2 <<Auth>>
     component "Tenant / Platform Services" as OPS_CPC2 <<Service>>

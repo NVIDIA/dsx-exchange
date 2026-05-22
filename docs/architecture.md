@@ -11,7 +11,7 @@ DSX Exchange is the integration layer within DSX OS that connects these systems.
 - **Agent-operable** — agents observe factory state through the MCP Gateway and act through constrained, audited control surfaces
 - **Auditable** — every publisher authenticated, every subscriber authorized, every action logged with caller identity
 
-DSX Exchange consists of five components:
+DSX Exchange consists of four components:
 
 | Component | What It Is |
 |-----------|-----------|
@@ -19,7 +19,6 @@ DSX Exchange consists of five components:
 | AsyncAPI Schema | Formal topic definitions and payload contracts per service team |
 | Auth-Callout Service | OAuth2/mTLS/NKey authentication with topic-level ACLs |
 | MCP Interface Layer | MCP Gateway aggregating read-only MCP servers |
-| Audit / Flight Recorder | Structured event logs routed to observability and data stores |
 
 ## DSX Event Bus
 
@@ -41,7 +40,7 @@ PlantUML sources are in `assets/diagrams/`.
 ```mermaid
 flowchart TB
     subgraph CSC[CSC Cluster — Common Services]
-        CSC_GW[Envoy Gateway]
+        CSC_GW[Gateway]
         CSC_NATS[NATS Cluster ×3]
         CSC_MTLS[NATS mTLS ×1]
         CSC_AUTH[Auth Callout]
@@ -58,7 +57,7 @@ flowchart TB
     end
 
     subgraph CPC1[CPC-1 Cluster]
-        CPC1_GW[Envoy Gateway]
+        CPC1_GW[Gateway]
         CPC1_NATS[NATS Cluster ×3]
         CPC1_MTLS[NATS mTLS ×1]
         CPC1_AUTH[Auth Callout]
@@ -70,7 +69,7 @@ flowchart TB
     end
 
     subgraph CPCN[CPC-N Cluster]
-        CPCN_GW[Envoy Gateway]
+        CPCN_GW[Gateway]
         CPCN_NATS[NATS Cluster ×3]
         CPCN_AUTH[Auth Callout]
 

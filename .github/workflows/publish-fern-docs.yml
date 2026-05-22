@@ -1,0 +1,87 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Publishes the Fern documentation site on release tag push or manual dispatch.
+#
+# Manual dispatch accepts an optional `tag` input:
+#   - empty: resolves to the latest GitHub release tag
+#   - explicit (e.g. v0.1.0): publishes that tag
+#
+# Required configuration:
+# - Organization secret: DOCS_FERN_TOKEN
+
+name: Publish Fern Docs
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g. v0.1.0). Leave empty to use the latest GitHub release tag."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fern-publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: linux-amd64-cpu4
+    timeout-minutes: 20
+    steps:
+      - name: Resolve target tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -eo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          elif [ -n "${INPUT_TAG}" ]; then
+            TAG="${INPUT_TAG}"
+          else
+            TAG=$(gh release view --repo "${GITHUB_REPOSITORY}" --json tagName -q .tagName)
+            if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+              echo "::error::Could not determine latest release tag"
+              exit 1
+            fi
+          fi
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]]; then
+            echo "::error::Tag '${TAG}' is not a valid semver tag"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved target tag: $TAG"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Fern CLI
+        run: npm install -g fern-api
+
+      - name: Publish Docs
+        env:
+          FERN_TOKEN: ${{ secrets.DOCS_FERN_TOKEN }}
+        working-directory: ./fern
+        run: |
+          set -o pipefail
+          fern generate --docs 2>&1 | tee /tmp/fern-output.log
+          URL=$(grep -oP 'Published docs to \K.*(?= \()' /tmp/fern-output.log || true)
+          if [ -n "$URL" ]; then
+            echo "### Published: [$URL]($URL)" >> "$GITHUB_STEP_SUMMARY"
+          fi
