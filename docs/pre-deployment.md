@@ -2,6 +2,8 @@
 
 Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, Vault integration, certificate management, and Gateway setup.
 
+**Estimated time**: The production path (Vault + VSO + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
+
 ## Infrastructure Prerequisites
 
 The following must be installed in each Kubernetes cluster before deploying the event bus:

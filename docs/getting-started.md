@@ -4,6 +4,20 @@ This guide covers deploying the DSX Event Bus into a DSX AI Factory. Each Kubern
 
 Before starting, ensure all infrastructure prerequisites, secrets, and certificates are provisioned. See [Pre-Deployment](pre-deployment.md) for the full checklist. For day-2 operations, monitoring, and configuration tuning, see [Operations](operations.md).
 
+## Evaluation Install (~10 minutes)
+
+To evaluate DSX Exchange locally without Vault, VSO, or production certificate infrastructure, use the `local/` evaluation framework. This creates Kind clusters and deploys a fully functional event bus:
+
+```bash
+make -C local setup-infra      # Kind clusters + MetalLB + Envoy Gateway + cert-manager + Keycloak
+make -C local deploy-nats       # Deploy NATS event bus to all clusters
+make -C local validate-nats     # Verify connectivity
+```
+
+See `local/README.md` for the full set of evaluation targets including functional tests, performance benchmarks, and MQTT client tooling.
+
+The rest of this page covers the production deployment path.
+
 ## Prerequisites
 
 - Kubernetes 1.27+
