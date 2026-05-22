@@ -50,9 +50,21 @@ case "${cluster}" in
   *) echo "Unknown cluster: ${cluster}"; exit 1 ;;
 esac
 
-# Generate cluster-specific auth keys if they don't exist
-SECRETS_DIR="${SCRIPT_DIR}/secrets/${cluster}"
+# Ensure local NKey output exists for the selected cluster
+SECRETS_ROOT="${SCRIPT_DIR}/secrets"
+SECRETS_DIR="${SECRETS_ROOT}/${cluster}"
 SECRETS_NKEYS_DIR="${SECRETS_DIR}/nkeys"
+
+get_cpc_ids() {
+  yq -r '.eventBus.cpcIds[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true
+}
+
+CPC_IDS_ARGS=()
+while IFS= read -r cpc_id; do
+  if [ -n "${cpc_id}" ]; then
+    CPC_IDS_ARGS+=("${cpc_id}")
+  fi
+done < <(get_cpc_ids)
 
 nkeys_complete() {
   local required_files=(
@@ -80,12 +92,13 @@ nkeys_complete() {
 
   if [ "${cluster}" = "csc" ]; then
     local cpc_id
-    local cpc_ids
-    cpc_ids=$(yq -r '.eventBus.cpcIds[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true)
-    for cpc_id in ${cpc_ids}; do
+    for cpc_id in "${CPC_IDS_ARGS[@]}"; do
       required_files+=("nats-leaf-cpc-${cpc_id}/pubkey")
       required_files+=("nats-leaf-cpc-${cpc_id}/seed")
     done
+  else
+    required_files+=("nats-leaf-csc/pubkey")
+    required_files+=("nats-leaf-csc/seed")
   fi
 
   local rel
@@ -98,32 +111,19 @@ nkeys_complete() {
   return 0
 }
 
-if ! nkeys_complete; then
-  if [ -d "${SECRETS_NKEYS_DIR}" ]; then
-    echo "Existing auth keys for ${cluster} are incomplete; regenerating..."
-    rm -rf "${SECRETS_DIR}"
-  fi
+if [ -d "${SECRETS_NKEYS_DIR}" ] && ! nkeys_complete; then
+  echo "ERROR: existing auth keys for ${cluster} are incomplete: ${SECRETS_NKEYS_DIR}" >&2
+  exit 1
+fi
 
-  echo "Generating auth keys for ${cluster}..."
-  mkdir -p "${SECRETS_DIR}"
-
-  # Get CPC IDs from values.yaml for CSC clusters
-  CPC_IDS_ARGS=""
-  if [ "${cluster}" = "csc" ]; then
-    CSC_VALUES="${SCRIPT_DIR}/k8s/csc/values.yaml"
-    if [ -f "${CSC_VALUES}" ]; then
-      CPC_IDS=$(yq -r '.eventBus.cpcIds[]' "${CSC_VALUES}" 2>/dev/null | tr '\n' ' ')
-      if [ -n "${CPC_IDS}" ]; then
-        CPC_IDS_ARGS="${CPC_IDS}"
-      fi
-    fi
-  fi
+if [ ! -d "${SECRETS_NKEYS_DIR}" ]; then
+  echo "Generating local auth key outputs..."
+  mkdir -p "${SECRETS_ROOT}"
 
   # Generate secrets using helper script
   "${MONOREPO_ROOT}/deploy/scripts/generate-nkeys.sh" \
-    -c "${cluster}" \
-    -o "${SECRETS_DIR}" \
-    ${CPC_IDS_ARGS}
+    -o "${SECRETS_ROOT}" \
+    "${CPC_IDS_ARGS[@]}"
 
   echo "Auth keys generated for ${cluster}"
 fi
@@ -254,26 +254,16 @@ kubectl create secret generic "${SECRET_SURVEYOR}" \
 
 # For CPCs: create leaf credential secret from CSC's keys
 if [ "${cluster}" != "csc" ]; then
-  echo "Reading leaf node credentials for ${cluster} from CSC..."
-  CSC_SECRETS_DIR="${SCRIPT_DIR}/secrets/csc"
+  echo "Creating leaf node credential secret for ${cluster}..."
+  LEAF_USER_PUBKEY=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-csc/pubkey")
+  LEAF_USER_SEED=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-csc/seed")
 
-  # Extract CPC ID from cluster name (e.g., cpc-1 -> 1)
-  CPC_ID="${cluster#cpc-}"
-
-  if [ -f "${CSC_SECRETS_DIR}/nkeys/nats-leaf-cpc-${CPC_ID}/pubkey" ]; then
-    LEAF_USER_PUBKEY=$(cat "${CSC_SECRETS_DIR}/nkeys/nats-leaf-cpc-${CPC_ID}/pubkey")
-    LEAF_USER_SEED=$(cat "${CSC_SECRETS_DIR}/nkeys/nats-leaf-cpc-${CPC_ID}/seed")
-
-    kubectl create secret generic "${SECRET_LEAF_CSC}" \
-      --namespace="${namespace}" \
-      --context="${context}" \
-      --from-literal=pubkey="${LEAF_USER_PUBKEY}" \
-      --from-literal=seed="${LEAF_USER_SEED}" \
-      --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
-  else
-    echo "ERROR: Leaf credentials for CPC-${CPC_ID} not found in CSC secrets. Generate CSC secrets first." >&2
-    exit 1
-  fi
+  kubectl create secret generic "${SECRET_LEAF_CSC}" \
+    --namespace="${namespace}" \
+    --context="${context}" \
+    --from-literal=pubkey="${LEAF_USER_PUBKEY}" \
+    --from-literal=seed="${LEAF_USER_SEED}" \
+    --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
 fi
 
 # For CSC: create leaf user secrets for each CPC (read CPC IDs from values)

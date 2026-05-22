@@ -145,37 +145,39 @@ Secret name and key are overridable, these are the defaults.
 
 **Cross-Cluster Leaf Connections:**
 
-Each CPC gets a `nats-leaf-csc` secret. The CSC gets the pubkey for all of those CPCs.
+Each CPC gets a `nats-leaf-csc` secret. The CSC gets a matching
+`nats-leaf-cpc-{id}` secret for each CPC; the chart uses the pubkey from those
+CSC-side secrets to authorize incoming CPC leaf connections.
 
 | Secret | Keys | Purpose |
 |--------|------|---------|
-| `nats-leaf-csc` | seed | CPC to CSC leaf (CPC only) |
-| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only, via auth-callout.extraEnvs) |
+| `nats-leaf-csc` | seed, pubkey | CPC to CSC leaf (CPC only) |
+| `nats-leaf-cpc-{id}` | seed, pubkey | CPC leaf key pair (CSC only, pubkey via auth-callout.extraEnvs) |
 
 ### Generating Secrets
 
 An example script is provided to generate all required secrets to local files:
 
 ```bash
-# Generate secrets for a cluster
-./scripts/generate-nkeys.sh [OPTIONS] -c CLUSTER [cpc-ids...]
+# Generate CSC only
+./scripts/generate-nkeys.sh [OPTIONS]
+
+# Generate CSC plus requested CPC clusters
+./scripts/generate-nkeys.sh [OPTIONS] [cpc-ids...]
 
 # Options:
-#   -c, --cluster CLUSTER    Cluster name: csc or cpc-{id}
-#   -o, --output DIR         Output directory (default: deploy/secrets/{cluster})
-#       --force              Overwrite an existing non-empty output directory
+#   -o, --output DIR         Output root directory (default: deploy/secrets)
 #   -h, --help               Show help message
 
 # Examples:
-./scripts/generate-nkeys.sh -c csc 1 2 3              # Generate for CSC, output to deploy/secrets/csc
-./scripts/generate-nkeys.sh -c cpc-1 -o ./my-secrets  # Generate for CPC-1, custom output directory
+./scripts/generate-nkeys.sh                    # Generate CSC only
+./scripts/generate-nkeys.sh 1 2 3              # Generate CSC, CPC-1, CPC-2, CPC-3
+./scripts/generate-nkeys.sh -o ./my-secrets 4  # Generate CSC and CPC-4 under ./my-secrets
 ```
 
-The script generates all required NKey secrets (operator, accounts, users, XKey).
-It refuses to overwrite an existing non-empty output directory. Use `--force`
-only when intentionally rotating all generated NKeys for that cluster. Rotating
-these keys invalidates existing leaf, auth-callout, NACK, mTLS, and surveyor
-credentials created from the previous output.
+The script is additive. Existing cluster outputs are left unchanged. For each
+requested CPC, the same CPC-to-CSC leaf key pair is stored in CSC as
+`nats-leaf-cpc-{id}` and in that CPC as `nats-leaf-csc`.
 
 Generated secret files are written with mode `0600`, and generated secret
 directories are written with mode `0700`. Treat the full output directory as
@@ -183,18 +185,31 @@ sensitive material.
 
 Output structure:
 ```
-deploy/secrets/{cluster}/
-└── nkeys/
-    ├── nats-auth-signing/{seed,pubkey}
-    ├── nats-xkey/{seed,pubkey}
-    ├── nats-authx-user/{seed,pubkey}
-    ├── nats-nack-user/{seed,pubkey,nack-user.nk}
-    ├── nats-mtls-leaf/{seed,pubkey}
-    ├── nats-mtls-authx-leaf/{seed,pubkey}
-    ├── nats-mtls-sys-leaf/{seed,pubkey}
-    ├── nats-surveyor/{seed,pubkey}
-    ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
-    └── nats-leaf-cpc-{id}/{seed,pubkey}   # CSC only (when CPC IDs provided)
+deploy/secrets/
+├── csc/
+│   └── nkeys/
+│       ├── nats-auth-signing/{seed,pubkey}
+│       ├── nats-xkey/{seed,pubkey}
+│       ├── nats-authx-user/{seed,pubkey}
+│       ├── nats-nack-user/{seed,pubkey,nack-user.nk}
+│       ├── nats-mtls-leaf/{seed,pubkey}
+│       ├── nats-mtls-authx-leaf/{seed,pubkey}
+│       ├── nats-mtls-sys-leaf/{seed,pubkey}
+│       ├── nats-surveyor/{seed,pubkey}
+│       ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
+│       └── nats-leaf-cpc-{id}/{seed,pubkey}
+└── cpc-{id}/
+    └── nkeys/
+        ├── nats-auth-signing/{seed,pubkey}
+        ├── nats-xkey/{seed,pubkey}
+        ├── nats-authx-user/{seed,pubkey}
+        ├── nats-nack-user/{seed,pubkey,nack-user.nk}
+        ├── nats-mtls-leaf/{seed,pubkey}
+        ├── nats-mtls-authx-leaf/{seed,pubkey}
+        ├── nats-mtls-sys-leaf/{seed,pubkey}
+        ├── nats-surveyor/{seed,pubkey}
+        ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
+        └── nats-leaf-csc/{seed,pubkey}
 ```
 
 ## Chart Dependencies
