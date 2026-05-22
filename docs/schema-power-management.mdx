@@ -2,7 +2,9 @@
 
 Real-time power management and emergency control plane for data center grid events.
 
-This API uses the [MQTT Protocol Binding for CloudEvents v1.0.2](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/mqtt-protocol-binding.md).
+This API uses the MQTT Protocol Binding for CloudEvents v1.0.2:
+
+- https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/mqtt-protocol-binding.md
 
 **MQTT 3.1.1 Structured Content Mode:**
 
@@ -11,7 +13,10 @@ This API uses the [MQTT Protocol Binding for CloudEvents v1.0.2](https://github.
 - Content-Type `application/cloudevents+json` is implied (no header in MQTT 3.1.1)
 - All CloudEvents attributes and data are in the JSON payload
 
-All messages conform to the [CloudEvents 1.0.2 specification](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) with W3C [Distributed Tracing Extension](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md).
+All messages conform to CloudEvents 1.0.2 specification with W3C Distributed Tracing Extension:
+
+- https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
+- https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md
 
 Each MQTT PUBLISH payload contains a JSON object with:
 
@@ -40,11 +45,13 @@ Examples:
 - ISV: //grid/v1/isv/acme-energy
 - Power Agent: //grid/v1/poweragent/dps-prod
 - Infra Agent: //grid/v1/infra/ima-prod
+
 - grid.loadtarget.set.v1 — ISV sets load target (fire-and-forget command)
 - grid.powerstate.status.v1 — Power Agent publishes power state snapshots
 - grid.powerbreach.alert.v1 — Power Agent publishes breach alerts
 - grid.powerbreach.enforcement.v1 — Infra Agent publishes enforcement outcomes
-- Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2)
+
+- Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2 SSA)
 - Data Field: MUST be signed (JWS RFC 7515) — broker never sees verified plaintext
 
 The `data` field uses cryptographic protection per RFC 7515 (JWS):
@@ -65,3 +72,829 @@ The `data` field uses cryptographic protection per RFC 7515 (JWS):
 All participants MUST propagate traceparent/tracestate for end-to-end visibility.
 
 **Default Content Type:** `application/cloudevents+json`
+
+## Raw AsyncAPI Spec
+
+<details>
+<summary>View / copy the raw AsyncAPI YAML</summary>
+
+```yaml
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+asyncapi: 3.1.0
+info:
+  title: Power Management
+  version: 1.7.0
+  description: |
+    Real-time power management and emergency control plane for data center grid events.
+
+    ## Protocol Binding
+    This API uses the MQTT Protocol Binding for CloudEvents v1.0.2:
+    - https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/mqtt-protocol-binding.md
+
+    **MQTT 3.1.1 Structured Content Mode:**
+    - Content mode is always "structured" (MQTT 3.1.1 lacks custom metadata support)
+    - The entire CloudEvents message is in the MQTT PUBLISH payload as JSON
+    - Content-Type `application/cloudevents+json` is implied (no header in MQTT 3.1.1)
+    - All CloudEvents attributes and data are in the JSON payload
+
+    ## CloudEvents Message Format
+    All messages conform to CloudEvents 1.0.2 specification with W3C Distributed Tracing Extension:
+    - https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
+    - https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md
+
+    Each MQTT PUBLISH payload contains a JSON object with:
+    - **specversion**: "1.0.2" (REQUIRED)
+    - **id**: UUIDv4 unique event identifier (REQUIRED)
+    - **source**: URI format //grid/v1/<role>/<identifier> (REQUIRED)
+    - **type**: Event type e.g., grid.loadtarget.set.v1 (REQUIRED)
+    - **time**: ISO 8601 timestamp (REQUIRED)
+    - **datacontenttype**: "application/json" (REQUIRED)
+    - **subject**: Resource subject e.g., loadtarget (REQUIRED)
+    - **traceparent**: W3C Trace Context for distributed tracing (REQUIRED)
+    - **tracestate**: Optional vendor-specific trace context
+    - **correlationid**: UUIDv4 correlation identifier (OPTIONAL, CloudEvents extension)
+    - **data**: JWS-signed payload (string - see Data Field Security below)
+
+    ## Source Format
+    The source attribute is a stable URI that identifies the publisher of an event.
+    Format: //<namespace>/<version>/<role>/<identifier>
+    - namespace: grid
+    - version: v1
+    - role: isv | poweragent | infra
+    - identifier: deployment-unique name assigned during registration
+
+    Examples:
+    - ISV: //grid/v1/isv/acme-energy
+    - Power Agent: //grid/v1/poweragent/dps-prod
+    - Infra Agent: //grid/v1/infra/ima-prod
+
+    ## Event Types
+    - grid.loadtarget.set.v1 — ISV sets load target (fire-and-forget command)
+    - grid.powerstate.status.v1 — Power Agent publishes power state snapshots
+    - grid.powerbreach.alert.v1 — Power Agent publishes breach alerts
+    - grid.powerbreach.enforcement.v1 — Infra Agent publishes enforcement outcomes
+
+    ## Security
+    - Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2 SSA)
+    - Data Field: MUST be signed (JWS RFC 7515) — broker never sees verified plaintext
+
+    ## Data Field Security (JWS)
+    The `data` field uses cryptographic protection per RFC 7515 (JWS):
+
+    1. **Sign (JWS)**: The JSON payload is signed using JWS (JSON Web Signature)
+       - Algorithm: ES256 (ECDSA using P-256 and SHA-256) or RS256
+       - Provides: Data integrity and authenticity
+       - The `kid` (Key ID) in JWS header identifies the signing key
+
+    2. **Result**: The `data` field contains a JWS compact serialization string:
+       `<JWS Header>.<Payload>.<Signature>`
+
+    **Processing Order:**
+    - Sender: JSON payload → JWS sign → data field
+    - Receiver: data field → JWS verify → JSON payload
+
+    ## Distributed Tracing
+    All participants MUST propagate traceparent/tracestate for end-to-end visibility.
+  contact:
+    name: Grid Platform Team
+    email: grid-platform@nvidia.com
+
+defaultContentType: application/cloudevents+json
+
+servers:
+  production:
+    host: broker.example.com
+    protocol: mqtt
+    description: MQTT broker for power management grid events
+
+channels:
+  loadTargetSetChannel:
+    address: grid/v1/isv/{identifier}/loadtarget/set
+    parameters:
+      identifier:
+        $ref: '#/components/parameters/identifier'
+    messages:
+      loadTargetSet:
+        $ref: '#/components/messages/LoadTargetSetMessage'
+    description: |
+      ISV publishes load target commands. Fire-and-forget pattern — the ISV
+      does not wait for a response. Confirmation comes via grid.powerstate.status.v1.
+    bindings:
+      mqtt:
+        qos: 1
+
+  powerStateStatusChannel:
+    address: grid/v1/poweragent/{identifier}/powerstate/status
+    parameters:
+      identifier:
+        $ref: '#/components/parameters/identifier'
+    messages:
+      powerStateStatus:
+        $ref: '#/components/messages/PowerStateStatusMessage'
+    description: |
+      Power Management Agent publishes full snapshots of current power state
+      for all feeds. Includes compliance, ramp state, and active/scheduled targets.
+      Published on state transitions and as periodic heartbeats.
+    bindings:
+      mqtt:
+        qos: 1
+
+  powerBreachAlertChannel:
+    address: grid/v1/poweragent/{identifier}/powerbreach
+    parameters:
+      identifier:
+        $ref: '#/components/parameters/identifier'
+    messages:
+      powerBreachAlert:
+        $ref: '#/components/messages/PowerBreachAlertMessage'
+    description: |
+      Power Management Agent publishes breach alerts when measured power exceeds
+      the active load target. Breach lifecycle: active → escalated → resolved.
+      All events in a single breach share the same breach_id.
+    bindings:
+      mqtt:
+        qos: 2
+
+  powerBreachEnforcementChannel:
+    address: grid/v1/infra/{infraAgentId}/powerbreach/enforcement
+    parameters:
+      infraAgentId:
+        $ref: '#/components/parameters/infraAgentId'
+    messages:
+      powerBreachEnforcement:
+        $ref: '#/components/messages/PowerBreachEnforcementMessage'
+    description: |
+      Infrastructure Management Agent publishes enforcement outcomes after
+      applying or reverting shed hints at the hardware level via Redfish BMC.
+    bindings:
+      mqtt:
+        qos: 2
+
+operations:
+  publishLoadTargetSet:
+    action: send
+    channel:
+      $ref: '#/channels/loadTargetSetChannel'
+    summary: ISV → Power Management Agent (set load target command)
+    messages:
+      - $ref: '#/channels/loadTargetSetChannel/messages/loadTargetSet'
+
+  subscribeLoadTargetSet:
+    action: receive
+    channel:
+      $ref: '#/channels/loadTargetSetChannel'
+    summary: Power Management Agent subscribes to load target commands
+    messages:
+      - $ref: '#/channels/loadTargetSetChannel/messages/loadTargetSet'
+
+  publishPowerStateStatus:
+    action: send
+    channel:
+      $ref: '#/channels/powerStateStatusChannel'
+    summary: Power Management Agent → ISVs (power state snapshot)
+    messages:
+      - $ref: '#/channels/powerStateStatusChannel/messages/powerStateStatus'
+
+  subscribePowerStateStatus:
+    action: receive
+    channel:
+      $ref: '#/channels/powerStateStatusChannel'
+    summary: ISVs subscribe to power state status updates
+    messages:
+      - $ref: '#/channels/powerStateStatusChannel/messages/powerStateStatus'
+
+  publishPowerBreachAlert:
+    action: send
+    channel:
+      $ref: '#/channels/powerBreachAlertChannel'
+    summary: Power Management Agent → Infra Agent + ISVs (breach alert)
+    messages:
+      - $ref: '#/channels/powerBreachAlertChannel/messages/powerBreachAlert'
+
+  subscribePowerBreachAlert:
+    action: receive
+    channel:
+      $ref: '#/channels/powerBreachAlertChannel'
+    summary: Infra Agent and ISVs subscribe to breach alerts
+    messages:
+      - $ref: '#/channels/powerBreachAlertChannel/messages/powerBreachAlert'
+
+  publishPowerBreachEnforcement:
+    action: send
+    channel:
+      $ref: '#/channels/powerBreachEnforcementChannel'
+    summary: Infra Agent → Power Management Agent + ISVs (enforcement outcome)
+    messages:
+      - $ref: '#/channels/powerBreachEnforcementChannel/messages/powerBreachEnforcement'
+
+  subscribePowerBreachEnforcement:
+    action: receive
+    channel:
+      $ref: '#/channels/powerBreachEnforcementChannel'
+    summary: Power Management Agent and ISVs subscribe to enforcement outcomes
+    messages:
+      - $ref: '#/channels/powerBreachEnforcementChannel/messages/powerBreachEnforcement'
+
+components:
+  schemas:
+    # =========================================================================
+    # Reusable Primitives
+    # =========================================================================
+
+    PowerUnit:
+      type: object
+      description: Power measurement with value and unit.
+      required: [value, unit]
+      properties:
+        value:
+          type: number
+          format: double
+          minimum: 0
+          description: Power value (must be >= 0).
+        unit:
+          type: string
+          enum: [watt, kilowatt, megawatt]
+          description: Unit of measurement.
+
+    Interval:
+      type: object
+      description: Time window for load target scheduling.
+      properties:
+        start_time:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC start time. Defaults to now if omitted.
+        end_time:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC end time. If omitted, target remains in effect until replaced.
+
+    Strategy:
+      type: object
+      description: Load shedding strategy configuration.
+      properties:
+        best_effort:
+          type: boolean
+          default: false
+          description: |
+            If true, DPS sheds load non-disruptively by adjusting DPM-enabled jobs.
+            If the constraint cannot be satisfied, DPS sheds as much as possible and
+            leaves the feed in a non-compliant state until workloads terminate.
+
+    LoadConstraint:
+      type: object
+      description: Power limit constraint.
+      required: [value, unit]
+      properties:
+        value:
+          type: number
+          format: double
+          minimum: 0
+          description: Target power limit (must be > 0).
+        unit:
+          type: string
+          enum: [watt, kilowatt, megawatt]
+          description: Unit of measurement.
+
+    FeedTags:
+      type: array
+      description: |
+        List of feed identifiers this target applies to (e.g., ["main-a"]).
+        If omitted or empty, the target applies to all feeds.
+      items:
+        type: string
+      examples:
+        - [main-a, main-b]
+
+    # =========================================================================
+    # Breach and Enforcement Schemas
+    # =========================================================================
+
+    ShedHint:
+      type: object
+      description: |
+        Resource-level load shedding recommendation. Shed hints are non-binding
+        advisory suggestions. The Infrastructure Management Agent MAY override
+        or augment based on topology and operational criteria.
+      required: [resource_id, resource_type, action, priority]
+      properties:
+        resource_id:
+          type: string
+          description: Identifier of the resource to throttle.
+        resource_type:
+          type: string
+          enum: [node, gpu, chassis]
+          description: Type of resource.
+        action:
+          type: string
+          enum: [power_cap, throttle, suspend]
+          description: Recommended action.
+        priority:
+          type: integer
+          minimum: 1
+          description: Shedding priority (1 = shed first, higher = shed later).
+        target_power:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: Suggested power cap. Present when action is power_cap.
+
+    EnforcementResult:
+      type: object
+      description: Per-resource enforcement outcome.
+      required: [resource_id, resource_type, requested_action, code]
+      properties:
+        resource_id:
+          type: string
+          description: The resource identifier from the shed hint.
+        resource_type:
+          type: string
+          enum: [node, gpu, chassis]
+          description: Type of resource.
+        requested_action:
+          type: string
+          enum: [power_cap, throttle, suspend]
+          description: The action that was requested.
+        code:
+          type: string
+          enum: [applied, failed, skipped]
+          description: Per-resource enforcement status.
+        message:
+          type: string
+          description: Diagnostic message (e.g., "BMC unreachable after 3 retries").
+        applied_power:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: The actual power cap applied, if different from the requested target_power.
+
+    # =========================================================================
+    # Feed State Schemas (for PowerStateStatus)
+    # =========================================================================
+
+    FeedMetadata:
+      type: object
+      description: Static feed configuration. Values don't change during a curtailment event.
+      required: [power_minimum, power_maximum, default_constraint]
+      properties:
+        power_minimum:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: Minimum power threshold for this feed.
+        power_maximum:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: Maximum power capacity for this feed.
+        default_constraint:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: Default power constraint when no load target is active.
+
+    FeedTarget:
+      type: object
+      description: A load target for a feed — active or scheduled.
+      required: [active, load_constraint, interval, strategy, correlation_id]
+      properties:
+        active:
+          type: boolean
+          description: true if this target is currently being enforced.
+        load_constraint:
+          $ref: '#/components/schemas/LoadConstraint'
+        interval:
+          $ref: '#/components/schemas/Interval'
+        strategy:
+          $ref: '#/components/schemas/Strategy'
+        correlation_id:
+          type: string
+          format: uuid
+          description: The correlationid from the grid.loadtarget.set.v1 that created this target.
+
+    FeedState:
+      type: object
+      description: Current power state for a single feed.
+      required: [metadata, targets, calculated_load, in_flight, compliant]
+      properties:
+        metadata:
+          $ref: '#/components/schemas/FeedMetadata'
+        targets:
+          type: array
+          description: All load targets for this feed — active and scheduled. Empty array if no targets exist.
+          items:
+            $ref: '#/components/schemas/FeedTarget'
+        calculated_load:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: |
+            Agent-calculated effective load after shedding strategy is applied.
+            May differ from actual measured power during ramp transitions.
+        in_flight:
+          type: boolean
+          description: true if the agent is actively transitioning between power levels.
+        power_event_start_time:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp when the current power event began. null if no event is active.
+        compliant:
+          type: boolean
+          description: true if the calculated load is within the active target constraint. true when no target is active.
+
+    # =========================================================================
+    # Breach Detail Schemas
+    # =========================================================================
+
+    BreachDetails:
+      type: object
+      description: Breach identification and timing.
+      required: [breach_id, detected_at]
+      properties:
+        breach_id:
+          type: string
+          format: uuid
+          description: |
+            Unique identifier for this breach instance (UUIDv4). Remains the same
+            across active → escalated → resolved for the same breach.
+        detected_at:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp when the breach was first detected.
+        resolved_at:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp when the breach was resolved. Present only when status is resolved.
+
+    BreachTarget:
+      type: object
+      description: The load target being breached.
+      required: [correlation_id, load_constraint]
+      properties:
+        correlation_id:
+          type: string
+          format: uuid
+          description: The correlationid from the grid.loadtarget.set.v1 that established this target.
+        load_constraint:
+          $ref: '#/components/schemas/LoadConstraint'
+
+    # =========================================================================
+    # Event Data Payloads
+    # =========================================================================
+
+    SetLoadTargetData:
+      type: object
+      description: Payload for grid.loadtarget.set.v1.
+      required: [targets]
+      properties:
+        targets:
+          type: array
+          description: List of load target requests.
+          minItems: 1
+          items:
+            type: object
+            required: [interval, load_constraint]
+            properties:
+              interval:
+                $ref: '#/components/schemas/Interval'
+              feed_tags:
+                $ref: '#/components/schemas/FeedTags'
+              load_constraint:
+                description: |
+                  Power constraint to apply. If null, removes any active constraint
+                  and reverts the feed to its unconstrained default load level.
+                oneOf:
+                  - $ref: '#/components/schemas/LoadConstraint'
+                  - type: 'null'
+              strategy:
+                $ref: '#/components/schemas/Strategy'
+
+    PowerStateStatusData:
+      type: object
+      description: Payload for grid.powerstate.status.v1.
+      required: [snapshot_time, event, feeds]
+      properties:
+        snapshot_time:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp of this snapshot.
+        event:
+          type: string
+          enum:
+            - target_set
+            - start_ramp_down
+            - end_ramp_down
+            - start_ramp_up
+            - end_ramp_up
+            - periodic
+          description: |
+            The trigger that caused this status to be published:
+            - target_set — a grid.loadtarget.set.v1 was received and schedule updated
+            - start_ramp_down — constraint applied or tightened, redistribution begins
+            - end_ramp_down — redistribution complete, load converged to target
+            - start_ramp_up — constraint relaxed or removed, redistribution begins
+            - end_ramp_up — redistribution complete
+            - periodic — regular heartbeat, no state change
+        feeds:
+          type: object
+          description: Map of feed_tag to power state.
+          additionalProperties:
+            $ref: '#/components/schemas/FeedState'
+
+    PowerBreachAlertData:
+      type: object
+      description: Payload for grid.powerbreach.alert.v1.
+      required: [feed_tag, status, severity, breach, target, measured_load, infrastructure_actions]
+      properties:
+        feed_tag:
+          type: string
+          description: The feed identifier where the breach was detected.
+        status:
+          type: string
+          enum: [active, escalated, resolved]
+          description: Breach lifecycle state.
+        severity:
+          type: string
+          enum: [warning, critical]
+          description: |
+            Breach severity level:
+            - warning — excess between threshold and 20% over target
+            - critical — excess exceeds 20% over target
+        breach:
+          $ref: '#/components/schemas/BreachDetails'
+        target:
+          $ref: '#/components/schemas/BreachTarget'
+        measured_load:
+          allOf:
+            - $ref: '#/components/schemas/PowerUnit'
+          description: Actual measured power at time of event.
+        shed_hints:
+          type: array
+          description: |
+            Ordered list of load shedding recommendations. Present when status
+            is active or escalated. Absent when resolved.
+          items:
+            $ref: '#/components/schemas/ShedHint'
+        infrastructure_actions:
+          type: array
+          description: |
+            Ordered list of escalating infrastructure-level actions. Empty array
+            when status is resolved. Ordered from least to most disruptive.
+          items:
+            type: string
+            enum: [SHUTDOWN_NODES, SHUTDOWN_RACKS, CUT_DATA_FEEDS, TRIP_BREAKERS]
+
+    PowerBreachEnforcementData:
+      type: object
+      description: Payload for grid.powerbreach.enforcement.v1.
+      required: [breach_id, feed_tag, action, code, results, timestamp]
+      properties:
+        breach_id:
+          type: string
+          format: uuid
+          description: The breach_id from the originating grid.powerbreach.alert.v1 event.
+        feed_tag:
+          type: string
+          description: The feed identifier this enforcement applies to.
+        action:
+          type: string
+          enum: [applied, reverted]
+          description: What phase of enforcement this represents.
+        code:
+          type: string
+          enum: [success, partial, error]
+          description: Overall enforcement outcome.
+        diag_msg:
+          type: string
+          description: Human-readable diagnostic message.
+        results:
+          type: array
+          description: Per-resource enforcement outcome.
+          items:
+            $ref: '#/components/schemas/EnforcementResult'
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC timestamp when enforcement completed.
+
+    # =========================================================================
+    # JWS Data Field Security
+    # =========================================================================
+
+    JwsCompactSerialization:
+      type: string
+      description: |
+        JWS Compact Serialization (RFC 7515) containing a signed payload.
+        This is the WIRE FORMAT for the "data" field in CloudEvents messages.
+
+        Structure: BASE64URL(JWS Header).BASE64URL(Payload).BASE64URL(Signature)
+
+        JWS Header (example):
+        {
+          "alg": "ES256",
+          "kid": "<signing-key-id>"
+        }
+
+        The payload, when verified, contains the JSON event data
+        as defined by the message type schema.
+      pattern: ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$
+
+    # =========================================================================
+    # Base CloudEvents Schema
+    # =========================================================================
+
+    BaseCloudEvent:
+      type: object
+      description: |
+        Common CloudEvents 1.0.2 attributes shared by all events.
+        Each event type extends this with a specific "data" field.
+
+        The "data" field is transmitted as a JWS compact serialization string.
+        The plaintext JSON payload is signed with JWS (RFC 7515).
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - datacontenttype
+        - subject
+        - traceparent
+      properties:
+        specversion:
+          type: string
+          const: '1.0.2'
+          description: MUST be "1.0.2" — version of the CloudEvents specification.
+        id:
+          type: string
+          format: uuid
+          description: MUST be a UUIDv4 — globally unique identifier for this event instance.
+        source:
+          type: string
+          pattern: ^//grid/v1/(isv|poweragent|infra)/[^/]+$
+          description: |
+            Stable URI identifying the publisher. Format: //grid/v1/<role>/<identifier>.
+            Examples:
+              - //grid/v1/isv/acme-energy
+              - //grid/v1/poweragent/dps-prod
+              - //grid/v1/infra/ima-prod
+        type:
+          type: string
+          description: Event type following grid.<entity>.<action>.v1 or grid.<entity>.status.v1.
+        time:
+          type: string
+          format: date-time
+          description: MUST be an ISO 8601 timestamp — time the event was created.
+        datacontenttype:
+          type: string
+          const: application/json
+          description: MUST be "application/json" — media type of the data payload.
+        subject:
+          type: string
+          description: Resource subject identifying the domain object (e.g., loadtarget, powerstate, powerbreach).
+        correlationid:
+          type: string
+          format: uuid
+          description: |
+            CloudEvents extension attribute. UUIDv4 correlation identifier.
+            Generated by the ISV on grid.loadtarget.set.v1. Echoed by the
+            Power Management Agent in status events for correlation.
+        traceparent:
+          type: string
+          pattern: ^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
+          description: |
+            REQUIRED per W3C Trace Context and CloudEvents Distributed Tracing Extension.
+            Format: version-traceid-parentid-flags.
+        tracestate:
+          type: string
+          description: |
+            OPTIONAL per W3C Trace Context. Carries vendor-specific contextual
+            information across tracing systems.
+
+    # =========================================================================
+    # Event-Specific CloudEvents Envelope Schemas
+    # =========================================================================
+
+    LoadTargetSetEvent:
+      description: CloudEvents envelope for grid.loadtarget.set.v1.
+      allOf:
+        - $ref: '#/components/schemas/BaseCloudEvent'
+        - type: object
+          required: [data]
+          properties:
+            type:
+              const: grid.loadtarget.set.v1
+            data:
+              description: |
+                WIRE FORMAT: JWS compact serialization string (type: string).
+                PLAINTEXT CONTENT: After JWS verification, the payload conforms
+                to SetLoadTargetData schema (type: object).
+              oneOf:
+                - $ref: '#/components/schemas/JwsCompactSerialization'
+                - $ref: '#/components/schemas/SetLoadTargetData'
+
+    PowerStateStatusEvent:
+      description: CloudEvents envelope for grid.powerstate.status.v1.
+      allOf:
+        - $ref: '#/components/schemas/BaseCloudEvent'
+        - type: object
+          required: [data]
+          properties:
+            type:
+              const: grid.powerstate.status.v1
+            data:
+              description: |
+                WIRE FORMAT: JWS compact serialization string (type: string).
+                PLAINTEXT CONTENT: After JWS verification, the payload conforms
+                to PowerStateStatusData schema (type: object).
+              oneOf:
+                - $ref: '#/components/schemas/JwsCompactSerialization'
+                - $ref: '#/components/schemas/PowerStateStatusData'
+
+    PowerBreachAlertEvent:
+      description: CloudEvents envelope for grid.powerbreach.alert.v1.
+      allOf:
+        - $ref: '#/components/schemas/BaseCloudEvent'
+        - type: object
+          required: [data]
+          properties:
+            type:
+              const: grid.powerbreach.alert.v1
+            data:
+              description: |
+                WIRE FORMAT: JWS compact serialization string (type: string).
+                PLAINTEXT CONTENT: After JWS verification, the payload conforms
+                to PowerBreachAlertData schema (type: object).
+              oneOf:
+                - $ref: '#/components/schemas/JwsCompactSerialization'
+                - $ref: '#/components/schemas/PowerBreachAlertData'
+
+    PowerBreachEnforcementEvent:
+      description: CloudEvents envelope for grid.powerbreach.enforcement.v1.
+      allOf:
+        - $ref: '#/components/schemas/BaseCloudEvent'
+        - type: object
+          required: [data]
+          properties:
+            type:
+              const: grid.powerbreach.enforcement.v1
+            data:
+              description: |
+                WIRE FORMAT: JWS compact serialization string (type: string).
+                PLAINTEXT CONTENT: After JWS verification, the payload conforms
+                to PowerBreachEnforcementData schema (type: object).
+              oneOf:
+                - $ref: '#/components/schemas/JwsCompactSerialization'
+                - $ref: '#/components/schemas/PowerBreachEnforcementData'
+
+  messages:
+    LoadTargetSetMessage:
+      name: LoadTargetSetMessage
+      title: Set Load Target
+      summary: ISV publishes load target command to the event bus.
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/LoadTargetSetEvent'
+
+    PowerStateStatusMessage:
+      name: PowerStateStatusMessage
+      title: Power State Status
+      summary: Power Management Agent publishes full power state snapshot.
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/PowerStateStatusEvent'
+
+    PowerBreachAlertMessage:
+      name: PowerBreachAlertMessage
+      title: Power Breach Alert
+      summary: Power Management Agent publishes breach alert with shed hints.
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/PowerBreachAlertEvent'
+
+    PowerBreachEnforcementMessage:
+      name: PowerBreachEnforcementMessage
+      title: Power Breach Enforcement
+      summary: Infrastructure Management Agent publishes enforcement outcome.
+      contentType: application/cloudevents+json
+      payload:
+        $ref: '#/components/schemas/PowerBreachEnforcementEvent'
+
+  parameters:
+    identifier:
+      description: Unique identifier of the ISV, power agent, or infrastructure agent.
+    infraAgentId:
+      description: Unique identifier of the Infrastructure Management Agent.
+
+  securitySchemes:
+    oauth2Ssa:
+      type: oauth2
+      description: OAuth2 SSA token in MQTT password field (username "oauthtoken").
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.example.com/token
+          availableScopes:
+            mqtt: Access to MQTT topics
+
+    mTLS:
+      type: X509
+      description: Mutual TLS with client certificate signed by cluster CA.
+```
+
+</details>

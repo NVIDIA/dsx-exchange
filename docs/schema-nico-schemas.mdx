@@ -202,48 +202,48 @@ State used to indicate the API is currently waiting on the machine to send attes
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `MatchingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `MatchingSku.machine_validation_context` | string | null | No |
-| `MatchingSku.reboot_retry_count` | integer | null | No |
+| `MatchingSku.machine_validation_context` | string | null | No |  |
+| `MatchingSku.reboot_retry_count` | integer | null | No |  |
 
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `UpdatingInventory` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `UpdatingInventory.machine_validation_context` | string | null | No |
-| `UpdatingInventory.reboot_retry_count` | integer | null | No |
+| `UpdatingInventory.machine_validation_context` | string | null | No |  |
+| `UpdatingInventory.reboot_retry_count` | integer | null | No |  |
 
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `VerifyingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `VerifyingSku.machine_validation_context` | string | null | No |
-| `VerifyingSku.reboot_retry_count` | integer | null | No |
+| `VerifyingSku.machine_validation_context` | string | null | No |  |
+| `VerifyingSku.reboot_retry_count` | integer | null | No |  |
 
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `SkuVerificationFailed` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuVerificationFailed.machine_validation_context` | string | null | No |
-| `SkuVerificationFailed.reboot_retry_count` | integer | null | No |
+| `SkuVerificationFailed.machine_validation_context` | string | null | No |  |
+| `SkuVerificationFailed.reboot_retry_count` | integer | null | No |  |
 
 ### Variant 5
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `WaitingForSkuAssignment` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `WaitingForSkuAssignment.machine_validation_context` | string | null | No |
-| `WaitingForSkuAssignment.reboot_retry_count` | integer | null | No |
+| `WaitingForSkuAssignment.machine_validation_context` | string | null | No |  |
+| `WaitingForSkuAssignment.reboot_retry_count` | integer | null | No |  |
 
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `SkuMissing` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuMissing.machine_validation_context` | string | null | No |
-| `SkuMissing.reboot_retry_count` | integer | null | No |
+| `SkuMissing.machine_validation_context` | string | null | No |  |
+| `SkuMissing.reboot_retry_count` | integer | null | No |  |
 
 ---
 
@@ -253,8 +253,8 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `machine_validation_context` | string | null | No |
-| `reboot_retry_count` | integer | null | No |
+| `machine_validation_context` | string | null | No |  |
+| `reboot_retry_count` | integer | null | No |  |
 
 ---
 
@@ -272,16 +272,16 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `secure_erase_boss_context` | [SecureEraseBossContext](#secureerasebosscontext) | Yes |  |
 | `secure_erase_boss_context.boss_controller_id` | string | Yes |  |
-| `secure_erase_boss_context.iteration` | integer | null | No |
+| `secure_erase_boss_context.iteration` | integer | null | No |  |
 | `secure_erase_boss_context.secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_boss_context.secure_erase_jid` | string | null | No |
+| `secure_erase_boss_context.secure_erase_jid` | string | null | No |  |
 | `state` | string | Yes | Values: `secureeraseboss` |
 
 ### hostcleanup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `boss_controller_id` | string | null | No |
+| `boss_controller_id` | string | null | No |  |
 | `state` | string | Yes | Values: `hostcleanup` |
 
 ### createbossvolume
@@ -290,9 +290,9 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `create_boss_volume_context` | [CreateBossVolumeContext](#createbossvolumecontext) | Yes |  |
 | `create_boss_volume_context.boss_controller_id` | string | Yes |  |
-| `create_boss_volume_context.create_boss_volume_jid` | string | null | No |
+| `create_boss_volume_context.create_boss_volume_jid` | string | null | No |  |
 | `create_boss_volume_context.create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `create_boss_volume_context.iteration` | integer | null | No |
+| `create_boss_volume_context.iteration` | integer | null | No |  |
 | `state` | string | Yes | Values: `createbossvolume` |
 
 ### disablebiosbmclockdown
@@ -308,9 +308,9 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `create_boss_volume_jid` | string | null | No |
+| `create_boss_volume_jid` | string | null | No |  |
 | `create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `iteration` | integer | null | No |
+| `iteration` | integer | null | No |  |
 
 ---
 
@@ -617,7 +617,7 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `set_boot_order_info` | [SetBootOrderInfo](#setbootorderinfo) | Yes |  |
-| `set_boot_order_info.set_boot_order_jid` | string | null | No |
+| `set_boot_order_info.set_boot_order_jid` | string | null | No |  |
 | `set_boot_order_info.set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
 | `state` | string | Yes | Values: `setbootorder` |
 
@@ -655,9 +655,9 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforupload` | object | Yes |  |
 | `waitingforupload.final_version` | string | Yes |  |
-| `waitingforupload.firmware_number` | integer | null | No |
+| `waitingforupload.firmware_number` | integer | null | No |  |
 | `waitingforupload.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforupload.power_drains_needed` | integer | null | No |
+| `waitingforupload.power_drains_needed` | integer | null | No |  |
 
 ### Variant 5
 
@@ -665,10 +665,10 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforfirmwareupgrade` | object | Yes |  |
 | `waitingforfirmwareupgrade.final_version` | string | Yes |  |
-| `waitingforfirmwareupgrade.firmware_number` | integer | null | No |
+| `waitingforfirmwareupgrade.firmware_number` | integer | null | No |  |
 | `waitingforfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforfirmwareupgrade.power_drains_needed` | integer | null | No |
-| `waitingforfirmwareupgrade.started_waiting` | string | null | No |
+| `waitingforfirmwareupgrade.power_drains_needed` | integer | null | No |  |
+| `waitingforfirmwareupgrade.started_waiting` | string | null | No |  |
 | `waitingforfirmwareupgrade.task_id` | string | Yes |  |
 
 ### Variant 6
@@ -676,11 +676,11 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `resetfornewfirmware` | object | Yes |  |
-| `resetfornewfirmware.delay_until` | integer | null | No |
+| `resetfornewfirmware.delay_until` | integer | null | No |  |
 | `resetfornewfirmware.final_version` | string | Yes |  |
 | `resetfornewfirmware.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
 | `resetfornewfirmware.last_power_drain_operation` | any | No |  |
-| `resetfornewfirmware.power_drains_needed` | integer | null | No |
+| `resetfornewfirmware.power_drains_needed` | integer | null | No |  |
 
 ### Variant 7
 
@@ -689,7 +689,7 @@ A context for passing information between states thoughout the BOM validation pr
 | `newfirmwarereportedwait` | object | Yes |  |
 | `newfirmwarereportedwait.final_version` | string | Yes |  |
 | `newfirmwarereportedwait.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `newfirmwarereportedwait.previous_reset_time` | integer | null | No |
+| `newfirmwarereportedwait.previous_reset_time` | integer | null | No |  |
 
 ### Variant 8
 
@@ -697,8 +697,8 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `failedfirmwareupgrade` | object | Yes |  |
 | `failedfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `failedfirmwareupgrade.reason` | string | null | No |
-| `failedfirmwareupgrade.report_time` | string | null | No |
+| `failedfirmwareupgrade.reason` | string | null | No |  |
+| `failedfirmwareupgrade.report_time` | string | null | No |  |
 
 ---
 
@@ -935,7 +935,7 @@ Whether lockdown should be enabled or disabled in an operation
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `uefisetup` |
 | `uefi_setup_info` | [UefiSetupInfo](#uefisetupinfo) | Yes |  |
-| `uefi_setup_info.uefi_password_jid` | string | null | No |
+| `uefi_setup_info.uefi_password_jid` | string | null | No |  |
 | `uefi_setup_info.uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
 
 ### measuring
@@ -1074,9 +1074,9 @@ Tenant has requested network config update for the existing instance. At this po
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `iteration` | integer | null | No |
+| `iteration` | integer | null | No |  |
 | `secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_jid` | string | null | No |
+| `secure_erase_jid` | string | null | No |  |
 
 ---
 
@@ -1114,7 +1114,7 @@ Tenant has requested network config update for the existing instance. At this po
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `set_boot_order_jid` | string | null | No |
+| `set_boot_order_jid` | string | null | No |  |
 | `set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
 
 ---
@@ -1193,7 +1193,7 @@ Tenant has requested network config update for the existing instance. At this po
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `uefi_password_jid` | string | null | No |
+| `uefi_password_jid` | string | null | No |  |
 | `uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
 
 ---
@@ -1250,3 +1250,5 @@ Substates of enabling/disabling lockdown
 |------|------|----------|-------------|
 | `machine_validation` | [MachineValidatingState](#machinevalidatingstate) | Yes |  |
 | `validation_type` | string | Yes | Values: `machinevalidation` |
+
+---
