@@ -2,10 +2,6 @@
 
 Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, Vault integration, certificate management, and Gateway setup.
 
-**Scope**: Most steps in this guide are **per-cluster** — they must be repeated for the CSC and each CPC. A 1-CSC + 2-CPC topology requires three full runs of secret generation, certificate provisioning, and Helm install. Steps that are global (e.g., Vault PKI Root CA setup) are noted as such.
-
-**This is the production deployment path.** For evaluation without Vault or production certificates, see [Deployment — Evaluation Install](getting-started.md) which uses the `local/` Makefile and takes ~10 minutes.
-
 ## Infrastructure Prerequisites
 
 The following must be installed in each Kubernetes cluster before deploying the event bus:
@@ -17,6 +13,8 @@ The following must be installed in each Kubernetes cluster before deploying the 
 | cert-manager | TLS certificate lifecycle (server certs, mTLS certs) |
 | Prometheus Operator | ServiceMonitor CRD (required by Surveyor) |
 | Secrets pipeline | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
+| [`nsc`](https://github.com/nats-io/nsc/releases) | NATS NKey generation (required by `generate-nkeys.sh`) |
+| `jq` | JSON processing (required by `generate-nkeys.sh`) |
 
 Keycloak or another OIDC provider is required if using OAuth2 authentication.
 
@@ -36,7 +34,7 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 | Secret | Keys | Purpose |
 |--------|------|---------|
 | `nats-authx-user` | pubkey | Auth-callout NATS connection user |
-| `auth-callout-keys` | nkey-seed, issuer-seed, xkey-seed | Auth-callout signing and encryption keys |
+| `auth-callout-keys` | nkey-seed, issuer-seed, xkey-seed | Auth-callout signing and encryption keys (seeds only — public keys are derived at runtime) |
 
 ### NACK Controller
 
@@ -53,25 +51,16 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 
 ### Cross-Cluster Leaf Connections
 
-The CSC generation script creates a `nats-leaf-cpc-{id}` keypair (seed + pubkey) for each CPC ID passed on the command line. These must be manually copied to each CPC and renamed to `nats-leaf-csc`:
+Each CPC gets a `nats-leaf-csc` secret. The CSC gets the pubkey for each CPC.
 
-```bash
-# On CSC, after running generate-nkeys.sh -c csc 1 2:
-# Copy the CPC-1 leaf seed to CPC-1's cluster as nats-leaf-csc
-kubectl create secret generic nats-leaf-csc -n dsx \
-  --from-file=seed=secrets/csc/nkeys/nats-leaf-cpc-1/seed
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-leaf-csc` | seed | CPC-to-CSC leaf connection (CPC only) |
+| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only, via auth-callout.extraEnvs) |
 
-# Repeat for CPC-2 on CPC-2's cluster
-kubectl create secret generic nats-leaf-csc -n dsx \
-  --from-file=seed=secrets/csc/nkeys/nats-leaf-cpc-2/seed
-```
+### mTLS Secrets
 
-| Secret | Keys | Created By | Consumed By |
-|--------|------|-----------|-------------|
-| `nats-leaf-cpc-{id}` | seed, pubkey | CSC generation script | Pubkey stays on CSC (auth-callout.extraEnvs); seed copied to CPC |
-| `nats-leaf-csc` | seed | Manual copy from CSC's `nats-leaf-cpc-{id}/seed` | CPC chart (leaf node connection to CSC) |
-
-### mTLS Secrets (when `eventBus.mtls.enabled: true`)
+The generation script always produces mTLS keys (there is no flag to skip them). These secrets are only consumed when `eventBus.mtls.enabled: true`; they can be ignored for non-mTLS deployments.
 
 **Server:**
 
@@ -91,7 +80,7 @@ When `eventBus.mtls.enabled: false`, none of the mTLS secrets are required and t
 
 ## NKey Generation
 
-NKeys are Ed25519 public-key pairs used for NATS authentication. Generate them with `nsc`:
+NKeys are Ed25519 public-key pairs used for NATS authentication. The generation script requires [`nsc`](https://github.com/nats-io/nsc/releases) and `jq` on `PATH`.
 
 ```bash
 nsc generate nkey --user     # user nkey (SU seed, U pubkey)
@@ -108,9 +97,9 @@ nsc generate nkey --curve    # xkey (SX seed, X pubkey)
 | nack-user | user nkey | Always |
 | surveyor | user nkey | Always |
 | xkey | xkey | Always |
-| authx-leaf-user | user nkey | When mTLS enabled |
-| mtls-leaf-user | user nkey | When mTLS enabled |
-| mtls-sys-leaf-user | user nkey | When mTLS enabled |
+| authx-leaf-user | user nkey | Always generated, used when mTLS enabled |
+| mtls-leaf-user | user nkey | Always generated, used when mTLS enabled |
+| mtls-sys-leaf-user | user nkey | Always generated, used when mTLS enabled |
 
 ### Generation Script
 
@@ -128,21 +117,33 @@ A script generates all required secrets for a cluster:
 ./deploy/scripts/generate-nkeys.sh -c cpc-1          # CPC-1
 ```
 
-Output structure:
+Each key is written as a subdirectory containing `seed` and `pubkey` files:
 
 ```text
 secrets/{cluster}/
   nkeys/
-    nats-auth-signing/
-    nats-xkey/
-    nats-authx-user/
-    nats-nack-user/
-    nats-mtls-leaf/
-    nats-mtls-authx-leaf/
-    nats-mtls-sys-leaf/
-    nats-surveyor/
-    auth-callout-keys/
-    nats-leaf-cpc-{id}/     # CSC only
+    nats-auth-signing/seed
+    nats-auth-signing/pubkey
+    nats-xkey/seed
+    nats-xkey/pubkey
+    nats-authx-user/seed
+    nats-authx-user/pubkey
+    nats-nack-user/seed
+    nats-nack-user/pubkey
+    nats-nack-user/nack-user.nk
+    nats-mtls-leaf/seed
+    nats-mtls-leaf/pubkey
+    nats-mtls-authx-leaf/seed
+    nats-mtls-authx-leaf/pubkey
+    nats-mtls-sys-leaf/seed
+    nats-mtls-sys-leaf/pubkey
+    nats-surveyor/seed
+    nats-surveyor/pubkey
+    auth-callout-keys/nkey-seed
+    auth-callout-keys/issuer-seed
+    auth-callout-keys/xkey-seed
+    nats-leaf-cpc-{id}/seed      # CSC only, one per CPC
+    nats-leaf-cpc-{id}/pubkey    # CSC only, one per CPC
     xkey.nk
 ```
 
@@ -216,16 +217,9 @@ spec:
 
 cert-manager with a Vault Issuer handles TLS certificate lifecycle. Vault's PKI engine issues certificates signed by the event bus Root CA.
 
-There are two distinct TLS certificates with different consumers:
+### Server TLS Certificate
 
-| Certificate | Consumed By | Purpose |
-|-------------|------------|---------|
-| `event-bus-server-tls-certificate` | Gateway API controller listeners | TLS termination for external MQTT/NATS traffic. Not referenced by the event bus Helm chart. |
-| `nats-mtls-server-tls` | mTLS NATS StatefulSet (`nats-mtls` pods) | Pod-level TLS for client certificate verification. Only required when `eventBus.mtls.enabled: true`. |
-
-### Gateway TLS Certificate
-
-The Gateway controller terminates TLS for external clients. This certificate is referenced by the Gateway resource listeners, not by the event bus chart:
+All TLS-terminated Gateway listeners reference a cert-manager Certificate:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -240,25 +234,6 @@ spec:
   commonName: "event-bus.example.com"
   dnsNames:
     - "event-bus.example.com"
-```
-
-### mTLS NATS Server Certificate
-
-When `eventBus.mtls.enabled: true`, the mTLS NATS pods terminate TLS themselves (the Gateway uses TCP passthrough on port 8883). This certificate is referenced by the chart via the `nats-mtls-server-tls` secret:
-
-```yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: nats-mtls-server-tls
-spec:
-  secretName: nats-mtls-server-tls
-  issuerRef:
-    name: event-bus-certificate-issuer
-    kind: Issuer
-  commonName: "nats-mtls.dsx.svc.cluster.local"
-  dnsNames:
-    - "nats-mtls.dsx.svc.cluster.local"
 ```
 
 ## Gateway Setup
