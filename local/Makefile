@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-nats deploy-nats test-functional test-performance validate-nats status lint benchmark-basic benchmark-basic-full benchmark-performance
+.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-e2e clean-nats deploy-nats test-functional test-performance validate-nats status lint benchmark-basic benchmark-basic-full benchmark-performance
 
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_TARGET_QOS0=1 PERF_TARGET_QOS1=1 PERF_MIN_SUCCESS_RATE=99
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
@@ -51,6 +51,10 @@ verify-infra: ## Verify infrastructure is ready
 
 clean: ## Delete all Kind clusters
 	./infra/scripts/cleanup.sh
+
+clean-e2e: ## Delete Kind clusters and generated local e2e artifacts
+	./infra/scripts/cleanup.sh
+	rm -rf nats/keys nats/nsc nats/certs nats/secrets mqtt-client/tests/performance/reports
 
 clean-nats: ## Delete NATS namespaces from all clusters
 	cd nats && ./clean.sh all

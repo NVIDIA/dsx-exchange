@@ -52,7 +52,6 @@ esac
 
 # Generate cluster-specific auth keys if they don't exist
 SECRETS_DIR="${SCRIPT_DIR}/secrets/${cluster}"
-CLUSTER_XKEY_FILE="${SCRIPT_DIR}/keys/${cluster}/xkey.nk"
 SECRETS_NKEYS_DIR="${SECRETS_DIR}/nkeys"
 
 nkeys_complete() {
@@ -77,7 +76,6 @@ nkeys_complete() {
     "nats-surveyor/seed"
     "nats-xkey/pubkey"
     "nats-xkey/seed"
-    "xkey.nk"
   )
 
   if [ "${cluster}" = "csc" ]; then
@@ -104,11 +102,10 @@ if ! nkeys_complete; then
   if [ -d "${SECRETS_NKEYS_DIR}" ]; then
     echo "Existing auth keys for ${cluster} are incomplete; regenerating..."
     rm -rf "${SECRETS_DIR}"
-    rm -f "${CLUSTER_XKEY_FILE}"
   fi
 
   echo "Generating auth keys for ${cluster}..."
-  mkdir -p "${SECRETS_DIR}" "$(dirname "${CLUSTER_XKEY_FILE}")"
+  mkdir -p "${SECRETS_DIR}"
 
   # Get CPC IDs from values.yaml for CSC clusters
   CPC_IDS_ARGS=""
@@ -127,9 +124,6 @@ if ! nkeys_complete; then
     -c "${cluster}" \
     -o "${SECRETS_DIR}" \
     ${CPC_IDS_ARGS}
-
-  # Copy xkey.nk to expected location for backward compatibility
-  cp "${SECRETS_NKEYS_DIR}/xkey.nk" "${CLUSTER_XKEY_FILE}"
 
   echo "Auth keys generated for ${cluster}"
 fi

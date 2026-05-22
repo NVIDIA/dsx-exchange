@@ -32,3 +32,4 @@ Chart.lock
 *.backup
 *~
 
+secrets/

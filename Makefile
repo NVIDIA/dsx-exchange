@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: add-license-headers check check-license-headers help test test-e2e test-helm third-party-licenses
+.PHONY: add-license-headers check check-license-headers clean-e2e help test test-e2e test-helm third-party-licenses
 
 COPYRIGHT_HOLDER := NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 COPYRIGHT_YEAR := 2026
@@ -23,6 +23,9 @@ check-license-headers: ## Verify SPDX license headers across repository sources
 	$(MAKE) -C deploy check-license-headers
 
 check: check-license-headers test test-helm ## Run all local validation checks
+
+clean-e2e: ## Delete local Kind clusters and generated e2e artifacts
+	$(MAKE) -C local clean-e2e
 
 test: ## Run unit tests that do not require the local Kind environment
 	$(MAKE) -C auth-callout test

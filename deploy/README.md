@@ -158,36 +158,43 @@ An example script is provided to generate all required secrets to local files:
 
 ```bash
 # Generate secrets for a cluster
-./scripts/generate-nkeys.sh [OPTIONS] [cpc-ids...]
+./scripts/generate-nkeys.sh [OPTIONS] -c CLUSTER [cpc-ids...]
 
 # Options:
-#   -c, --cluster CLUSTER    Cluster name: csc or cpc-{id} (default: csc)
-#   -o, --output DIR         Output directory (default: ./secrets/{cluster})
+#   -c, --cluster CLUSTER    Cluster name: csc or cpc-{id}
+#   -o, --output DIR         Output directory (default: deploy/secrets/{cluster})
+#       --force              Overwrite an existing non-empty output directory
 #   -h, --help               Show help message
 
 # Examples:
-./scripts/generate-nkeys.sh -c csc                    # Generate for CSC, output to ./secrets/csc
+./scripts/generate-nkeys.sh -c csc 1 2 3              # Generate for CSC, output to deploy/secrets/csc
 ./scripts/generate-nkeys.sh -c cpc-1 -o ./my-secrets  # Generate for CPC-1, custom output directory
-./scripts/generate-nkeys.sh -c csc 1 2 3              # Generate for CSC with CPC IDs 1, 2, 3
 ```
 
 The script generates all required NKey secrets (operator, accounts, users, XKey).
+It refuses to overwrite an existing non-empty output directory. Use `--force`
+only when intentionally rotating all generated NKeys for that cluster. Rotating
+these keys invalidates existing leaf, auth-callout, NACK, mTLS, and surveyor
+credentials created from the previous output.
+
+Generated secret files are written with mode `0600`, and generated secret
+directories are written with mode `0700`. Treat the full output directory as
+sensitive material.
 
 Output structure:
 ```
-secrets/{cluster}/
-└── nkeys/                    # NKey secrets (one directory per secret)
-    ├── nats-auth-signing/
-    ├── nats-xkey/
-    ├── nats-authx-user/
-    ├── nats-nack-user/
-    ├── nats-mtls-leaf/
-    ├── nats-mtls-authx-leaf/
-    ├── nats-mtls-sys-leaf/
-    ├── nats-surveyor/
-    ├── auth-callout-keys/
-    ├── nats-leaf-cpc-{id}/   # CSC only (when CPC IDs provided)
-    └── xkey.nk
+deploy/secrets/{cluster}/
+└── nkeys/
+    ├── nats-auth-signing/{seed,pubkey}
+    ├── nats-xkey/{seed,pubkey}
+    ├── nats-authx-user/{seed,pubkey}
+    ├── nats-nack-user/{seed,pubkey,nack-user.nk}
+    ├── nats-mtls-leaf/{seed,pubkey}
+    ├── nats-mtls-authx-leaf/{seed,pubkey}
+    ├── nats-mtls-sys-leaf/{seed,pubkey}
+    ├── nats-surveyor/{seed,pubkey}
+    ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
+    └── nats-leaf-cpc-{id}/{seed,pubkey}   # CSC only (when CPC IDs provided)
 ```
 
 ## Chart Dependencies
@@ -777,7 +784,8 @@ eventBus:
         account: "CSC"
 
 # CSC needs CPC leaf user pubkeys to authorize incoming leaf connections.
-# Add one entry per CPC cluster, matching the IDs in cpcIds.
+# This block is mandatory when eventBus.cpcIds is non-empty. Add one
+# entry per CPC cluster, matching the IDs in cpcIds.
 auth-callout:
   extraEnvs:
     NKEY_LEAF_CPC_1_PUBKEY:
@@ -791,6 +799,9 @@ auth-callout:
           name: nats-leaf-cpc-2
           key: pubkey
 ```
+
+The chart validates that every `eventBus.cpcIds` entry has a matching
+`NKEY_LEAF_CPC_{N}_PUBKEY` entry under `auth-callout.extraEnvs`.
 
 ### CPC Cluster
 

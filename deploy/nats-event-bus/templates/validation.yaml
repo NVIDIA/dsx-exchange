@@ -1,0 +1,18 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{/*
+Validation template for nats-event-bus values.
+This template emits no resources; it fails rendering on unsafe combinations.
+*/}}
+{{- $authCallout := index .Values "auth-callout" | default dict -}}
+{{- $extraEnvs := get $authCallout "extraEnvs" | default dict -}}
+{{- if and (eq .Values.eventBus.clusterType "csc") (gt (len .Values.eventBus.cpcIds) 0) -}}
+{{- range .Values.eventBus.cpcIds }}
+{{- $cpcId := toString . -}}
+{{- $envName := printf "NKEY_LEAF_CPC_%s_PUBKEY" $cpcId -}}
+{{- if not (hasKey $extraEnvs $envName) -}}
+{{- fail (printf "eventBus.cpcIds includes %q, but auth-callout.extraEnvs.%s is missing. Add a secretKeyRef to nats-leaf-cpc-%s key pubkey so CSC can authorize the CPC leaf connection." $cpcId $envName $cpcId) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
