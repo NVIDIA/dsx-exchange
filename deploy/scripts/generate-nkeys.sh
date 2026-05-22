@@ -11,31 +11,30 @@ umask 077
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-CLUSTER=""
-OUTPUT_DIR=""
+OUTPUT_ROOT=""
 CPC_IDS=()
-FORCE=false
 TEMP_DIRS=()
 
 usage() {
   cat <<EOF
-Usage: ${0} [OPTIONS] -c CLUSTER [cpc-ids...]
+Usage: ${0} [OPTIONS] [cpc-ids...]
 
 Generate NATS Event Bus NKeys to local files.
 
+Without CPC IDs, only the CSC output is generated or left unchanged.
+With CPC IDs, CSC and the requested CPC outputs are generated or left unchanged.
+
 Options:
-  -c, --cluster CLUSTER    Cluster name: csc or cpc-{id}
-  -o, --output DIR         Output directory (default: deploy/secrets/{cluster})
-      --force              Overwrite an existing non-empty output directory
+  -o, --output DIR         Output root directory (default: deploy/secrets)
   -h, --help               Show this help message
 
 Arguments:
-  cpc-ids                  Optional list of CPC IDs for CSC clusters (e.g., 1 2 3)
+  cpc-ids                  Optional list of CPC IDs to generate with CSC
 
 Examples:
-  ${0} -c csc -o deploy/secrets/csc 1 2 3
-  ${0} --cluster cpc-1 --output deploy/secrets/cpc-1
-  ${0} --cluster csc 1 2
+  ${0}
+  ${0} 1 2 3
+  ${0} -o deploy/secrets 1 2
 EOF
 }
 
@@ -72,33 +71,15 @@ check_prerequisites() {
 }
 
 parse_args() {
-  if [ "$#" -eq 0 ]; then
-    echo "ERROR: no arguments supplied" >&2
-    usage >&2
-    exit 1
-  fi
-
   while [[ $# -gt 0 ]]; do
     case $1 in
-      -c|--cluster)
-        if [ $# -lt 2 ]; then
-          echo "ERROR: $1 requires a value" >&2
-          exit 1
-        fi
-        CLUSTER="$2"
-        shift 2
-        ;;
       -o|--output)
         if [ $# -lt 2 ]; then
           echo "ERROR: $1 requires a value" >&2
           exit 1
         fi
-        OUTPUT_DIR="$2"
+        OUTPUT_ROOT="$2"
         shift 2
-        ;;
-      --force)
-        FORCE=true
-        shift
         ;;
       -h|--help)
         usage
@@ -110,64 +91,68 @@ parse_args() {
         exit 1
         ;;
       *)
-        if [[ "$1" =~ ^[0-9]+$ ]]; then
-          CPC_IDS+=("$1")
-        else
-          echo "ERROR: Invalid CPC ID: $1 (must be a number)" >&2
-          exit 1
-        fi
+        validate_cpc_id "$1"
+        CPC_IDS+=("$1")
         shift
         ;;
     esac
   done
 
-  if [ -z "${CLUSTER}" ]; then
-    echo "ERROR: cluster is required; pass -c csc or -c cpc-{id}" >&2
-    usage >&2
-    exit 1
-  fi
-
-  if [ -z "${OUTPUT_DIR}" ]; then
-    OUTPUT_DIR="${DEPLOY_DIR}/secrets/${CLUSTER}"
+  if [ -z "${OUTPUT_ROOT}" ]; then
+    OUTPUT_ROOT="${DEPLOY_DIR}/secrets"
   fi
 }
 
-validate_cluster() {
-  if [[ "${CLUSTER}" =~ ^cpc-[0-9]+$ ]] || [ "${CLUSTER}" = "csc" ]; then
-    return 0
+validate_cpc_id() {
+  local cpc_id="$1"
+
+  if [[ ! "${cpc_id}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    echo "ERROR: Invalid CPC ID: ${cpc_id} (use letters, numbers, '.', '_', or '-')" >&2
+    exit 1
+  fi
+}
+
+prepare_output_root() {
+  if [ -z "${OUTPUT_ROOT}" ] || [ "${OUTPUT_ROOT}" = "/" ]; then
+    echo "ERROR: refusing unsafe output root: ${OUTPUT_ROOT}" >&2
+    exit 1
   fi
 
-  echo "ERROR: Invalid cluster '${CLUSTER}'. Must be: csc or cpc-{id} (e.g., cpc-1, cpc-2)" >&2
-  exit 1
+  mkdir -p "${OUTPUT_ROOT}"
+  chmod 700 "${OUTPUT_ROOT}"
+}
+
+cluster_output_dir() {
+  local cluster="$1"
+
+  echo "${OUTPUT_ROOT}/${cluster}"
 }
 
 prepare_output_dir() {
-  local nkeys_dir="${OUTPUT_DIR}/nkeys"
+  local output_dir="$1"
+  local nkeys_dir="${output_dir}/nkeys"
 
-  if [ -z "${OUTPUT_DIR}" ] || [ "${OUTPUT_DIR}" = "/" ]; then
-    echo "ERROR: refusing unsafe output directory: ${OUTPUT_DIR}" >&2
+  if [ -z "${output_dir}" ] || [ "${output_dir}" = "/" ]; then
+    echo "ERROR: refusing unsafe output directory: ${output_dir}" >&2
     exit 1
   fi
 
-  if [ -d "${nkeys_dir}" ] && [ -n "$(find "${nkeys_dir}" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
-    if [ "${FORCE}" != "true" ]; then
-      echo "ERROR: output directory already contains generated NKeys: ${nkeys_dir}" >&2
-      echo "Re-run with --force to intentionally replace these secrets." >&2
-      exit 1
-    fi
-
-    rm -rf "${nkeys_dir}"
-  fi
-
+  mkdir -p "${output_dir}"
+  chmod 700 "${output_dir}"
   mkdir -p "${nkeys_dir}"
   chmod 700 "${nkeys_dir}"
 }
 
 get_dc_account() {
-  if [ "${CLUSTER}" = "csc" ]; then
+  local cluster="$1"
+
+  if [ "${cluster}" = "csc" ]; then
     echo "CSC"
-  elif [[ "${CLUSTER}" =~ ^cpc- ]]; then
+  elif [[ "${cluster}" =~ ^cpc- ]]; then
     echo "CPC"
+  else
+    echo "ERROR: invalid cluster: ${cluster}" >&2
+    exit 1
   fi
 }
 
@@ -184,55 +169,71 @@ run_nsc_quiet() {
   fi
 }
 
+run_nsc_store_quiet() {
+  local nsc_dir="$1"
+
+  shift
+  run_nsc_quiet \
+    --config-dir "${nsc_dir}/config" \
+    --data-dir "${nsc_dir}/store" \
+    --keystore-dir "${nsc_dir}/keys" \
+    "$@"
+}
+
+nsc_store() {
+  local nsc_dir="$1"
+
+  shift
+  nsc \
+    --config-dir "${nsc_dir}/config" \
+    --data-dir "${nsc_dir}/store" \
+    --keystore-dir "${nsc_dir}/keys" \
+    "$@"
+}
+
 generate_nsc_keys() {
   local nsc_dir="$1"
-  local dc_account="$2"
+  local cluster="$2"
+  local dc_account="$3"
 
   export NKEYS_PATH="${nsc_dir}/keys"
 
-  echo "Creating operator op-${CLUSTER}..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add operator --name "op-${CLUSTER}"
+  echo "Creating operator op-${cluster}..."
+  run_nsc_store_quiet "${nsc_dir}" add operator --name "op-${cluster}"
 
   echo "Creating AUTH account..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add account AUTH
-  run_nsc_quiet --data-dir "${nsc_dir}" edit account AUTH --sk generate
+  run_nsc_store_quiet "${nsc_dir}" add account AUTH
+  run_nsc_store_quiet "${nsc_dir}" edit account AUTH --sk generate
 
   echo "Creating AUTHX account..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add account AUTHX
+  run_nsc_store_quiet "${nsc_dir}" add account AUTHX
 
   echo "Creating AUTHX user (authx)..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account AUTHX --name authx
+  run_nsc_store_quiet "${nsc_dir}" add user --account AUTHX --name authx
 
   echo "Creating AUTHX leaf user (authx-leaf)..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account AUTHX --name "authx-leaf"
+  run_nsc_store_quiet "${nsc_dir}" add user --account AUTHX --name "authx-leaf"
 
   echo "Creating ${dc_account} account..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add account "${dc_account}"
+  run_nsc_store_quiet "${nsc_dir}" add account "${dc_account}"
 
   echo "Creating NACK user..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account "${dc_account}" --name nack
+  run_nsc_store_quiet "${nsc_dir}" add user --account "${dc_account}" --name nack
 
   echo "Creating mTLS leaf user..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account "${dc_account}" --name "mtls-leaf"
+  run_nsc_store_quiet "${nsc_dir}" add user --account "${dc_account}" --name "mtls-leaf"
 
   echo "Creating SYS account..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add account SYS
+  run_nsc_store_quiet "${nsc_dir}" add account SYS
 
   echo "Creating mTLS SYS leaf user..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account SYS --name "mtls-sys-leaf"
+  run_nsc_store_quiet "${nsc_dir}" add user --account SYS --name "mtls-sys-leaf"
 
   echo "Creating surveyor user..."
-  run_nsc_quiet --data-dir "${nsc_dir}" add user --account SYS --name "surveyor"
-
-  if [ "${CLUSTER}" = "csc" ] && [ ${#CPC_IDS[@]} -gt 0 ]; then
-    for cpc_id in "${CPC_IDS[@]}"; do
-      echo "Creating CSC leaf user for CPC-${cpc_id}..."
-      run_nsc_quiet --data-dir "${nsc_dir}" add user --account CSC --name "leaf-cpc-${cpc_id}"
-    done
-  fi
+  run_nsc_store_quiet "${nsc_dir}" add user --account SYS --name "surveyor"
 
   echo "Generating XKey..."
-  nsc --data-dir "${nsc_dir}" generate nkey --curve > "${nsc_dir}/xkey.nk"
+  nsc_store "${nsc_dir}" generate nkey --curve > "${nsc_dir}/xkey.nk"
   chmod 600 "${nsc_dir}/xkey.nk"
 
   unset NKEYS_PATH
@@ -241,35 +242,36 @@ generate_nsc_keys() {
 extract_key_values() {
   local nsc_dir="$1"
   local keys_export_dir="$2"
-  local dc_account="$3"
+  local output_dir="$3"
+  local dc_account="$4"
 
   export NKEYS_PATH="${nsc_dir}/keys"
 
-  run_nsc_quiet --data-dir "${nsc_dir}" export keys --account AUTH --accounts --dir "${keys_export_dir}"
-  run_nsc_quiet --data-dir "${nsc_dir}" export keys --account AUTHX --users --dir "${keys_export_dir}"
-  run_nsc_quiet --data-dir "${nsc_dir}" export keys --account "${dc_account}" --users --dir "${keys_export_dir}"
-  run_nsc_quiet --data-dir "${nsc_dir}" export keys --account SYS --users --dir "${keys_export_dir}"
+  run_nsc_store_quiet "${nsc_dir}" export keys --account AUTH --accounts --dir "${keys_export_dir}"
+  run_nsc_store_quiet "${nsc_dir}" export keys --account AUTHX --users --dir "${keys_export_dir}"
+  run_nsc_store_quiet "${nsc_dir}" export keys --account "${dc_account}" --users --dir "${keys_export_dir}"
+  run_nsc_store_quiet "${nsc_dir}" export keys --account SYS --users --dir "${keys_export_dir}"
 
   local auth_signing_key
-  auth_signing_key=$(nsc --data-dir "${nsc_dir}" describe account AUTH --json 2>/dev/null | jq -r '.nats.signing_keys[0]')
+  auth_signing_key=$(nsc_store "${nsc_dir}" describe account AUTH --json 2>/dev/null | jq -r '.nats.signing_keys[0]')
 
   local authx_user_pubkey
-  authx_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a AUTHX authx --json 2>/dev/null | jq -r '.sub')
+  authx_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a AUTHX authx --json 2>/dev/null | jq -r '.sub')
 
   local authx_leaf_user_pubkey
-  authx_leaf_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a AUTHX "authx-leaf" --json 2>/dev/null | jq -r '.sub')
+  authx_leaf_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a AUTHX "authx-leaf" --json 2>/dev/null | jq -r '.sub')
 
   local nack_user_pubkey
-  nack_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a "${dc_account}" nack --json 2>/dev/null | jq -r '.sub')
+  nack_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a "${dc_account}" nack --json 2>/dev/null | jq -r '.sub')
 
   local mtls_leaf_user_pubkey
-  mtls_leaf_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a "${dc_account}" "mtls-leaf" --json 2>/dev/null | jq -r '.sub')
+  mtls_leaf_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a "${dc_account}" "mtls-leaf" --json 2>/dev/null | jq -r '.sub')
 
   local mtls_sys_leaf_user_pubkey
-  mtls_sys_leaf_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a SYS "mtls-sys-leaf" --json 2>/dev/null | jq -r '.sub')
+  mtls_sys_leaf_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a SYS "mtls-sys-leaf" --json 2>/dev/null | jq -r '.sub')
 
   local surveyor_user_pubkey
-  surveyor_user_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a SYS "surveyor" --json 2>/dev/null | jq -r '.sub')
+  surveyor_user_pubkey=$(nsc_store "${nsc_dir}" describe user -a SYS "surveyor" --json 2>/dev/null | jq -r '.sub')
 
   local xkey_pubkey
   xkey_pubkey=$(sed -n '2p' "${nsc_dir}/xkey.nk" | tr -d '[:space:]')
@@ -300,42 +302,43 @@ extract_key_values() {
 
   unset NKEYS_PATH
 
-  write_secret_file "nats-auth-signing" "pubkey" "${auth_signing_key}"
-  write_secret_file "nats-auth-signing" "seed" "${auth_signing_seed}"
+  write_secret_value "${output_dir}" "nats-auth-signing" "pubkey" "${auth_signing_key}"
+  write_secret_value "${output_dir}" "nats-auth-signing" "seed" "${auth_signing_seed}"
 
-  write_secret_file "nats-xkey" "pubkey" "${xkey_pubkey}"
-  write_secret_file "nats-xkey" "seed" "${xkey_seed}"
+  write_secret_value "${output_dir}" "nats-xkey" "pubkey" "${xkey_pubkey}"
+  write_secret_value "${output_dir}" "nats-xkey" "seed" "${xkey_seed}"
 
-  write_secret_file "nats-authx-user" "pubkey" "${authx_user_pubkey}"
-  write_secret_file "nats-authx-user" "seed" "${authx_user_seed}"
+  write_secret_value "${output_dir}" "nats-authx-user" "pubkey" "${authx_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-authx-user" "seed" "${authx_user_seed}"
 
-  write_secret_file "nats-nack-user" "pubkey" "${nack_user_pubkey}"
-  write_secret_file "nats-nack-user" "seed" "${nack_user_seed}"
-  cp "${keys_export_dir}/${nack_user_pubkey}.nk" "${OUTPUT_DIR}/nkeys/nats-nack-user/nack-user.nk"
-  chmod 600 "${OUTPUT_DIR}/nkeys/nats-nack-user/nack-user.nk"
+  write_secret_value "${output_dir}" "nats-nack-user" "pubkey" "${nack_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-nack-user" "seed" "${nack_user_seed}"
+  cp "${keys_export_dir}/${nack_user_pubkey}.nk" "${output_dir}/nkeys/nats-nack-user/nack-user.nk"
+  chmod 600 "${output_dir}/nkeys/nats-nack-user/nack-user.nk"
 
-  write_secret_file "nats-mtls-leaf" "pubkey" "${mtls_leaf_user_pubkey}"
-  write_secret_file "nats-mtls-leaf" "seed" "${mtls_leaf_user_seed}"
+  write_secret_value "${output_dir}" "nats-mtls-leaf" "pubkey" "${mtls_leaf_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-mtls-leaf" "seed" "${mtls_leaf_user_seed}"
 
-  write_secret_file "nats-mtls-authx-leaf" "pubkey" "${authx_leaf_user_pubkey}"
-  write_secret_file "nats-mtls-authx-leaf" "seed" "${authx_leaf_user_seed}"
+  write_secret_value "${output_dir}" "nats-mtls-authx-leaf" "pubkey" "${authx_leaf_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-mtls-authx-leaf" "seed" "${authx_leaf_user_seed}"
 
-  write_secret_file "nats-mtls-sys-leaf" "pubkey" "${mtls_sys_leaf_user_pubkey}"
-  write_secret_file "nats-mtls-sys-leaf" "seed" "${mtls_sys_leaf_user_seed}"
+  write_secret_value "${output_dir}" "nats-mtls-sys-leaf" "pubkey" "${mtls_sys_leaf_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-mtls-sys-leaf" "seed" "${mtls_sys_leaf_user_seed}"
 
-  write_secret_file "nats-surveyor" "pubkey" "${surveyor_user_pubkey}"
-  write_secret_file "nats-surveyor" "seed" "${surveyor_user_seed}"
+  write_secret_value "${output_dir}" "nats-surveyor" "pubkey" "${surveyor_user_pubkey}"
+  write_secret_value "${output_dir}" "nats-surveyor" "seed" "${surveyor_user_seed}"
 
-  write_secret_file "auth-callout-keys" "nkey-seed" "${authx_user_seed}"
-  write_secret_file "auth-callout-keys" "issuer-seed" "${auth_signing_seed}"
-  write_secret_file "auth-callout-keys" "xkey-seed" "${xkey_seed}"
+  write_secret_value "${output_dir}" "auth-callout-keys" "nkey-seed" "${authx_user_seed}"
+  write_secret_value "${output_dir}" "auth-callout-keys" "issuer-seed" "${auth_signing_seed}"
+  write_secret_value "${output_dir}" "auth-callout-keys" "xkey-seed" "${xkey_seed}"
 }
 
-write_secret_file() {
-  local secret_name="$1"
-  local key="$2"
-  local value="$3"
-  local secret_dir="${OUTPUT_DIR}/nkeys/${secret_name}"
+write_secret_value() {
+  local output_dir="$1"
+  local secret_name="$2"
+  local key="$3"
+  local value="$4"
+  local secret_dir="${output_dir}/nkeys/${secret_name}"
   local target="${secret_dir}/${key}"
   local tmp
 
@@ -347,48 +350,166 @@ write_secret_file() {
   mv "${tmp}" "${target}"
 }
 
-generate_cpc_leaf_secrets() {
-  local nsc_dir="$1"
+generate_cluster() {
+  local cluster="$1"
+  local output_dir
+  local dc_account
+  local nsc_dir
+  local keys_export_dir
 
-  if [ "${CLUSTER}" != "csc" ] || [ ${#CPC_IDS[@]} -eq 0 ]; then
-    if [ "${CLUSTER}" != "csc" ]; then
-      echo "NOTE: For CPC clusters, you need to copy nats-leaf-csc secret from CSC cluster"
-      echo "      The CSC cluster generates leaf users for each CPC."
-    fi
+  output_dir=$(cluster_output_dir "${cluster}")
+  dc_account=$(get_dc_account "${cluster}")
+
+  echo ""
+  echo "=== ${cluster}: NKey secrets ==="
+  echo "Output directory: ${output_dir}"
+
+  if [ -d "${output_dir}/nkeys" ]; then
+    echo "Secrets already exist for ${cluster}; leaving them unchanged."
+    audit_secret_permissions "${output_dir}"
     return 0
   fi
 
-  export NKEYS_PATH="${nsc_dir}/keys"
+  echo "Generating secrets for ${cluster}..."
+  prepare_output_dir "${output_dir}"
 
-  for cpc_id in "${CPC_IDS[@]}"; do
-    local cpc_leaf_pubkey
-    cpc_leaf_pubkey=$(nsc --data-dir "${nsc_dir}" describe user -a CSC "leaf-cpc-${cpc_id}" --json 2>/dev/null | jq -r '.sub')
+  nsc_dir=$(make_temp_dir)
+  keys_export_dir=$(make_temp_dir)
 
-    local cpc_leaf_export_dir
-    cpc_leaf_export_dir=$(make_temp_dir)
-    run_nsc_quiet --data-dir "${nsc_dir}" export keys --account CSC --user "leaf-cpc-${cpc_id}" --dir "${cpc_leaf_export_dir}"
+  echo "Generating NSC keys for ${cluster}..."
+  generate_nsc_keys "${nsc_dir}" "${cluster}" "${dc_account}"
 
-    local cpc_leaf_seed
-    cpc_leaf_seed=$(head -n 1 "${cpc_leaf_export_dir}/${cpc_leaf_pubkey}.nk" | tr -d '[:space:]')
+  echo "Writing NKey secrets for ${cluster}..."
+  extract_key_values "${nsc_dir}" "${keys_export_dir}" "${output_dir}" "${dc_account}"
 
-    write_secret_file "nats-leaf-cpc-${cpc_id}" "pubkey" "${cpc_leaf_pubkey}"
-    write_secret_file "nats-leaf-cpc-${cpc_id}" "seed" "${cpc_leaf_seed}"
-  done
+  audit_secret_permissions "${output_dir}"
+}
 
-  unset NKEYS_PATH
+copy_leaf_secret() {
+  local source_output_dir="$1"
+  local source_secret_name="$2"
+  local target_output_dir="$3"
+  local target_secret_name="$4"
+  local seed
+  local pubkey
+
+  seed=$(tr -d '[:space:]' < "${source_output_dir}/nkeys/${source_secret_name}/seed")
+  pubkey=$(tr -d '[:space:]' < "${source_output_dir}/nkeys/${source_secret_name}/pubkey")
+
+  write_secret_value "${target_output_dir}" "${target_secret_name}" "seed" "${seed}"
+  write_secret_value "${target_output_dir}" "${target_secret_name}" "pubkey" "${pubkey}"
+}
+
+generate_leaf_secret_pair() {
+  local cpc_id="$1"
+  local csc_output_dir
+  local cpc_output_dir
+  local csc_secret_name="nats-leaf-cpc-${cpc_id}"
+  local cpc_secret_name="nats-leaf-csc"
+  local leaf_file
+  local leaf_dir
+  local seed
+  local pubkey
+
+  csc_output_dir=$(cluster_output_dir "csc")
+  cpc_output_dir=$(cluster_output_dir "cpc-${cpc_id}")
+  leaf_dir=$(make_temp_dir)
+  leaf_file="${leaf_dir}/leaf.nk"
+  nsc_store "${leaf_dir}" generate nkey --user > "${leaf_file}"
+  chmod 600 "${leaf_file}"
+
+  seed=$(sed -n '1p' "${leaf_file}" | tr -d '[:space:]')
+  pubkey=$(sed -n '2p' "${leaf_file}" | tr -d '[:space:]')
+  if [[ -z "${seed}" || -z "${pubkey}" || "${seed}" != SU* || "${pubkey}" != U* ]]; then
+    echo "ERROR: failed to generate a valid CPC leaf user NKey for CPC-${cpc_id}" >&2
+    exit 1
+  fi
+
+  write_secret_value "${csc_output_dir}" "${csc_secret_name}" "seed" "${seed}"
+  write_secret_value "${csc_output_dir}" "${csc_secret_name}" "pubkey" "${pubkey}"
+  copy_leaf_secret "${csc_output_dir}" "${csc_secret_name}" "${cpc_output_dir}" "${cpc_secret_name}"
+}
+
+leaf_secret_exists() {
+  local output_dir="$1"
+  local secret_name="$2"
+  local secret_dir="${output_dir}/nkeys/${secret_name}"
+
+  [ -s "${secret_dir}/seed" ] && [ -s "${secret_dir}/pubkey" ]
+}
+
+leaf_secret_started() {
+  local output_dir="$1"
+  local secret_name="$2"
+
+  [ -e "${output_dir}/nkeys/${secret_name}" ]
+}
+
+leaf_secrets_match() {
+  local csc_output_dir="$1"
+  local cpc_output_dir="$2"
+  local csc_secret_name="$3"
+  local cpc_secret_name="$4"
+
+  cmp -s "${csc_output_dir}/nkeys/${csc_secret_name}/seed" "${cpc_output_dir}/nkeys/${cpc_secret_name}/seed" \
+    && cmp -s "${csc_output_dir}/nkeys/${csc_secret_name}/pubkey" "${cpc_output_dir}/nkeys/${cpc_secret_name}/pubkey"
+}
+
+generate_cpc_leaf_outputs() {
+  local cpc_id="$1"
+  local csc_output_dir
+  local cpc_output_dir
+  local csc_secret_name="nats-leaf-cpc-${cpc_id}"
+  local cpc_secret_name="nats-leaf-csc"
+  local csc_leaf_exists=false
+  local cpc_leaf_exists=false
+
+  csc_output_dir=$(cluster_output_dir "csc")
+  cpc_output_dir=$(cluster_output_dir "cpc-${cpc_id}")
+
+  echo ""
+  echo "=== CPC-${cpc_id}: CSC leaf secret ==="
+
+  if leaf_secret_exists "${csc_output_dir}" "${csc_secret_name}"; then
+    csc_leaf_exists=true
+  fi
+  if leaf_secret_exists "${cpc_output_dir}" "${cpc_secret_name}"; then
+    cpc_leaf_exists=true
+  fi
+
+  if [ "${csc_leaf_exists}" = "true" ] && [ "${cpc_leaf_exists}" = "true" ]; then
+    if ! leaf_secrets_match "${csc_output_dir}" "${cpc_output_dir}" "${csc_secret_name}" "${cpc_secret_name}"; then
+      echo "ERROR: mismatched leaf secret output for CPC-${cpc_id}" >&2
+      exit 1
+    fi
+
+    echo "Leaf secrets already exist for CPC-${cpc_id}; leaving them unchanged."
+  elif [ "${csc_leaf_exists}" = "false" ] && [ "${cpc_leaf_exists}" = "false" ] \
+    && ! leaf_secret_started "${csc_output_dir}" "${csc_secret_name}" \
+    && ! leaf_secret_started "${cpc_output_dir}" "${cpc_secret_name}"; then
+    echo "Generating CSC leaf secret for CPC-${cpc_id}..."
+    generate_leaf_secret_pair "${cpc_id}"
+  else
+    echo "ERROR: inconsistent leaf secret output for CPC-${cpc_id}" >&2
+    exit 1
+  fi
+
+  audit_secret_permissions "${csc_output_dir}"
+  audit_secret_permissions "${cpc_output_dir}"
 }
 
 audit_secret_permissions() {
+  local output_dir="$1"
   local bad
 
-  bad=$(find "${OUTPUT_DIR}/nkeys" -type f ! -perm 600 -print)
+  bad=$(find "${output_dir}/nkeys" -type f ! -perm 600 -print)
   if [ -n "${bad}" ]; then
     echo "ERROR: generated secret files must be mode 600:" >&2
     echo "${bad}" >&2
     exit 1
   fi
 
-  bad=$(find "${OUTPUT_DIR}/nkeys" -type d ! -perm 700 -print)
+  bad=$(find "${output_dir}/nkeys" -type d ! -perm 700 -print)
   if [ -n "${bad}" ]; then
     echo "ERROR: generated secret directories must be mode 700:" >&2
     echo "${bad}" >&2
@@ -397,43 +518,32 @@ audit_secret_permissions() {
 }
 
 main() {
+  local cpc_id
+
   parse_args "$@"
   check_prerequisites
-  validate_cluster
   trap cleanup EXIT
 
-  local dc_account
-  dc_account=$(get_dc_account)
+  echo "Generating NATS Event Bus NKey outputs..."
+  echo "Output directory: ${OUTPUT_ROOT}"
 
-  echo "Generating secrets for ${CLUSTER}..."
-  echo "Output directory: ${OUTPUT_DIR}"
+  prepare_output_root
+  generate_cluster "csc"
 
-  prepare_output_dir
-
-  local nsc_dir
-  nsc_dir=$(make_temp_dir)
-
-  local keys_export_dir
-  keys_export_dir=$(make_temp_dir)
-
-  echo ""
-  echo "=== Generating NSC keys ==="
-  generate_nsc_keys "${nsc_dir}" "${dc_account}"
-
-  echo ""
-  echo "=== Writing NKey secrets ==="
-  extract_key_values "${nsc_dir}" "${keys_export_dir}" "${dc_account}"
-
-  generate_cpc_leaf_secrets "${nsc_dir}"
-  audit_secret_permissions
+  if [ ${#CPC_IDS[@]} -gt 0 ]; then
+    for cpc_id in "${CPC_IDS[@]}"; do
+      generate_cluster "cpc-${cpc_id}"
+      generate_cpc_leaf_outputs "${cpc_id}"
+    done
+  fi
 
   echo ""
   echo "=== Secret generation complete ==="
   echo ""
-  echo "Secrets written to: ${OUTPUT_DIR}"
+  echo "Secrets written under: ${OUTPUT_ROOT}"
   echo ""
   echo "Directory structure:"
-  ls -R "${OUTPUT_DIR}"
+  ls -R "${OUTPUT_ROOT}"
 }
 
 main "$@"
