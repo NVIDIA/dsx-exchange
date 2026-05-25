@@ -15,6 +15,13 @@ CPC
 {{- end -}}
 
 {{/*
+extraAccountEnvName: Converts an extra account name into a stable env-var token.
+*/}}
+{{- define "nats-event-bus.extraAccountEnvName" -}}
+{{- regexReplaceAll "[^A-Z0-9]" (upper .) "_" -}}
+{{- end -}}
+
+{{/*
 natsConfFields: Renders a NATS configuration block body from a flat map.
 Strings are quoted; booleans and numbers are unquoted.
 */}}

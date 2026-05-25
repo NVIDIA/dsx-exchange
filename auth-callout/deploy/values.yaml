@@ -32,6 +32,13 @@ extraEnvs: {}
   #       name: secret-name
   #       key: secret-key
 
+# Additional envFrom entries, for loading groups of environment variables from
+# Secrets or ConfigMaps.
+extraEnvFrom: []
+  # - secretRef:
+  #     name: secret-name
+  #     optional: true
+
 # Additional volumes to be added to the pod
 extraVolumes:
   []

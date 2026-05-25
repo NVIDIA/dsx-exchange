@@ -66,6 +66,10 @@ spec:
               containerPort: {{ include "metrics.prometheusPort" . }}
               protocol: TCP
             {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             # Service and Application Configuration
             - name: AUTH_CALLOUT_SERVICE_NAME

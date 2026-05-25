@@ -69,13 +69,44 @@ eventBus:
   mtls:
     enabled: true
 
-  # Extra NATS accounts
-  # Each account gets automatic leaf setup on CPCs with JetStream domain mapping
+  # Extra NATS accounts.
+  #
+  # On CSC clusters, extra accounts are local accounts and may enable
+  # JetStream. On CPC clusters, extra accounts keep local JetStream disabled and
+  # route JetStream API calls to the matching account in CSC.
+  #
+  # Set leaf.enabled=true when an extra account needs its own CPC-to-CSC leaf
+  # connection. The chart then renders:
+  #   - a CPC leaf remote for that account
+  #   - a CSC auth-callout NKey permission entry for that account
+  #
+  # The chart does not create the NKey material or Kubernetes Secrets. Those
+  # must already exist in the namespace.
+  #
+  # For an account named LaunchLayer and CPC ID 1, create:
+  #
+  #   CPC/datahall cluster:
+  #     Secret name: nats-extra-account-leaf-seeds
+  #     Secret key:  LEAF_LAUNCHLAYER_USER_SEED
+  #     Value:       private NATS NKey seed for the LaunchLayer leaf
+  #
+  #   CSC cluster:
+  #     Secret name: nats-extra-account-leaf-pubkeys
+  #     Secret key:  NKEY_LEAF_LAUNCHLAYER_CPC_1_PUBKEY
+  #     Value:       matching public NATS NKey for the LaunchLayer leaf
+  #
+  # These secret names are fixed by this chart.
   extraAccounts: {}
     # Example:
     # LaunchLayer:
     #   enabled: true
-    #   jetstream: true  # CSC only, CPCs always have JetStream off and use the CSC's jetstream domain
+    #   jetstream: true  # CSC only; CPCs always use CSC's JetStream domain
+    #   leaf:
+    #     enabled: true
+    #     # Defaults shown here match the standard secret keys above and do not need to be overridden.
+    #     # Only override if you need to use a different secret key.
+    #     seedEnv: LEAF_LAUNCHLAYER_USER_SEED
+    #     pubkeyEnvPrefix: NKEY_LEAF_LAUNCHLAYER_CPC
     # Kiwi:
     #   enabled: true
 
@@ -115,6 +146,8 @@ eventBus:
   # Cross-Cluster Leaf Connections:
   #   nats-leaf-csc          seed                CPC to CSC leaf (CPC clusters only)
   #   nats-leaf-cpc-{id}     pubkey              CPC leaf users (CSC only, via auth-callout.extraEnvs)
+  #   nats-extra-account-leaf-seeds              Extra-account CPC leaf seeds
+  #   nats-extra-account-leaf-pubkeys            Extra-account CSC leaf pubkeys
   #
   # YAML anchors for secretKeyRef values used by pod specs:
   nkeyRefs:
@@ -377,6 +410,11 @@ nats:
           configMapKeyRef:
             name: nats-env-config
             key: NATS_JS_DOMAIN
+    merge:
+      envFrom:
+        - secretRef:
+            name: nats-extra-account-leaf-seeds
+            optional: true
     patch:
     - op: add
       path: /volumeMounts/-
@@ -585,10 +623,7 @@ auth-callout:
   # Common auth-callout env vars.
   # CSC clusters with eventBus.cpcIds must also provide one
   # NKEY_LEAF_CPC_{N}_PUBKEY entry per CPC in auth-callout.extraEnvs.
-  # Example: cpcIds: ["1", "2"] requires NKEY_LEAF_CPC_1_PUBKEY
-  # and NKEY_LEAF_CPC_2_PUBKEY.
-  # The chart validates this so leaf federation fails at render time instead
-  # of failing later with NATS Authorization Violation.
+  # Extra-account leaf pubkeys are loaded from nats-extra-account-leaf-pubkeys.
   extraEnvs:
     AUTH_CALLOUT_NATS_NKEY_SEED: *authCalloutNkeySeed
     AUTH_CALLOUT_NATS_ISSUER_SEED: *authCalloutIssuerSeed
@@ -598,6 +633,10 @@ auth-callout:
     NKEY_MTLS_AUTHX_LEAF_PUBKEY: *mtlsAuthxLeafPubkey
     NKEY_MTLS_SYS_LEAF_PUBKEY: *mtlsSysLeafPubkey
     NKEY_SURVEYOR_PUBKEY: *surveyorNkeyPubkey
+  extraEnvFrom:
+    - secretRef:
+        name: nats-extra-account-leaf-pubkeys
+        optional: true
 
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
 # See https://github.com/nats-io/nats-surveyor for metrics reference
