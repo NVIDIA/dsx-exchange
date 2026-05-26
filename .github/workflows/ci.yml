@@ -164,6 +164,7 @@ jobs:
         with:
           post-pr-comment: "true"
           fail-on-findings: "true"
+          extra-args: "--exclude-paths=.trufflehog-exclude-paths"
 
   security-container-scan:
     name: Container Scan (auth-callout)
