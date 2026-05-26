@@ -151,8 +151,11 @@ CSC-side secrets to authorize incoming CPC leaf connections.
 
 | Secret | Keys | Purpose |
 |--------|------|---------|
-| `nats-leaf-csc` | seed, pubkey | CPC to CSC leaf (CPC only) |
-| `nats-leaf-cpc-{id}` | seed, pubkey | CPC leaf key pair (CSC only, pubkey via auth-callout.extraEnvs) |
+| `nats-leaf-csc` | seed | CPC to CSC leaf (CPC only) |
+| `nats-leaf-cpc-{id}` | pubkey | CPC leaf user (CSC only, via auth-callout.extraEnvs) |
+| `nats-leaf-{account}-csc` | seed | Extra-account CPC to CSC leaf (CPC only) |
+| `nats-leaf-{account}-cpc-{id}` | pubkey | Extra-account CPC leaf user (CSC only, via auth-callout.extraEnvs) |
+| `nats-{account}-client` | seed, pubkey | Generated extra-account NKey client credential; only active when added to permissions |
 
 ### Generating Secrets
 
@@ -167,17 +170,26 @@ An example script is provided to generate all required secrets to local files:
 
 # Options:
 #   -o, --output DIR         Output root directory (default: deploy/secrets)
+#       --extra-account NAME Generate client and CPC-to-CSC leaf keys for an extra account
 #   -h, --help               Show help message
 
 # Examples:
 ./scripts/generate-nkeys.sh                    # Generate CSC only
 ./scripts/generate-nkeys.sh 1 2 3              # Generate CSC, CPC-1, CPC-2, CPC-3
+./scripts/generate-nkeys.sh --extra-account LaunchLayer 1 2
 ./scripts/generate-nkeys.sh -o ./my-secrets 4  # Generate CSC and CPC-4 under ./my-secrets
 ```
 
-The script is additive. Existing cluster outputs are left unchanged. For each
-requested CPC, the same CPC-to-CSC leaf key pair is stored in CSC as
-`nats-leaf-cpc-{id}` and in that CPC as `nats-leaf-csc`.
+The script requires `nsc` and `nk` on `PATH`.
+
+The script is additive. Existing cluster outputs are left unchanged except for
+unused leaf credential keys from older layouts. For each requested CPC, the
+CPC-to-CSC leaf seed is stored in that CPC as `nats-leaf-csc`; CSC stores only
+the matching public key as `nats-leaf-cpc-{id}`. For each extra account, the
+same split is used with `nats-leaf-{account}-csc` on the CPC and
+`nats-leaf-{account}-cpc-{id}` on CSC. Each cluster also gets a
+`nats-{account}-client` NKey pair for explicit client permissions and local
+functional tests; leaf credentials should not be reused as client credentials.
 
 Generated secret files are written with mode `0600`, and generated secret
 directories are written with mode `0700`. Treat the full output directory as
@@ -197,7 +209,9 @@ deploy/secrets/
 │       ├── nats-mtls-sys-leaf/{seed,pubkey}
 │       ├── nats-surveyor/{seed,pubkey}
 │       ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
-│       └── nats-leaf-cpc-{id}/{seed,pubkey}
+│       ├── nats-{account}-client/{seed,pubkey}
+│       ├── nats-leaf-cpc-{id}/pubkey
+│       └── nats-leaf-{account}-cpc-{id}/pubkey
 └── cpc-{id}/
     └── nkeys/
         ├── nats-auth-signing/{seed,pubkey}
@@ -209,7 +223,9 @@ deploy/secrets/
         ├── nats-mtls-sys-leaf/{seed,pubkey}
         ├── nats-surveyor/{seed,pubkey}
         ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
-        └── nats-leaf-csc/{seed,pubkey}
+        ├── nats-{account}-client/{seed,pubkey}
+        ├── nats-leaf-csc/seed
+        └── nats-leaf-{account}-csc/seed
 ```
 
 ## Chart Dependencies
@@ -351,7 +367,22 @@ eventBus:
     Kiwi: {}  # Minimal account with defaults
 ```
 
-All properties are passed through to the NATS account configuration. On CPCs, `jetstream` is always forced to `false` and a JetStream domain mapping to CSC is automatically added.
+Extra account names must use letters and numbers only, start with a letter, and
+must not use built-in account names (`SYS`, `AUTH`, `AUTHX`, `CSC`, `CPC`) or
+start with `cpc` in any case.
+All properties are passed through to the NATS account configuration except
+`enabled`. On CPCs, `jetstream` is always forced to `false` and a JetStream
+domain mapping to CSC is automatically added. Every enabled extra account gets a
+CPC-to-CSC leaf connection by default. Provide the CPC seed env
+`LEAF_{ACCOUNT}_USER_SEED` from `nats-leaf-{account}-csc` and the CSC pubkey env
+`NKEY_LEAF_{ACCOUNT}_CPC_{id}_PUBKEY` from `nats-leaf-{account}-cpc-{id}`.
+The chart fails rendering if those explicit secret refs are missing, point at a
+different secret/key, or are marked optional.
+
+The chart generates `eventBus.auth.permissions.nkey` entries named
+`leaf-cpc-{id}` and `leaf-{account}-cpc-{id}` for leaf authorization. Do not
+define manual NKey permission entries with those names; use distinct names for
+operator-managed clients.
 
 ### mTLS MQTT Endpoint
 

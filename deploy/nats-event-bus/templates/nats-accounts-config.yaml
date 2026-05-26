@@ -22,11 +22,19 @@ data:
       jetstream: true
     }
   {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+    {{- $enabled := true -}}
+    {{- if hasKey $config "enabled" -}}
+    {{- $enabled = $config.enabled -}}
+    {{- end -}}
+    {{- if $enabled }}
     {{ $name }} {
       {{- range $key, $value := $config }}
+      {{- if and (ne $key "enabled") (ne $key "leaf") }}
       {{ $key }}: {{ $value }}
       {{- end }}
+      {{- end }}
     }
+    {{- end }}
   {{- end }}
 {{ else if eq .Values.eventBus.clusterType "cpc" }}
 {{- $clusterId := .Values.eventBus.clusterId -}}
@@ -79,16 +87,22 @@ data:
       ]
     }
   {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+    {{- $enabled := true -}}
+    {{- if hasKey $config "enabled" -}}
+    {{- $enabled = $config.enabled -}}
+    {{- end -}}
+    {{- if $enabled }}
     {{ $name }} {
       jetstream: false
       mappings: {
         "$JS.API.>": "$JS.CSC.API.>"
       }
       {{- range $key, $value := $config }}
-      {{- if ne $key "jetstream" }}
+      {{- if and (ne $key "jetstream") (ne $key "enabled") (ne $key "leaf") }}
       {{ $key }}: {{ $value }}
       {{- end }}
       {{- end }}
     }
+    {{- end }}
   {{- end }}
 {{- end }}

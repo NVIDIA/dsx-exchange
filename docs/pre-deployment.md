@@ -16,7 +16,7 @@ The following must be installed in each Kubernetes cluster before deploying the 
 | Prometheus Operator | ServiceMonitor CRD (required by Surveyor) |
 | Secrets pipeline | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
 | [`nsc`](https://github.com/nats-io/nsc/releases) | NATS NKey generation (required by `generate-nkeys.sh`) |
-| `jq` | JSON processing (required by `generate-nkeys.sh`) |
+| `nk` | NATS NKey inspection (required by `generate-nkeys.sh`) |
 
 Keycloak or another OIDC provider is required if using OAuth2 authentication.
 
@@ -82,7 +82,7 @@ When `eventBus.mtls.enabled: false`, none of the mTLS secrets are required and t
 
 ## NKey Generation
 
-NKeys are Ed25519 public-key pairs used for NATS authentication. The generation script requires [`nsc`](https://github.com/nats-io/nsc/releases) and `jq` on `PATH`.
+NKeys are Ed25519 public-key pairs used for NATS authentication. The generation script requires [`nsc`](https://github.com/nats-io/nsc/releases) and `nk` on `PATH`.
 
 ```bash
 nsc generate nkey --user     # user nkey (SU seed, U pubkey)
@@ -143,7 +143,6 @@ secrets/{cluster}/
     auth-callout-keys/nkey-seed
     auth-callout-keys/issuer-seed
     auth-callout-keys/xkey-seed
-    nats-leaf-cpc-{id}/seed      # CSC only, one per CPC
     nats-leaf-cpc-{id}/pubkey    # CSC only, one per CPC
     xkey.nk
 ```

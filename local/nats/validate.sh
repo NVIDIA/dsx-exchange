@@ -11,9 +11,25 @@ context="kind-${kind_cluster}"
 namespace="event-bus"
 validation_failed=false
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 fail() {
   echo "ERROR: $*"
   validation_failed=true
+}
+
+get_extra_accounts() {
+  local values_file
+
+  for values_file in \
+    "${SCRIPT_DIR}/k8s/local-dev-values.yaml" \
+    "${SCRIPT_DIR}/k8s/csc/values.yaml" \
+    "${SCRIPT_DIR}/k8s/cpc/values.yaml"
+  do
+    if [ -f "${values_file}" ]; then
+      yq -r '.eventBus.extraAccounts // {} | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
+    fi
+  done | sort -u
 }
 
 echo "Validating NATS deployment on ${cluster}..."
@@ -79,6 +95,13 @@ echo "Leaf node connections: ${leaf_count}"
 
 if [ "${leaf_count}" != "null" ] && [ "${leaf_count}" -gt 0 ]; then
   echo "${leafz}" | jq -r '.leafs[] | "  - \(.name) from \(.ip) (rtt: \(.rtt))"' 2>/dev/null
+  for account_name in $(get_extra_accounts); do
+    if echo "${leafz}" | jq -e --arg account "${account_name}" '.leafs[]? | select(.account == $account)' >/dev/null; then
+      echo "  - account ${account_name}: connected"
+    else
+      fail "Leaf node federation for extra account ${account_name} is not connected"
+    fi
+  done
   echo "Federation: ACTIVE"
 else
   echo "Federation: NOT CONNECTED"
