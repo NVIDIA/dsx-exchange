@@ -30,5 +30,23 @@ data:
         {{- if not (empty $remoteTls) }}
 {{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $remoteTls) | nindent 8 }}{{- end }}
       }
+{{- range $name, $config := $.Values.eventBus.extraAccounts }}
+{{- $enabled := true -}}
+{{- if hasKey $config "enabled" -}}
+{{- $enabled = $config.enabled -}}
+{{- end -}}
+{{- if $enabled }}
+{{- $accountEnvName := include "nats-event-bus.extraAccountEnvName" $name -}}
+{{- $seedEnv := printf "LEAF_%s_USER_SEED" $accountEnvName -}}
+{{ printf "\n" }}
+      {
+        urls: [{{ $.Values.eventBus.cscEndpoint | quote }}]
+        nkey: ${{ $seedEnv }}
+        account: {{ $name | quote }}
+        {{- if not (empty $remoteTls) }}
+{{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $remoteTls) | nindent 8 }}{{- end }}
+      }
+{{- end }}
+{{- end }}
     ]
 {{- end }}

@@ -59,12 +59,51 @@ get_cpc_ids() {
   yq -r '.eventBus.cpcIds[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true
 }
 
+get_extra_accounts() {
+  local values_file
+
+  for values_file in \
+    "${SCRIPT_DIR}/k8s/local-dev-values.yaml" \
+    "${SCRIPT_DIR}/k8s/csc/values.yaml" \
+    "${SCRIPT_DIR}/k8s/cpc/values.yaml"
+  do
+    if [ -f "${values_file}" ]; then
+      yq -r '.eventBus.extraAccounts // {} | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
+    fi
+  done | sort -u
+}
+
+extra_account_secret_token() {
+  local account_name="$1"
+  local token
+
+  token=$(printf '%s' "${account_name}" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//')
+
+  if [ -z "${token}" ]; then
+    echo "ERROR: extra account name ${account_name} normalizes to an empty secret token" >&2
+    exit 1
+  fi
+
+  printf '%s' "${token}"
+}
+
 CPC_IDS_ARGS=()
 while IFS= read -r cpc_id; do
   if [ -n "${cpc_id}" ]; then
     CPC_IDS_ARGS+=("${cpc_id}")
   fi
 done < <(get_cpc_ids)
+
+EXTRA_ACCOUNTS=()
+EXTRA_ACCOUNT_ARGS=()
+while IFS= read -r account_name; do
+  if [ -n "${account_name}" ]; then
+    EXTRA_ACCOUNTS+=("${account_name}")
+    EXTRA_ACCOUNT_ARGS+=("--extra-account" "${account_name}")
+  fi
+done < <(get_extra_accounts)
 
 nkeys_complete() {
   local required_files=(
@@ -90,15 +129,31 @@ nkeys_complete() {
     "nats-xkey/seed"
   )
 
+  local account_name
+  for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+    local account_token
+    account_token=$(extra_account_secret_token "${account_name}")
+    required_files+=("nats-${account_token}-client/pubkey")
+    required_files+=("nats-${account_token}-client/seed")
+  done
+
   if [ "${cluster}" = "csc" ]; then
     local cpc_id
     for cpc_id in "${CPC_IDS_ARGS[@]}"; do
       required_files+=("nats-leaf-cpc-${cpc_id}/pubkey")
-      required_files+=("nats-leaf-cpc-${cpc_id}/seed")
+
+      for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+        account_token=$(extra_account_secret_token "${account_name}")
+        required_files+=("nats-leaf-${account_token}-cpc-${cpc_id}/pubkey")
+      done
     done
   else
-    required_files+=("nats-leaf-csc/pubkey")
     required_files+=("nats-leaf-csc/seed")
+
+    for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+      account_token=$(extra_account_secret_token "${account_name}")
+      required_files+=("nats-leaf-${account_token}-csc/seed")
+    done
   fi
 
   local rel
@@ -111,11 +166,6 @@ nkeys_complete() {
   return 0
 }
 
-if [ -d "${SECRETS_NKEYS_DIR}" ] && ! nkeys_complete; then
-  echo "ERROR: existing auth keys for ${cluster} are incomplete: ${SECRETS_NKEYS_DIR}" >&2
-  exit 1
-fi
-
 if [ ! -d "${SECRETS_NKEYS_DIR}" ]; then
   echo "Generating local auth key outputs..."
   mkdir -p "${SECRETS_ROOT}"
@@ -123,9 +173,21 @@ if [ ! -d "${SECRETS_NKEYS_DIR}" ]; then
   # Generate secrets using helper script
   "${MONOREPO_ROOT}/deploy/scripts/generate-nkeys.sh" \
     -o "${SECRETS_ROOT}" \
+    "${EXTRA_ACCOUNT_ARGS[@]}" \
     "${CPC_IDS_ARGS[@]}"
 
   echo "Auth keys generated for ${cluster}"
+elif ! nkeys_complete; then
+  echo "Generating missing local auth key outputs..."
+  "${MONOREPO_ROOT}/deploy/scripts/generate-nkeys.sh" \
+    -o "${SECRETS_ROOT}" \
+    "${EXTRA_ACCOUNT_ARGS[@]}" \
+    "${CPC_IDS_ARGS[@]}"
+
+  if ! nkeys_complete; then
+    echo "ERROR: existing auth keys for ${cluster} are incomplete: ${SECRETS_NKEYS_DIR}" >&2
+    exit 1
+  fi
 fi
 
 # Generate mTLS certificates if they don't exist
@@ -252,18 +314,44 @@ kubectl create secret generic "${SECRET_SURVEYOR}" \
   --from-literal=seed="${SURVEYOR_USER_SEED}" \
   --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
 
+for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+  account_token=$(extra_account_secret_token "${account_name}")
+  client_secret="nats-${account_token}-client"
+  client_pubkey=$(cat "${SECRETS_NKEYS_DIR}/${client_secret}/pubkey")
+  client_seed=$(cat "${SECRETS_NKEYS_DIR}/${client_secret}/seed")
+
+  kubectl create secret generic "${client_secret}" \
+    --namespace="${namespace}" \
+    --context="${context}" \
+    --from-literal=pubkey="${client_pubkey}" \
+    --from-literal=seed="${client_seed}" \
+    --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
+done
+
 # For CPCs: create leaf credential secret from CSC's keys
 if [ "${cluster}" != "csc" ]; then
   echo "Creating leaf node credential secret for ${cluster}..."
-  LEAF_USER_PUBKEY=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-csc/pubkey")
   LEAF_USER_SEED=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-csc/seed")
 
   kubectl create secret generic "${SECRET_LEAF_CSC}" \
     --namespace="${namespace}" \
     --context="${context}" \
-    --from-literal=pubkey="${LEAF_USER_PUBKEY}" \
     --from-literal=seed="${LEAF_USER_SEED}" \
     --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
+
+  for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+    account_token=$(extra_account_secret_token "${account_name}")
+    extra_leaf_secret="nats-leaf-${account_token}-csc"
+
+    echo "Creating ${account_name} leaf node credential secret for ${cluster}..."
+    EXTRA_LEAF_USER_SEED=$(cat "${SECRETS_NKEYS_DIR}/${extra_leaf_secret}/seed")
+
+    kubectl create secret generic "${extra_leaf_secret}" \
+      --namespace="${namespace}" \
+      --context="${context}" \
+      --from-literal=seed="${EXTRA_LEAF_USER_SEED}" \
+      --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
+  done
 fi
 
 # For CSC: create leaf user secrets for each CPC (read CPC IDs from values)
@@ -277,15 +365,28 @@ if [ "${cluster}" = "csc" ]; then
 
     if [ -f "${SECRETS_NKEYS_DIR}/nats-leaf-cpc-${cpc_id}/pubkey" ]; then
       CPC_LEAF_PUBKEY=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-cpc-${cpc_id}/pubkey")
-      CPC_LEAF_SEED=$(cat "${SECRETS_NKEYS_DIR}/nats-leaf-cpc-${cpc_id}/seed")
 
       kubectl create secret generic "${SECRET_LEAF_CPC}" \
         --namespace="${namespace}" \
         --context="${context}" \
         --from-literal=pubkey="${CPC_LEAF_PUBKEY}" \
-        --from-literal=seed="${CPC_LEAF_SEED}" \
         --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
     fi
+
+    for account_name in "${EXTRA_ACCOUNTS[@]}"; do
+      account_token=$(extra_account_secret_token "${account_name}")
+      SECRET_EXTRA_LEAF_CPC="nats-leaf-${account_token}-cpc-${cpc_id}"
+
+      if [ -f "${SECRETS_NKEYS_DIR}/${SECRET_EXTRA_LEAF_CPC}/pubkey" ]; then
+        EXTRA_CPC_LEAF_PUBKEY=$(cat "${SECRETS_NKEYS_DIR}/${SECRET_EXTRA_LEAF_CPC}/pubkey")
+
+        kubectl create secret generic "${SECRET_EXTRA_LEAF_CPC}" \
+          --namespace="${namespace}" \
+          --context="${context}" \
+          --from-literal=pubkey="${EXTRA_CPC_LEAF_PUBKEY}" \
+          --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
+      fi
+    done
   done
 fi
 

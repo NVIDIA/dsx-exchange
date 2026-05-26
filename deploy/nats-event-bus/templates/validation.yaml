@@ -7,12 +7,100 @@ This template emits no resources; it fails rendering on unsafe combinations.
 */}}
 {{- $authCallout := index .Values "auth-callout" | default dict -}}
 {{- $extraEnvs := get $authCallout "extraEnvs" | default dict -}}
+{{- $nats := .Values.nats | default dict -}}
+{{- $natsContainer := get $nats "container" | default dict -}}
+{{- $natsEnvs := get $natsContainer "env" | default dict -}}
+{{- $extraAccountEnvNames := dict -}}
+{{- $extraAccountSecretNames := dict -}}
+{{- $reservedAccountNames := dict "SYS" true "AUTH" true "AUTHX" true "CSC" true "CPC" true -}}
+{{- $cpcIds := dict -}}
+{{- range .Values.eventBus.cpcIds }}
+{{- $cpcId := toString . -}}
+{{- if not (regexMatch "^[a-z0-9]+$" $cpcId) -}}
+{{- fail (printf "eventBus.cpcIds includes %q, but CPC IDs must use lower-case letters and numbers only so generated secret names and env vars are valid." $cpcId) -}}
+{{- end -}}
+{{- if hasKey $cpcIds $cpcId -}}
+{{- fail (printf "eventBus.cpcIds includes duplicate ID %q." $cpcId) -}}
+{{- end -}}
+{{- $_ := set $cpcIds $cpcId true -}}
+{{- end -}}
+{{- range $accountName, $config := .Values.eventBus.extraAccounts }}
+{{- $enabled := true -}}
+{{- if hasKey $config "enabled" -}}
+{{- $enabled = $config.enabled -}}
+{{- end -}}
+{{- if $enabled -}}
+{{- if not (regexMatch "^[A-Za-z][A-Za-z0-9]*$" $accountName) -}}
+{{- fail (printf "eventBus.extraAccounts.%s is not a valid NATS account name. Use letters and numbers only, starting with a letter." $accountName) -}}
+{{- end -}}
+{{- if hasKey $reservedAccountNames (upper $accountName) -}}
+{{- fail (printf "eventBus.extraAccounts.%s conflicts with a built-in NATS account name." $accountName) -}}
+{{- end -}}
+{{- if regexMatch "^CPC" (upper $accountName) -}}
+{{- fail (printf "eventBus.extraAccounts.%s is not allowed because extra account names must not start with cpc." $accountName) -}}
+{{- end -}}
+{{- $envToken := include "nats-event-bus.extraAccountEnvName" $accountName -}}
+{{- $secretToken := include "nats-event-bus.extraAccountSecretName" $accountName -}}
+{{- if eq $envToken "" -}}
+{{- fail (printf "eventBus.extraAccounts includes %q, but its env token is empty after normalization." $accountName) -}}
+{{- end -}}
+{{- if eq $secretToken "" -}}
+{{- fail (printf "eventBus.extraAccounts includes %q, but its secret-name token is empty after normalization." $accountName) -}}
+{{- end -}}
+{{- if hasKey $extraAccountEnvNames $envToken -}}
+{{- fail (printf "eventBus.extraAccounts.%s normalizes to env token %s, which is already used by eventBus.extraAccounts.%s." $accountName $envToken (get $extraAccountEnvNames $envToken)) -}}
+{{- end -}}
+{{- if hasKey $extraAccountSecretNames $secretToken -}}
+{{- fail (printf "eventBus.extraAccounts.%s normalizes to secret token %s, which is already used by eventBus.extraAccounts.%s." $accountName $secretToken (get $extraAccountSecretNames $secretToken)) -}}
+{{- end -}}
+{{- $_ := set $extraAccountEnvNames $envToken $accountName -}}
+{{- $_ := set $extraAccountSecretNames $secretToken $accountName -}}
+{{- end -}}
+{{- end -}}
 {{- if and (eq .Values.eventBus.clusterType "csc") (gt (len .Values.eventBus.cpcIds) 0) -}}
 {{- range .Values.eventBus.cpcIds }}
 {{- $cpcId := toString . -}}
 {{- $envName := printf "NKEY_LEAF_CPC_%s_PUBKEY" $cpcId -}}
 {{- if not (hasKey $extraEnvs $envName) -}}
 {{- fail (printf "eventBus.cpcIds includes %q, but auth-callout.extraEnvs.%s is missing. Add a secretKeyRef to nats-leaf-cpc-%s key pubkey so CSC can authorize the CPC leaf connection." $cpcId $envName $cpcId) -}}
+{{- end -}}
+{{- include "nats-event-bus.validateSecretKeyRef" (dict "value" (get $extraEnvs $envName) "path" (printf "auth-callout.extraEnvs.%s" $envName) "secretName" (printf "nats-leaf-cpc-%s" $cpcId) "key" "pubkey") -}}
+{{- end -}}
+{{- end -}}
+{{- if eq .Values.eventBus.clusterType "cpc" -}}
+{{- range $accountName, $config := .Values.eventBus.extraAccounts }}
+{{- $enabled := true -}}
+{{- if hasKey $config "enabled" -}}
+{{- $enabled = $config.enabled -}}
+{{- end -}}
+{{- if $enabled -}}
+{{- $accountEnvName := include "nats-event-bus.extraAccountEnvName" $accountName -}}
+{{- $accountSecretName := include "nats-event-bus.extraAccountSecretName" $accountName -}}
+{{- $seedEnvName := printf "LEAF_%s_USER_SEED" $accountEnvName -}}
+{{- if not (hasKey $natsEnvs $seedEnvName) -}}
+{{- fail (printf "eventBus.extraAccounts.%s is enabled on a CPC cluster, but nats.container.env.%s is missing. Add a secretKeyRef to nats-leaf-%s-csc key seed so the CPC can connect this account leaf to CSC." $accountName $seedEnvName $accountSecretName) -}}
+{{- end -}}
+{{- include "nats-event-bus.validateSecretKeyRef" (dict "value" (get $natsEnvs $seedEnvName) "path" (printf "nats.container.env.%s" $seedEnvName) "secretName" (printf "nats-leaf-%s-csc" $accountSecretName) "key" "seed") -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- if and (eq .Values.eventBus.clusterType "csc") (gt (len .Values.eventBus.cpcIds) 0) -}}
+{{- range $accountName, $config := .Values.eventBus.extraAccounts }}
+{{- $enabled := true -}}
+{{- if hasKey $config "enabled" -}}
+{{- $enabled = $config.enabled -}}
+{{- end -}}
+{{- if $enabled -}}
+{{- $accountEnvName := include "nats-event-bus.extraAccountEnvName" $accountName -}}
+{{- $accountSecretName := include "nats-event-bus.extraAccountSecretName" $accountName -}}
+{{- range $.Values.eventBus.cpcIds }}
+{{- $cpcId := toString . -}}
+{{- $envName := printf "NKEY_LEAF_%s_CPC_%s_PUBKEY" $accountEnvName $cpcId -}}
+{{- if not (hasKey $extraEnvs $envName) -}}
+{{- fail (printf "eventBus.extraAccounts.%s is enabled on CSC, but auth-callout.extraEnvs.%s is missing. Add a secretKeyRef to nats-leaf-%s-cpc-%s key pubkey so CSC can authorize this extra-account CPC leaf." $accountName $envName $accountSecretName $cpcId) -}}
+{{- end -}}
+{{- include "nats-event-bus.validateSecretKeyRef" (dict "value" (get $extraEnvs $envName) "path" (printf "auth-callout.extraEnvs.%s" $envName) "secretName" (printf "nats-leaf-%s-cpc-%s" $accountSecretName $cpcId) "key" "pubkey") -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

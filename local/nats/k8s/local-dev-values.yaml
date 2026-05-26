@@ -7,6 +7,18 @@
 # This file contains dev environment settings only.
 
 # Auth-callout service configuration
+eventBus:
+  extraAccounts:
+    LaunchLayer:
+      enabled: true
+      jetstream: true
+  auth:
+    permissions:
+      nkey:
+        launchlayer-client:
+          public_key: "${NKEY_LAUNCHLAYER_CLIENT_PUBKEY}"
+          account: "LaunchLayer"
+
 auth-callout:
   fullnameOverride: "auth-callout"
   image:
@@ -41,5 +53,12 @@ auth-callout:
       mountPath: /etc/mtls-ca
       readOnly: true
 
-  # extraEnvs defined in cluster-specific values (csc/values.yaml, cpc/values.yaml)
-  # to avoid Helm list replacement issues
+  extraEnvs:
+    NKEY_LAUNCHLAYER_CLIENT_PUBKEY:
+      valueFrom:
+        secretKeyRef:
+          name: nats-launchlayer-client
+          key: pubkey
+
+  # Leaf extraEnvs are defined in cluster-specific values (csc/values.yaml,
+  # cpc/values.yaml) to avoid Helm list replacement issues.

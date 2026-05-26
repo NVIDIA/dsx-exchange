@@ -15,6 +15,52 @@ CPC
 {{- end -}}
 
 {{/*
+extraAccountEnvName: Converts an extra account name into a stable env-var token.
+*/}}
+{{- define "nats-event-bus.extraAccountEnvName" -}}
+{{- regexReplaceAll "[^A-Z0-9]" (upper .) "_" -}}
+{{- end -}}
+
+{{/*
+extraAccountSecretName: Converts an extra account name into a stable Kubernetes
+secret-name token.
+*/}}
+{{- define "nats-event-bus.extraAccountSecretName" -}}
+{{- trimAll "-" (regexReplaceAll "[^a-z0-9-]" (lower .) "-") -}}
+{{- end -}}
+
+{{/*
+validateSecretKeyRef: Fails rendering unless a value is a required
+valueFrom.secretKeyRef pointing at the expected secret key.
+*/}}
+{{- define "nats-event-bus.validateSecretKeyRef" -}}
+{{- $value := .value -}}
+{{- $path := .path -}}
+{{- $secretName := .secretName -}}
+{{- $key := .key -}}
+{{- if not (kindIs "map" $value) -}}
+{{- fail (printf "%s must be a valueFrom.secretKeyRef for secret %s key %s." $path $secretName $key) -}}
+{{- end -}}
+{{- $valueFrom := get $value "valueFrom" | default dict -}}
+{{- if not (kindIs "map" $valueFrom) -}}
+{{- fail (printf "%s.valueFrom must be set to secretKeyRef for secret %s key %s." $path $secretName $key) -}}
+{{- end -}}
+{{- $secretKeyRef := get $valueFrom "secretKeyRef" | default dict -}}
+{{- if not (kindIs "map" $secretKeyRef) -}}
+{{- fail (printf "%s.valueFrom.secretKeyRef must reference secret %s key %s." $path $secretName $key) -}}
+{{- end -}}
+{{- if ne (get $secretKeyRef "name") $secretName -}}
+{{- fail (printf "%s.valueFrom.secretKeyRef.name must be %s." $path $secretName) -}}
+{{- end -}}
+{{- if ne (get $secretKeyRef "key") $key -}}
+{{- fail (printf "%s.valueFrom.secretKeyRef.key must be %s." $path $key) -}}
+{{- end -}}
+{{- if eq (toString (get $secretKeyRef "optional")) "true" -}}
+{{- fail (printf "%s.valueFrom.secretKeyRef.optional must not be true; missing leaf secrets must fail fast." $path) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 natsConfFields: Renders a NATS configuration block body from a flat map.
 Strings are quoted; booleans and numbers are unquoted.
 */}}
