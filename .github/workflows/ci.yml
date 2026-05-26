@@ -121,6 +121,17 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
+      - name: SMOKE-TEST — verify buildkitd mirror config is present on runner
+        run: |
+          set -euo pipefail
+          echo "::group::/etc/buildkit/buildkitd.toml"
+          if [[ -f /etc/buildkit/buildkitd.toml ]]; then
+            cat /etc/buildkit/buildkitd.toml
+          else
+            echo "MISSING: /etc/buildkit/buildkitd.toml not found on runner"
+            exit 1
+          fi
+          echo "::endgroup::"
       - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@480b123eed6fa49a1fe23ea0f963ca9f0d8b7752 # SMOKE-TEST: fix/buildkit-registry-mirror (revert to v1.16.0 tag before merge)
         with:
           image: dsx-exchange-auth-callout
@@ -172,6 +183,17 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
+      - name: SMOKE-TEST — verify buildkitd mirror config is present on runner
+        run: |
+          set -euo pipefail
+          echo "::group::/etc/buildkit/buildkitd.toml"
+          if [[ -f /etc/buildkit/buildkitd.toml ]]; then
+            cat /etc/buildkit/buildkitd.toml
+          else
+            echo "MISSING: /etc/buildkit/buildkitd.toml not found on runner"
+            exit 1
+          fi
+          echo "::endgroup::"
       - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@480b123eed6fa49a1fe23ea0f963ca9f0d8b7752 # SMOKE-TEST: fix/buildkit-registry-mirror (revert to v1.16.0 tag before merge)
         with:
           image: dsx-exchange-auth-callout
