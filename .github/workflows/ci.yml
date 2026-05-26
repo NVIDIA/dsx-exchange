@@ -121,7 +121,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@480b123eed6fa49a1fe23ea0f963ca9f0d8b7752 # SMOKE-TEST: fix/buildkit-registry-mirror (revert to v1.16.0 tag before merge)
         with:
           image: dsx-exchange-auth-callout
           tags: ci-validation
@@ -172,7 +172,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@480b123eed6fa49a1fe23ea0f963ca9f0d8b7752 # SMOKE-TEST: fix/buildkit-registry-mirror (revert to v1.16.0 tag before merge)
         with:
           image: dsx-exchange-auth-callout
           tags: scan-validation
