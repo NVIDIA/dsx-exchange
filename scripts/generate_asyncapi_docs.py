@@ -275,18 +275,16 @@ class _YamlParser:
         block_indent: int | None = None
         while self.pos < len(self.lines):
             raw = self.lines[self.pos]
-            if raw.strip() == "" or raw.strip().startswith("#"):
+            # Inside block scalars, '#' starts literal text (e.g. Markdown headings),
+            # not a YAML comment. Preserve such lines as content.
+            if raw.strip() == "":
                 if block_indent is not None:
                     lines.append("")
                     self.pos += 1
                     continue
-                elif raw.strip() == "":
-                    lines.append("")
-                    self.pos += 1
-                    continue
-                else:
-                    self.pos += 1
-                    continue
+                lines.append("")
+                self.pos += 1
+                continue
             ind = self._indent(raw)
             if ind <= base_indent:
                 break
@@ -455,33 +453,45 @@ def resolve_schema(spec: dict, schema: dict | None, depth: int = 0) -> dict:
 # Schema rendering
 # ---------------------------------------------------------------------------
 
-def _type_str(schema: dict, spec: dict) -> str:
+def _schema_anchor(name: str) -> str:
+    """Build a predictable markdown anchor slug from a schema name."""
+    slug = re.sub(r"[^a-z0-9\\s-]", "", name.lower())
+    slug = re.sub(r"\\s+", "-", slug).strip("-")
+    return slug or name.lower()
+
+
+def _type_str(schema: dict, spec: dict, schema_doc: str | None = None) -> str:
     """Human-readable type string."""
     if "$ref" in schema:
         ref = schema["$ref"]
         name = ref.split("/")[-1]
-        return f"[{name}](#{name.lower()})"
+        if ref.startswith("#/components/schemas/"):
+            anchor = _schema_anchor(name)
+            if schema_doc:
+                return f"[{name}]({schema_doc}#{anchor})"
+            return f"[{name}](#{anchor})"
+        return name
 
     t = schema.get("type", "")
     if isinstance(t, list):
-        return " | ".join(str(x) for x in t)
+        return " or ".join(str(x) for x in t)
 
     if "oneOf" in schema:
         parts = []
         for item in schema["oneOf"]:
-            parts.append(_type_str(item, spec))
-        return " | ".join(parts)
+            parts.append(_type_str(item, spec, schema_doc=schema_doc))
+        return " or ".join(parts)
 
     if "allOf" in schema:
         return "object"
 
     if t == "array":
         items = schema.get("items", {})
-        inner = _type_str(items, spec)
+        inner = _type_str(items, spec, schema_doc=schema_doc)
         return f"array\\<{inner}\\>"
     if t == "object" and "additionalProperties" in schema:
         ap = schema["additionalProperties"]
-        inner = _type_str(ap, spec) if isinstance(ap, dict) else "any"
+        inner = _type_str(ap, spec, schema_doc=schema_doc) if isinstance(ap, dict) else "any"
         return f"map\\<string, {inner}\\>"
     if t == "string" and schema.get("format"):
         return f"string ({schema['format']})"
@@ -498,6 +508,7 @@ def render_property_table(
     depth: int = 0,
     max_depth: int = 2,
     prefix: str = "",
+    schema_doc: str | None = None,
 ) -> str:
     """Render a schema as an MDX property table."""
     if schema is None:
@@ -505,10 +516,10 @@ def render_property_table(
     schema = resolve_schema(spec, schema)
 
     if "oneOf" in schema and depth < max_depth:
-        return _render_oneof(schema, spec, depth, max_depth)
+        return _render_oneof(schema, spec, depth, max_depth, schema_doc=schema_doc)
 
     if "anyOf" in schema and depth < max_depth:
-        return _render_oneof(schema, spec, depth, max_depth, key="anyOf")
+        return _render_oneof(schema, spec, depth, max_depth, key="anyOf", schema_doc=schema_doc)
 
     props = schema.get("properties", {})
     required = set(schema.get("required", []))
@@ -517,13 +528,13 @@ def render_property_table(
         if enum:
             return "**Allowed values:** " + ", ".join(f"`{v}`" for v in enum) + "\n"
         desc = schema.get("description", "")
-        ts = _type_str(schema, spec)
+        ts = _type_str(schema, spec, schema_doc=schema_doc)
         if desc or ts:
             return f"**Type:** {ts}\n\n{desc}\n"
         return ""
 
     rows = []
-    _collect_rows(props, required, spec, depth, max_depth, prefix, rows)
+    _collect_rows(props, required, spec, depth, max_depth, prefix, rows, schema_doc=schema_doc)
 
     if not rows:
         return ""
@@ -547,11 +558,12 @@ def _collect_rows(
     max_depth: int,
     prefix: str,
     rows: list,
+    schema_doc: str | None = None,
 ):
     for name, prop_schema in props.items():
         full_name = f"{prefix}{name}"
         resolved = resolve_schema(spec, prop_schema)
-        typ = _type_str(prop_schema, spec) if "$ref" in prop_schema else _type_str(resolved, spec)
+        typ = _type_str(prop_schema, spec, schema_doc=schema_doc) if "$ref" in prop_schema else _type_str(resolved, spec, schema_doc=schema_doc)
         req = "Yes" if name in required else "No"
         desc = resolved.get("description", "") or ""
         enum = resolved.get("enum")
@@ -574,7 +586,7 @@ def _collect_rows(
             inner_required = set(resolved.get("required", []))
             _collect_rows(
                 resolved["properties"], inner_required, spec,
-                depth + 1, max_depth, f"{full_name}.", rows,
+                depth + 1, max_depth, f"{full_name}.", rows, schema_doc=schema_doc,
             )
 
 
@@ -584,6 +596,7 @@ def _render_oneof(
     depth: int,
     max_depth: int,
     key: str = "oneOf",
+    schema_doc: str | None = None,
 ) -> str:
     variants = schema.get(key, [])
     desc = schema.get("description", "")
@@ -642,7 +655,7 @@ def _render_oneof(
                 parts.append(body)
                 parts.append("")
 
-        table = render_property_table(resolved, spec, depth + 1, max_depth)
+        table = render_property_table(resolved, spec, depth + 1, max_depth, schema_doc=schema_doc)
         if table:
             parts.append(table)
         parts.append("")
@@ -738,6 +751,27 @@ def escape_mdx(text: str) -> str:
     return "\n".join(out)
 
 
+def collapse_blank_lines(text: str) -> str:
+    """Collapse consecutive blank lines in Markdown content."""
+    lines = text.split("\n")
+    out: list[str] = []
+    prev_blank = False
+
+    for line in lines:
+        is_blank = line.strip() == ""
+        if is_blank:
+            if prev_blank:
+                continue
+            prev_blank = True
+            out.append("")
+            continue
+
+        prev_blank = False
+        out.append(line)
+
+    return "\n".join(out)
+
+
 def _escape_line(line: str) -> str:
     """Escape { } outside backtick spans, and bare <word> as &lt;word&gt;."""
     result = []
@@ -760,7 +794,7 @@ def _escape_line(line: str) -> str:
         elif line[i] == "<":
             # preserve known MDX/HTML tags
             rest = line[i:]
-            if re.match(r"<(details|/details|summary|/summary|iframe|Note|Warning|Tip|/Note|/Warning|/Tip|br\s*/?)[\s>]", rest):
+            if re.match(r"<(Accordion|/Accordion|details|/details|summary|/summary|iframe|Note|Warning|Tip|/Note|/Warning|/Tip|br\s*/?)[\s>]", rest):
                 result.append(line[i])
                 i += 1
             elif re.match(r"<[a-zA-Z]", rest) and ">" in rest:
@@ -796,14 +830,13 @@ def gen_overview(spec: dict, title_override: str | None = None, raw_yaml: str | 
     if raw_yaml:
         lines.append("## Raw AsyncAPI Spec")
         lines.append("")
-        lines.append("<details>")
-        lines.append("<summary>View / copy the raw AsyncAPI YAML</summary>")
+        lines.append("<Accordion title=\"View / copy the raw AsyncAPI YAML\">")
         lines.append("")
-        lines.append("```yaml")
+        lines.append("````yaml")
         lines.append(raw_yaml.strip())
-        lines.append("```")
+        lines.append("````")
         lines.append("")
-        lines.append("</details>")
+        lines.append("</Accordion>")
         lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -827,7 +860,7 @@ def gen_servers(spec: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def gen_operation(spec: dict, op_name: str, page_title: str) -> str:
+def gen_operation(spec: dict, op_name: str, page_title: str, schema_doc: str | None = None) -> str:
     ops = spec.get("operations", {})
     op = ops.get(op_name, {})
     if not op:
@@ -857,7 +890,7 @@ def gen_operation(spec: dict, op_name: str, page_title: str) -> str:
     # Channel
     lines.append("## Channel")
     lines.append("")
-    lines.append(f"```")
+    lines.append(f"```text")
     lines.append(address)
     lines.append("```")
     lines.append("")
@@ -925,7 +958,7 @@ def gen_operation(spec: dict, op_name: str, page_title: str) -> str:
         if payload:
             lines.append("### Payload")
             lines.append("")
-            table = render_property_table(payload, spec, depth=0, max_depth=2)
+            table = render_property_table(payload, spec, depth=0, max_depth=2, schema_doc=schema_doc)
             if table:
                 lines.append(table)
                 lines.append("")
@@ -934,20 +967,19 @@ def gen_operation(spec: dict, op_name: str, page_title: str) -> str:
             resolved_payload = resolve_schema(spec, payload)
             example = generate_example(payload, spec)
             if example:
-                lines.append("<details>")
-                lines.append("<summary>Example payload</summary>")
+                lines.append("<Accordion title=\"Example payload\">")
                 lines.append("")
-                lines.append("```json")
+                lines.append("````json")
                 lines.append(json.dumps(example, indent=2))
-                lines.append("```")
+                lines.append("````")
                 lines.append("")
-                lines.append("</details>")
+                lines.append("</Accordion>")
                 lines.append("")
 
     return "\n".join(lines) + "\n"
 
 
-def gen_messages(spec: dict) -> str:
+def gen_messages(spec: dict, schema_doc: str | None = None) -> str:
     comp_messages = spec.get("components", {}).get("messages", {})
     if not comp_messages:
         return "# Messages\n\nNo messages defined.\n"
@@ -971,7 +1003,7 @@ def gen_messages(spec: dict) -> str:
         if payload:
             lines.append("### Payload")
             lines.append("")
-            table = render_property_table(payload, spec, depth=0, max_depth=1)
+            table = render_property_table(payload, spec, depth=0, max_depth=1, schema_doc=schema_doc)
             if table:
                 lines.append(table)
                 lines.append("")
@@ -980,7 +1012,7 @@ def gen_messages(spec: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def gen_schemas(spec: dict) -> str:
+def gen_schemas(spec: dict, schema_doc: str | None = None) -> str:
     comp_schemas = spec.get("components", {}).get("schemas", {})
     if not comp_schemas:
         return "# Schemas\n\nNo schemas defined.\n"
@@ -994,7 +1026,7 @@ def gen_schemas(spec: dict) -> str:
         if desc:
             lines.append(desc.strip())
             lines.append("")
-        table = render_property_table(schema, spec, depth=0, max_depth=2)
+        table = render_property_table(schema, spec, depth=0, max_depth=2, schema_doc=schema_doc)
         if table:
             lines.append(table)
             lines.append("")
@@ -1067,11 +1099,15 @@ def _match_bms_operation(slug_suffix: str, op_map: dict[str, str]) -> str | None
 def generate_spec_pages(spec_key: str, spec: dict, dry_run: bool = False, raw_yaml: str | None = None) -> int:
     """Generate all MDX pages for a spec. Returns count of files written."""
     prefix = f"schema-{spec_key}"
+    schema_doc = f"{prefix}-schemas"
     count = 0
 
     def _write(filename: str, content: str):
         nonlocal count
         content = escape_mdx(content)
+        content = collapse_blank_lines(content)
+        # Normalize to exactly one trailing newline per file.
+        content = content.rstrip("\n") + "\n"
         path = DOCS / filename
         if dry_run:
             print(f"--- {filename} ({len(content)} chars) ---")
@@ -1095,12 +1131,12 @@ def generate_spec_pages(spec_key: str, spec: dict, dry_run: bool = False, raw_ya
     # Messages
     comp_messages = spec.get("components", {}).get("messages", {})
     if comp_messages:
-        _write(f"{prefix}-messages.mdx", gen_messages(spec))
+        _write(f"{prefix}-messages.mdx", gen_messages(spec, schema_doc=schema_doc))
 
     # Schemas
     comp_schemas = spec.get("components", {}).get("schemas", {})
     if comp_schemas:
-        _write(f"{prefix}-schemas.mdx", gen_schemas(spec))
+        _write(f"{prefix}-schemas.mdx", gen_schemas(spec, schema_doc=schema_doc))
 
     # Operations
     ops = spec.get("operations", {})
@@ -1120,7 +1156,7 @@ def generate_spec_pages(spec_key: str, spec: dict, dry_run: bool = False, raw_ya
             op_name = _match_bms_operation(slug_suffix, op_map)
             if op_name:
                 title = _slug_to_title(slug_suffix)
-                _write(mdx_file.name, gen_operation(spec, op_name, title))
+                _write(mdx_file.name, gen_operation(spec, op_name, title, schema_doc=schema_doc))
             else:
                 print(f"  WARN: no operation match for {stem} (slug: {slug_suffix})")
     else:
@@ -1129,7 +1165,7 @@ def generate_spec_pages(spec_key: str, spec: dict, dry_run: bool = False, raw_ya
             slug = op_name.lower()
             filename = f"{prefix}-{slug}.mdx"
             title = _op_name_to_title(op_name)
-            _write(filename, gen_operation(spec, op_name, title))
+            _write(filename, gen_operation(spec, op_name, title, schema_doc=schema_doc))
 
     return count
 

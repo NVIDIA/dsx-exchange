@@ -67,6 +67,7 @@ flavor = "mdx"
 # Disable specific rules for specific files
 [per-file-ignores]
 "**/snippets/**/*.mdx" = ["MD041"]  # Snippets don't need to start with an H1
+"docs/schema-*.mdx" = ["MD024", "MD026"]  # Can't eliminate duplicate headings and heading punctuation right now
 
 # Rule-specific configurations
 
