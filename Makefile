@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: add-license-headers check check-license-headers clean-e2e help test test-e2e test-helm third-party-licenses
+.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms help test test-e2e test-helm third-party-licenses
 
 COPYRIGHT_HOLDER := NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 COPYRIGHT_YEAR := 2026
@@ -27,10 +27,13 @@ check: check-license-headers test test-helm ## Run all local validation checks
 clean-e2e: ## Delete local Kind clusters and generated e2e artifacts
 	$(MAKE) -C local clean-e2e
 
+dummy-bms: ## Publish looping dummy BMS data to the local CSC MQTT broker
+	$(MAKE) -C local dummy-bms
+
 test: ## Run unit tests that do not require the local Kind environment
 	$(MAKE) -C auth-callout test
 	cd auth-callout/tests && go test -short ./...
-	cd local/mqtt-client && go test ./pkg/...
+	cd local/mqtt-client && go test ./pkg/... ./internal/... ./cmd/...
 	cd local/mqttbs && go test ./...
 
 test-e2e: ## Run local functional and performance suites; requires Kind/NATS/Keycloak

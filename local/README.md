@@ -86,6 +86,9 @@ make benchmark-basic
 
 # Run full MQTT benchmark suite
 make benchmark-basic-full
+
+# Publish looping dummy BMS data to the CSC MQTT broker
+make dummy-bms
 ```
 
 ## Testing Strategy
@@ -108,10 +111,7 @@ make benchmark-basic-full
 - QoS 0 and QoS 1 publish paths
 - Latency percentiles (p50, p95, p99)
 
-Run `make benchmark-performance` for the full requirement thresholds:
-
-- Throughput: 200k msgs/sec target
-- Persistent messages: 20k msgs/sec target
+Run `make benchmark-performance` for the full benchmark profile.
 
 ## Common Commands
 
@@ -137,6 +137,7 @@ make test-performance        # Run performance e2e smoke tests
 make benchmark-performance   # Run full performance benchmarks
 make benchmark-basic         # Run MQTT benchmark smoke suite
 make benchmark-basic-full    # Run full MQTT benchmark basic suite
+make dummy-bms               # Publish looping dummy BMS data
 
 # Monitoring & Cleanup
 make status                  # Check deployment status
@@ -147,20 +148,6 @@ make clean                   # Delete all Kind clusters
 make lint                    # Run linters
 make help                    # Show all available targets
 ```
-
-## Requirements Mapping
-
-Key requirements being validated:
-
-| ID | Requirement | Test Coverage |
-|:---|:------------|:--------------|
-| REQ-1 | MQTT Protocol Support | Functional tests |
-| REQ-2 | Highly Available | Failover tests |
-| REQ-3 | Horizontally Scalable | Scale-out tests |
-| REQ-6 | Event Bus Federation | Cross-layer tests |
-| REQ-19 | Performance - Event Throughput (200k msgs/sec) | Performance benchmarks |
-| REQ-20 | Performance - Persistence (20k msgs/sec) | Persistence benchmarks |
-| REQ-21 | Performance - Client Count (10k connections) | Connection scale tests |
 
 ## Development
 
@@ -197,3 +184,22 @@ cd mqtt-client
 go test -v -count=1 ./tests/functional/...
 go test -v -count=1 ./tests/performance/...
 ```
+
+### Dummy BMS Data
+
+`mqtt-client/cmd/dummy-bms` keeps the local CSC demo populated with
+representative BMS MQTT traffic. It replays `mqtt-client/examples/dsx_exemplar.csv`
+on a loop, validates rendered messages against the BMS AsyncAPI schema before
+publishing, retains metadata topics, and publishes value topics as live readings.
+Rows are scheduled by absolute publish time so one slow publish does not shift
+the rest of the scenario.
+
+Run against the local Kind environment:
+
+```bash
+make dummy-bms
+```
+
+The dummy BMS target uses the same local e2e environment and gateway
+port-forward setup as the functional and performance tests. It publishes to the
+CSC broker URL exported by that wrapper.

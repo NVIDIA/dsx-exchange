@@ -107,23 +107,23 @@ NATS provides native MQTT support:
 ### JetStream Persistence
 
 JetStream configuration:
-- Memory-based storage (per REQ-23)
-- Replicated across 3 nodes (per REQ-2)
+- Memory-based storage
+- Replicated across 3 nodes
 - Auto-configured based on `clusterType`
 
 ### Federation via Leaf Nodes
 
-CPC clusters connect to CSC as leaf nodes through the Envoy Gateway (port 7422). Topic filtering and transformation occurs in NATS account configuration (REQ-11, REQ-31), not at the Gateway. Leaf nodes and account configurations are auto-generated based on `eventBus.clusterType` and `eventBus.crossLayer` settings.
+CPC clusters connect to CSC as leaf nodes through the Envoy Gateway (port 7422). Topic filtering and transformation occurs in NATS account configuration, not at the Gateway. Leaf nodes and account configurations are auto-generated based on `eventBus.clusterType` and `eventBus.crossLayer` settings.
 
 ### Layer Isolation
 
 Isolation is achieved through network and gateway-level enforcement:
 
 - **Network Isolation**: Each layer runs in a separate Kubernetes cluster (CSC, CPC-1, CPC-2) with overlapping internal networks (10.244.0.0/16, 10.96.0.0/12)
-- **Gateway Enforcement**: Inter-cluster communication goes through Envoy Gateway LoadBalancer services, enforcing layer boundaries (REQ-5, REQ-13)
-- **Topic Filtering**: NATS account configuration enforces which topics are allowed to pass between layers (REQ-11, REQ-31)
+- **Gateway Enforcement**: Inter-cluster communication goes through Envoy Gateway LoadBalancer services, enforcing layer boundaries
+- **Topic Filtering**: NATS account configuration enforces which topics are allowed to pass between layers
 
-This architecture ensures that clients in one layer cannot directly access the event bus in another layer, meeting REQ-5 (Layer Isolation) requirements.
+This architecture ensures that clients in one layer cannot directly access the event bus in another layer.
 
 ## Testing
 
@@ -187,21 +187,6 @@ Check leaf node connections and Gateway configuration. Verify topic filtering at
 ### High Memory Usage
 
 Check JetStream stream usage and adjust retention policies as needed.
-
-## Requirements Coverage
-
-| Requirement | Status | Notes |
-|:------------|:-------|:------|
-| REQ-1 (MQTT Protocol Support) | Partial | QoS 2 optional |
-| REQ-2 (Highly Available) | Full | 3-node cluster |
-| REQ-3 (Horizontally Scalable) | Full | Scalable |
-| REQ-6 (Event Bus Federation) | Full | Leaf nodes |
-| REQ-7 (Authentication) | Full | Network/gateway-level |
-| REQ-8 (Authorisation) | Full | Subject-level |
-| REQ-19 (Performance - Event Throughput) | Full | High throughput |
-| REQ-20 (Performance - Persistence) | Full | JetStream |
-| REQ-21 (Performance - Client Count) | Full | Scalable |
-| REQ-23 (Persistence on Disk) | Full | Memory storage |
 
 ## References
 

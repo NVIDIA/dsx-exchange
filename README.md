@@ -32,6 +32,12 @@ make -C local validate-nats
 make test-e2e
 ```
 
+Publish looping dummy BMS data into the local CSC MQTT broker:
+
+```bash
+make dummy-bms
+```
+
 ## Requirements
 
 - OS: Linux or macOS with Docker support.
@@ -62,6 +68,9 @@ make -C local test-functional
 make -C local test-performance
 ```
 
+After the local Kind environment is deployed, run the dummy BMS demo with
+`make dummy-bms`.
+
 The local evaluation environment uses the top-level `auth-callout` and `deploy` directories directly.
 
 ## Performance
@@ -72,7 +81,7 @@ The local performance target is an e2e smoke profile sized for repeatable Kind v
 make -C local test-performance
 ```
 
-Full requirement-scale benchmarks are available separately:
+Full benchmark runs are available separately:
 
 ```bash
 make -C local benchmark-performance

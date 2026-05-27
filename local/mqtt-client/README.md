@@ -35,13 +35,13 @@ go test -short ./...
 
 ### Test Matrix
 
-Performance tests validate throughput under different conditions:
+Performance tests exercise throughput under different conditions:
 
 **QoS and Retained Combinations:**
 
-- **QoS 0**: No persistence, target 200k msgs/sec
+- **QoS 0**: No persistence
 - **QoS 0 + Retained**: Retained messages without persistence guarantee
-- **QoS 1**: With persistence, target 20k msgs/sec
+- **QoS 1**: With persistence
 - **QoS 1 + Retained**: Retained messages with persistence guarantee
 
 **Deployment Scenarios:**
@@ -78,9 +78,9 @@ go test -v ./tests/performance/ -run 'TestThroughput.*_Local'
 
 **Tests:**
 
-- `TestThroughputQoS0_Local`: Target 200k msgs/sec
+- `TestThroughputQoS0_Local`: QoS 0
 - `TestThroughputQoS0Retained_Local`: QoS 0 with retained
-- `TestThroughputQoS1_Local`: Target 20k msgs/sec (with persistence)
+- `TestThroughputQoS1_Local`: QoS 1 with persistence
 - `TestThroughputQoS1Retained_Local`: QoS 1 with retained (persistence)
 
 ### Federation Performance Tests
@@ -108,32 +108,6 @@ go test -v ./tests/performance/ -run 'TestThroughput.*_(CPCtoCSC|CSCtoCPC)'
 - `TestThroughputQoS0Retained_CSCtoCPC`
 - `TestThroughputQoS1_CSCtoCPC` (with persistence)
 - `TestThroughputQoS1Retained_CSCtoCPC` (persistence)
-
-### Performance Targets
-
-**REQ-18 Throughput**
-
-- 200,000 msgs/sec QoS 0 (1KB messages, no persistence)
-- 20,000 msgs/sec QoS 1 (1KB messages, with persistence)
-
-**REQ-19 Persistence Performance**
-
-- Achieved via QoS 1 tests (same as throughput with QoS 1)
-- Retained messages with QoS 0 and QoS 1
-
-**REQ-4, REQ-6 Federation Performance**
-
-- Cross-layer routing (CPC1 <-> CSC)
-- Bidirectional throughput validation
-- Federation latency overhead measurement
-
-**TODO: REQ-20 Connection Scaling**
-
-- 10,000 concurrent clients per server
-
-**TODO: REQ-32 Message Size**
-
-- Support up to 4MB messages
 
 ## Metrics
 
@@ -168,6 +142,7 @@ The performance tests expose Prometheus metrics:
 # From local/, use the Makefile targets to create localhost port-forwards.
 make test-functional
 make test-performance
+make dummy-bms
 
 # Run full performance benchmarks instead of the e2e smoke profile.
 make benchmark-performance
@@ -177,12 +152,33 @@ export CSC_BROKER_URL=tcp://127.0.0.1:11883
 export CPC1_BROKER_URL=tcp://127.0.0.1:11884
 go test -v ./tests/performance/
 
+# Publish looping BMS demo data directly against a reachable broker.
+go run ./cmd/dummy-bms --broker tcp://127.0.0.1:11883 --csv examples/dsx_exemplar.csv --schema ../../schema/schema/bms/bms.yaml
+
 # Run specific test
 go test -v ./tests/performance/ -run TestThroughputQoS0_Local
 
 # Skip long-running performance tests
 go test -short ./tests/...
 ```
+
+## Dummy BMS Producer
+
+`cmd/dummy-bms` feeds the local CSC MQTT broker with representative BMS traffic
+so the demo environment has realistic data for subscribers, dashboards, and
+manual integration checks. It is a replay tool, not a synthetic data generator:
+the CSV defines the timing and exact messages to publish, and the command keeps
+replaying that sequence until it is stopped.
+
+The producer validates each rendered message against the canonical BMS AsyncAPI
+schema before it publishes anything. The sample scenario uses
+`{{timestamp_ms}}` for readings that need a fresh event timestamp on each pass.
+
+See `examples/dsx_exemplar.csv` for the raw data sample. You can provide
+your own sample or edit the sample for custom data.
+
+From the repo root, run `make dummy-bms` after the local environment is
+deployed. For direct runs, pass the broker, CSV, and schema paths explicitly.
 
 ## Development
 

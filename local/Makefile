@@ -1,9 +1,9 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-e2e clean-nats deploy-nats test-functional test-performance validate-nats status lint benchmark-basic benchmark-basic-full benchmark-performance
+.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-e2e clean-nats deploy-nats test-functional test-performance validate-nats status lint dummy-bms benchmark-basic benchmark-basic-full benchmark-performance
 
-PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_TARGET_QOS0=1 PERF_TARGET_QOS1=1 PERF_MIN_SUCCESS_RATE=99
+PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
 
 help: ## Show this help message
@@ -102,6 +102,9 @@ test-functional: check-e2e-env ## Run functional tests (MQTT + federation)
 test-performance: check-e2e-env ## Run performance e2e smoke tests
 	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m'
 
+dummy-bms: check-e2e-env ## Publish looping dummy BMS data to the CSC MQTT broker
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go run ./cmd/dummy-bms --broker "$$CSC_BROKER_URL" --csv examples/dsx_exemplar.csv --schema ../../schema/schema/bms/bms.yaml'
+
 validate-nats: ## Validate NATS deployment on all clusters
 	@echo "Validating CSC..."
 	@cd nats && ./validate.sh csc
@@ -145,5 +148,5 @@ benchmark-basic: check-e2e-env ## Run MQTT benchmark basic suite
 benchmark-basic-full: check-e2e-env ## Run full MQTT benchmark basic suite
 	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$$CSC_BROKER_URL"'
 
-benchmark-performance: check-e2e-env ## Run full performance benchmarks with requirement thresholds
+benchmark-performance: check-e2e-env ## Run full performance benchmarks
 	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m'

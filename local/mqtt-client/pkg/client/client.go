@@ -4,6 +4,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -97,9 +98,23 @@ func (c *Client) Disconnect() {
 }
 
 func (c *Client) Publish(topic string, payload []byte, qos byte, retain bool) error {
+	return c.PublishContext(context.Background(), topic, payload, qos, retain)
+}
+
+func (c *Client) PublishContext(ctx context.Context, topic string, payload []byte, qos byte, retain bool) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	token := c.client.Publish(topic, qos, retain, payload)
-	token.Wait()
-	return token.Error()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-token.Done():
+		return token.Error()
+	}
 }
 
 func (c *Client) Subscribe(topic string, qos byte, callback mqtt.MessageHandler) error {
