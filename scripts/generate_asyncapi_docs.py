@@ -1099,7 +1099,7 @@ def _match_bms_operation(slug_suffix: str, op_map: dict[str, str]) -> str | None
 def generate_spec_pages(spec_key: str, spec: dict, dry_run: bool = False, raw_yaml: str | None = None) -> int:
     """Generate all MDX pages for a spec. Returns count of files written."""
     prefix = f"schema-{spec_key}"
-    schema_doc = f"{prefix}-schemas"
+    schema_doc = f"{prefix}-schemas.mdx"
     count = 0
 
     def _write(filename: str, content: str):
