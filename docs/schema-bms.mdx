@@ -4,15 +4,18 @@ Telemetry and control event catalog for the Building Management System (BMS)
 over MQTT. Provides real-time point values and point metadata for all supported
 object and point types.
 
+## How to use this spec
+
 Each monitored point follows a **Value / Metadata** pattern:
 
 - **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
-  Subscribe to a value channel to receive real-time telemetry.
-  Values are published whenever they change and republished every 100 seconds
-  when they do not change.
+
+  Subscribe to a value channel to receive real-time telemetry. Values are published whenever they change and republished every 100 seconds when they do not change.
 - **Metadata** messages describe the point (units, identifiers, relationships).
-  **Always receive metadata before interpreting values.** Metadata is retained and published
-  once at startup. It is subsequently published every 100 seconds.
+
+  **Always receive metadata before interpreting values.** Metadata is retained and published once at startup. It is subsequently published every 100 seconds.
+
+## Topic structure
 
 | Publisher   | Topic Type | Pattern                                                               |
 |-------------|------------|-----------------------------------------------------------------------|
@@ -20,31 +23,30 @@ Each monitored point follows a **Value / Metadata** pattern:
 | BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`             |
 | Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`      |
 
-The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple
-`/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
+The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple `/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
 
 Use `#` to subscribe to all topics under a given hierarchy (multi-level wildcard).
 
 Use `+` to match exactly one topic level (single-level wildcard).
 
-- **BMS** publishes all metadata — including for points whose values are
-  written by integrations.
-- **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
-- **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`.
+## Publisher rules
 
- Integrations do **not** publish metadata.
+- **BMS** publishes all metadata — including for points whose values are written by integrations.
+- **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
+- **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`. Integrations do **not** publish metadata.
+
+## Integration publishing contract
 
 > **This rule applies globally to every integration-published point across all
 > objectTypes.**
 
-BMS publishes metadata for every monitored point — including points whose
-_values_ are written by external integrations. For such points the metadata
-payload contains an `integration` field identifying which integration owns
-that point's value.
+BMS publishes metadata for every monitored point — including points whose _values_ are written by external integrations. For such points the metadata payload contains an `integration` field identifying which integration owns that point's value.
 
 | Metadata field | Type | Meaning |
-|----------------|------|---------|
+| :------------- | :--- | :------ |
 | `integration` | string | Identifier of the integration that must publish the value for this point |
+
+### Topic derivation rule
 
 The value topic is derived **methodically** from the respective metadata topic (published by BMS) that
 carried the `integration` field. DSX Exchange Access Control Lists will
@@ -54,16 +56,20 @@ subscribe to specific namespaces that align with the `[Publisher]`:
  BMS/v1/**[Publisher]/[TopicType]**/\{objectType\}/\{pointType\}/\{tagPath\}
 
 | Segment | Metadata topic | Value topic |
-|---------|---------------|-------------|
+| :------ | :------------- | :---------- |
 | Publisher | `PUB` | value of `integration` field in metadata |
 | TopicType | `Metadata` | `Value` |
 | Remainder | `{objectType}/{pointType}/{tagPath}` | `{objectType}/{pointType}/{tagPath}` |
 
 In other words, the Publisher integration will derive the following value topic to publish based on the corresponding BMS metadata:
 
-    BMS/v1/PUB/Metadata/\{objectType\}/\{pointType\}/\{tagPath\}
-            ↓  replace PUB → \{integration\},  Metadata → Value
-    BMS/v1/\{integration\}/Value/\{objectType\}/\{pointType\}/\{tagPath\}
+```text
+BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}
+        ↓  replace PUB → {integration},  Metadata → Value
+BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}
+```
+
+### Contract
 
 When an integration receives a BMS metadata message and the `integration`
 field **matches its own identifier**, the integration **MUST**:
@@ -80,24 +86,30 @@ Integrations **MUST NOT**:
   match their own identifier.
 - Publish metadata (BMS is the sole metadata publisher).
 
-    BMS publishes metadata →
-      Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
-      Payload: \{ ..., "integration": "MEPAI", ... \}
+### Example flow
 
-    Integration "MEPAI" receives the metadata, recognises its identifier,
-    derives its value topic →
-      BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
-                ↓ PUB→MEPAI, Metadata→Value
-      BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+```text
+BMS publishes metadata →
+  Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+  Payload: { ..., "integration": "MEPAI", ... }
 
-    MEPAI publishes its setpoint reading to that derived topic.
+Integration "MEPAI" receives the metadata, recognises its identifier,
+derives its value topic →
+  BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+          ↓ PUB→MEPAI, Metadata→Value
+  BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+```
 
-  The same contract governs all other integration-published points, including
-  `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
-  `System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
-  `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
-  Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
-  integration metadata, the BMS writes to the value and not the integration.
+MEPAI publishes its setpoint reading to that derived topic.
+
+The same contract governs all other integration-published points, including
+`Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
+`System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
+`CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
+Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
+integration metadata, the BMS writes to the value and not the integration.
+
+## Metadata types and concepts
 
 - **objectType**: Object Types are restricted to specific strings in accordance
   with this AsyncAPI. They typically represent BMS equipment or devices.
@@ -208,10 +220,9 @@ Integrations **MUST NOT**:
 
 ## Raw AsyncAPI Spec
 
-<details>
-<summary>View / copy the raw AsyncAPI YAML</summary>
+<Accordion title="View / copy the raw AsyncAPI YAML">
 
-```yaml
+````yaml
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
@@ -228,13 +239,13 @@ info:
     ## How to use this spec
 
     Each monitored point follows a **Value / Metadata** pattern:
+
     - **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
-      Subscribe to a value channel to receive real-time telemetry.
-      Values are published whenever they change and republished every 100 seconds
-      when they do not change.
+
+      Subscribe to a value channel to receive real-time telemetry. Values are published whenever they change and republished every 100 seconds when they do not change.
     - **Metadata** messages describe the point (units, identifiers, relationships).
-      **Always receive metadata before interpreting values.** Metadata is retained and published
-      once at startup. It is subsequently published every 100 seconds.
+
+      **Always receive metadata before interpreting values.** Metadata is retained and published once at startup. It is subsequently published every 100 seconds.
 
     ## Topic structure
 
@@ -244,8 +255,7 @@ info:
     | BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`             |
     | Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`      |
 
-    The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple
-    `/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
+    The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple `/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
 
     Use `#` to subscribe to all topics under a given hierarchy (multi-level wildcard).
 
@@ -253,25 +263,19 @@ info:
 
     ## Publisher rules
 
-    - **BMS** publishes all metadata — including for points whose values are
-      written by integrations.
+    - **BMS** publishes all metadata — including for points whose values are written by integrations.
     - **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
-    - **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`.
-     Integrations do **not** publish metadata.
-
+    - **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`. Integrations do **not** publish metadata.
 
     ## Integration publishing contract
 
     > **This rule applies globally to every integration-published point across all
     > objectTypes.**
 
-    BMS publishes metadata for every monitored point — including points whose
-    _values_ are written by external integrations. For such points the metadata
-    payload contains an `integration` field identifying which integration owns
-    that point's value.
+    BMS publishes metadata for every monitored point — including points whose _values_ are written by external integrations. For such points the metadata payload contains an `integration` field identifying which integration owns that point's value.
 
     | Metadata field | Type | Meaning |
-    |----------------|------|---------|
+    | :------------- | :--- | :------ |
     | `integration` | string | Identifier of the integration that must publish the value for this point |
 
     ### Topic derivation rule
@@ -284,16 +288,18 @@ info:
      BMS/v1/**[Publisher]/[TopicType]**/{objectType}/{pointType}/{tagPath}
 
     | Segment | Metadata topic | Value topic |
-    |---------|---------------|-------------|
+    | :------ | :------------- | :---------- |
     | Publisher | `PUB` | value of `integration` field in metadata |
     | TopicType | `Metadata` | `Value` |
     | Remainder | `{objectType}/{pointType}/{tagPath}` | `{objectType}/{pointType}/{tagPath}` |
 
     In other words, the Publisher integration will derive the following value topic to publish based on the corresponding BMS metadata:
 
-        BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}
-                ↓  replace PUB → {integration},  Metadata → Value
-        BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}
+    ```text
+    BMS/v1/PUB/Metadata/\{objectType\}/\{pointType\}/\{tagPath\}
+            ↓  replace PUB → \{integration\},  Metadata → Value
+    BMS/v1/\{integration\}/Value/\{objectType\}/\{pointType\}/\{tagPath\}
+    ```
 
     ### Contract
 
@@ -314,25 +320,26 @@ info:
 
     ### Example flow
 
-        BMS publishes metadata →
-          Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
-          Payload: { ..., "integration": "MEPAI", ... }
+    ```text
+    BMS publishes metadata →
+      Topic:   BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+      Payload: \{ ..., "integration": "MEPAI", ... \}
 
-        Integration "MEPAI" receives the metadata, recognises its identifier,
-        derives its value topic →
-          BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
-                    ↓ PUB→MEPAI, Metadata→Value
-          BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+    Integration "MEPAI" receives the metadata, recognises its identifier,
+    derives its value topic →
+      BMS/v1/PUB/Metadata/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+              ↓ PUB→MEPAI, Metadata→Value
+      BMS/v1/MEPAI/Value/CDU/LiquidTemperatureSpRequest/site1/row3/cdu5
+    ```
 
-        MEPAI publishes its setpoint reading to that derived topic.
+    MEPAI publishes its setpoint reading to that derived topic.
 
-      The same contract governs all other integration-published points, including
-      `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
-      `System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
-      `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
-      Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
-      integration metadata, the BMS writes to the value and not the integration.
-
+    The same contract governs all other integration-published points, including
+    `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
+    `System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
+    `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
+    Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
+    integration metadata, the BMS writes to the value and not the integration.
 
     ## Metadata types and concepts
 
@@ -443,7 +450,6 @@ info:
       point is associated with. It also indicates the namespace `[Publisher]` an
       integration is required to write the corresponding value back to.
 
-
 # =============================================================================
 # Servers
 # =============================================================================
@@ -453,7 +459,6 @@ info:
 #     host: broker.example.com
 #     protocol: mqtt
 #     description: MQTT broker for BMS telemetry and control
-
 
 # =============================================================================
 # Channels
@@ -471,6 +476,7 @@ channels:
       Real-time values published by the BMS for all Rack monitoring points.
 
       **MQTT wildcard examples**
+
       - All rack values: `BMS/v1/PUB/Value/Rack/#`
     parameters:
       pointType:
@@ -500,6 +506,7 @@ channels:
       Includes integration-owned points which carries the `integration` field.
 
       **MQTT wildcard examples**
+
       - All rack metadata: `BMS/v1/PUB/Metadata/Rack/#`
     parameters:
       pointType:
@@ -557,6 +564,7 @@ channels:
       Values published by integrations for Rack control points.
 
       **MQTT wildcard examples**
+
       - All integration rack values: `BMS/v1/+/Value/Rack/#`
     parameters:
       integration:
@@ -582,6 +590,7 @@ channels:
       Real-time values published by the BMS for all PowerMeter points.
 
       **MQTT wildcard examples**
+
       - All power meter values: `BMS/v1/PUB/Value/PowerMeter/#`
     parameters:
       pointType:
@@ -608,6 +617,7 @@ channels:
       BMS-published metadata for all PowerMeter points.
 
       **MQTT wildcard examples**
+
       - All power meter metadata: `BMS/v1/PUB/Metadata/PowerMeter/#`
     parameters:
       pointType:
@@ -655,6 +665,7 @@ channels:
       Extensible: additional vendor-specific pointTypes may be present.
 
       **MQTT wildcard examples**
+
       - All BESS values: `BMS/v1/PUB/Value/BESS/#`
     parameters:
       pointType:
@@ -675,6 +686,7 @@ channels:
       BMS-published metadata for BESS points.
 
       **MQTT wildcard examples**
+
       - All BESS metadata: `BMS/v1/PUB/Metadata/BESS/#`
     parameters:
       pointType:
@@ -704,6 +716,7 @@ channels:
       Extensible: additional vendor-specific pointTypes may be present.
 
       **MQTT wildcard examples**
+
       - All UPS values: `BMS/v1/PUB/Value/UPS/#`
     parameters:
       pointType:
@@ -724,6 +737,7 @@ channels:
       BMS-published metadata for UPS points.
 
       **MQTT wildcard examples**
+
       - All UPS metadata: `BMS/v1/PUB/Metadata/UPS/#`
     parameters:
       pointType:
@@ -753,6 +767,7 @@ channels:
       Extensible: additional vendor-specific pointTypes may be present.
 
       **MQTT wildcard examples**
+
       - All ATS values: `BMS/v1/PUB/Value/ATS/#`
     parameters:
       pointType:
@@ -773,6 +788,7 @@ channels:
       BMS-published metadata for ATS points.
 
       **MQTT wildcard examples**
+
       - All ATS metadata: `BMS/v1/PUB/Metadata/ATS/#`
     parameters:
       pointType:
@@ -802,6 +818,7 @@ channels:
       Extensible: additional vendor-specific pointTypes may be present.
 
       **MQTT wildcard examples**
+
       - All Generator values: `BMS/v1/PUB/Value/Generator/#`
     parameters:
       pointType:
@@ -822,6 +839,7 @@ channels:
       BMS-published metadata for Generator points.
 
       **MQTT wildcard examples**
+
       - All Generator metadata: `BMS/v1/PUB/Metadata/Generator/#`
     parameters:
       pointType:
@@ -850,6 +868,7 @@ channels:
       Real-time values published by the BMS for Shunt points.
 
       **MQTT wildcard examples**
+
       - All Shunt values: `BMS/v1/PUB/Value/Shunt/#`
     parameters:
       pointType:
@@ -870,6 +889,7 @@ channels:
       BMS-published metadata for Shunt points.
 
       **MQTT wildcard examples**
+
       - All Shunt metadata: `BMS/v1/PUB/Metadata/Shunt/#`
     parameters:
       pointType:
@@ -898,6 +918,7 @@ channels:
       Real-time values published by the BMS for Breaker points.
 
       **MQTT wildcard examples**
+
       - All Breaker values: `BMS/v1/PUB/Value/Breaker/#`
     parameters:
       pointType:
@@ -918,6 +939,7 @@ channels:
       BMS-published metadata for Breaker points.
 
       **MQTT wildcard examples**
+
       - All Breaker metadata: `BMS/v1/PUB/Metadata/Breaker/#`
     parameters:
       pointType:
@@ -946,6 +968,7 @@ channels:
       Real-time values published by the BMS for CDU points.
 
       **MQTT wildcard examples**
+
       - All CDU values: `BMS/v1/PUB/Value/CDU/#`
     parameters:
       pointType:
@@ -981,6 +1004,7 @@ channels:
       Includes integration-owned points which carries the `integration` field.
 
       **MQTT wildcard examples**
+
       - All CDU metadata: `BMS/v1/PUB/Metadata/CDU/#`
     parameters:
       pointType:
@@ -1051,6 +1075,7 @@ channels:
       Subscribe to `cduMetadata` first and read `integration` for the exact topic.
 
       **MQTT wildcard examples**
+
       - All integration CDU values: `BMS/v1/+/Value/CDU/#`
     parameters:
       integration:
@@ -1075,6 +1100,7 @@ channels:
       Real-time values published by the BMS for CoolingTower points.
 
       **MQTT wildcard examples**
+
       - All CoolingTower values: `BMS/v1/PUB/Value/CoolingTower/#`
     parameters:
       pointType:
@@ -1109,6 +1135,7 @@ channels:
       BMS-published metadata for CoolingTower points.
 
       **MQTT wildcard examples**
+
       - All CoolingTower metadata: `BMS/v1/PUB/Metadata/CoolingTower/#`
     parameters:
       pointType:
@@ -1179,6 +1206,7 @@ channels:
       Real-time values published by the BMS for HX points.
 
       **MQTT wildcard examples**
+
       - All HX values: `BMS/v1/PUB/Value/HX/#`
     parameters:
       pointType:
@@ -1213,6 +1241,7 @@ channels:
       BMS-published metadata for HX points.
 
       **MQTT wildcard examples**
+
       - All HX metadata: `BMS/v1/PUB/Metadata/HX/#`
     parameters:
       pointType:
@@ -1283,6 +1312,7 @@ channels:
       Real-time values published by the BMS for CRAH points.
 
       **MQTT wildcard examples**
+
       - All CRAH values: `BMS/v1/PUB/Value/CRAH/#`
     parameters:
       pointType:
@@ -1317,6 +1347,7 @@ channels:
       BMS-published metadata for CRAH points.
 
       **MQTT wildcard examples**
+
       - All CRAH metadata: `BMS/v1/PUB/Metadata/CRAH/#`
     parameters:
       pointType:
@@ -1387,6 +1418,7 @@ channels:
       Real-time values published by the BMS for CRAC points.
 
       **MQTT wildcard examples**
+
       - All CRAC values: `BMS/v1/PUB/Value/CRAC/#`
     parameters:
       pointType:
@@ -1421,6 +1453,7 @@ channels:
       BMS-published metadata for CRAC points.
 
       **MQTT wildcard examples**
+
       - All CRAC metadata: `BMS/v1/PUB/Metadata/CRAC/#`
     parameters:
       pointType:
@@ -1491,6 +1524,7 @@ channels:
       Real-time values published by the BMS for AHU points.
 
       **MQTT wildcard examples**
+
       - All AHU values: `BMS/v1/PUB/Value/AHU/#`
     parameters:
       pointType:
@@ -1525,6 +1559,7 @@ channels:
       BMS-published metadata for AHU points.
 
       **MQTT wildcard examples**
+
       - All AHU metadata: `BMS/v1/PUB/Metadata/AHU/#`
     parameters:
       pointType:
@@ -1595,6 +1630,7 @@ channels:
       Real-time values published by the BMS for Chiller points.
 
       **MQTT wildcard examples**
+
       - All Chiller values: `BMS/v1/PUB/Value/Chiller/#`
     parameters:
       pointType:
@@ -1629,6 +1665,7 @@ channels:
       BMS-published metadata for Chiller points.
 
       **MQTT wildcard examples**
+
       - All Chiller metadata: `BMS/v1/PUB/Metadata/Chiller/#`
     parameters:
       pointType:
@@ -1699,6 +1736,7 @@ channels:
       Real-time values published by the BMS for Valve points.
 
       **MQTT wildcard examples**
+
       - All Valve values: `BMS/v1/PUB/Value/Valve/#`
     parameters:
       pointType:
@@ -1719,6 +1757,7 @@ channels:
       BMS-published metadata for Valve points.
 
       **MQTT wildcard examples**
+
       - All Valve metadata: `BMS/v1/PUB/Metadata/Valve/#`
     parameters:
       pointType:
@@ -1747,6 +1786,7 @@ channels:
       Real-time values published by the BMS for Pump points.
 
       **MQTT wildcard examples**
+
       - All Pump values: `BMS/v1/PUB/Value/Pump/#`
     parameters:
       pointType:
@@ -1767,6 +1807,7 @@ channels:
       BMS-published metadata for Pump points.
 
       **MQTT wildcard examples**
+
       - All Pump metadata: `BMS/v1/PUB/Metadata/Pump/#`
     parameters:
       pointType:
@@ -1795,6 +1836,7 @@ channels:
       Real-time values published by the BMS for Fan points.
 
       **MQTT wildcard examples**
+
       - All Fan values: `BMS/v1/PUB/Value/Fan/#`
     parameters:
       pointType:
@@ -1815,6 +1857,7 @@ channels:
       BMS-published metadata for Fan points.
 
       **MQTT wildcard examples**
+
       - All Fan metadata: `BMS/v1/PUB/Metadata/Fan/#`
     parameters:
       pointType:
@@ -1843,6 +1886,7 @@ channels:
       Real-time values published by the BMS for Damper points.
 
       **MQTT wildcard examples**
+
       - All Damper values: `BMS/v1/PUB/Value/Damper/#`
     parameters:
       pointType:
@@ -1863,6 +1907,7 @@ channels:
       BMS-published metadata for Damper points.
 
       **MQTT wildcard examples**
+
       - All Damper metadata: `BMS/v1/PUB/Metadata/Damper/#`
     parameters:
       pointType:
@@ -1891,6 +1936,7 @@ channels:
       Real-time values published by the BMS for Sensor points.
 
       **MQTT wildcard examples**
+
       - All Sensor values: `BMS/v1/PUB/Value/Sensor/#`
     parameters:
       pointType:
@@ -1921,6 +1967,7 @@ channels:
       BMS-published metadata for Sensor points.
 
       **MQTT wildcard examples**
+
       - All Sensor metadata: `BMS/v1/PUB/Metadata/Sensor/#`
     parameters:
       pointType:
@@ -1969,7 +2016,6 @@ channels:
       sound:
         $ref: '#/components/messages/SensorSoundMsg'
 
-
   # ---------------------------------------------------------------------------
   # Tank
   # ---------------------------------------------------------------------------
@@ -1981,6 +2027,7 @@ channels:
       Supports both liquid and air tanks.
 
       **MQTT wildcard examples**
+
       - All Tank values: `BMS/v1/PUB/Value/Tank/#`
     parameters:
       pointType:
@@ -2016,6 +2063,7 @@ channels:
       Includes integration-owned points which carries the `integration` field.
 
       **MQTT wildcard examples**
+
       - All Tank metadata: `BMS/v1/PUB/Metadata/Tank/#`
     parameters:
       pointType:
@@ -2087,6 +2135,7 @@ channels:
       Use for any equipment type not covered by a named objectType.
 
       **MQTT wildcard examples**
+
       - All GenericObject values: `BMS/v1/PUB/Value/GenericObject/#`
     parameters:
       pointType:
@@ -2123,6 +2172,7 @@ channels:
       Includes integration-owned points which carries the `integration` field.
 
       **MQTT wildcard examples**
+
       - All GenericObject metadata: `BMS/v1/PUB/Metadata/GenericObject/#`
     parameters:
       pointType:
@@ -2196,6 +2246,7 @@ channels:
       Subscribe to `genericObjectMetadata` first and read `integration` for the exact topic.
 
       **MQTT wildcard examples**
+
       - All integration GenericObject values: `BMS/v1/+/Value/GenericObject/#`
     parameters:
       integration:
@@ -2220,6 +2271,7 @@ channels:
       BMS-published System values.
 
       **MQTT wildcard examples**
+
       - All System values: `BMS/v1/PUB/Value/System/#`
     parameters:
       pointType:
@@ -2244,6 +2296,7 @@ channels:
       BMS-published metadata for all System point types.
 
       **MQTT wildcard examples**
+
       - All System metadata: `BMS/v1/PUB/Metadata/System/#`
     parameters:
       pointType:
@@ -2280,6 +2333,7 @@ channels:
       Values published by integrations for Heartbeat points.
 
       **MQTT wildcard examples**
+
       - All integration heartbeat values: `BMS/v1/+/Value/System/#`
     parameters:
       integration:
@@ -2294,8 +2348,6 @@ channels:
     messages:
       valueMessage:
         $ref: '#/components/messages/ValueMessage'
-
-
 
 # =============================================================================
 # Operations
@@ -2805,7 +2857,6 @@ operations:
       - $ref: '#/channels/sensorMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Sensor points.
 
-
   receiveTankValue:
     action: receive
     channel:
@@ -2906,9 +2957,6 @@ operations:
     messages:
       - $ref: '#/channels/systemIntegrationValue/messages/valueMessage'
     description: Publish integration System values to topics derived from BMS metadata.
-
-
-
 
 # =============================================================================
 # Components
@@ -3095,7 +3143,6 @@ components:
     SystemAvailableMsg:
       payload:
         $ref: '#/components/schemas/SystemAvailableMetadata'
-
 
     # Generic Equipment
     # --- Per-objectType messages (objectType constraint) ---
@@ -3826,8 +3873,6 @@ components:
       payload:
         $ref: '#/components/schemas/GenericObjectSoundMetadata'
 
-
-
   schemas:
 
     # =========================================================================
@@ -3872,7 +3917,6 @@ components:
           type: string
           description: Integration identifier responsible for publishing this value.
 
-
     StateTextField:
       type: object
       description: Required for state/status/alarm points that carry no engineering unit.
@@ -3883,7 +3927,7 @@ components:
           type: array
           description: >
             State label mapping. Each entry maps a numeric state value to its
-            human-readable label (e.g., [{value: 0, text: "Off"}, {value: 1, text: "On"}]).
+            human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`).
           items:
             type: object
             required: [value, text]
@@ -4023,7 +4067,7 @@ components:
     EquipmentAssociateMode:
       type: object
       description: |
-        *Associate Mode*: use when the object is referenced via an
+        _Associate Mode_ : use when the object is referenced via an
         association identifier.
 
         - `associateId` is **required**.
@@ -4067,7 +4111,6 @@ components:
         integration:
           type: string
           description: Integration responsible for publishing this value.
-
 
     # -------------------------------------------------------------------------
     # 1e. System identifier fragments
@@ -4147,7 +4190,6 @@ components:
       allOf:
         - $ref: '#/components/schemas/MetadataBase'
         - $ref: '#/components/schemas/SystemIntegrationIdentifiers'
-
 
     # =========================================================================
     # SECTION 3 — PointType enum schemas (for code generation / validation)
@@ -4257,7 +4299,6 @@ components:
       enum:
         - HearbeatTimestampIntegration
         - HeartbeatEchoIntegration
-
 
     # =========================================================================
     # SECTION 4 — Per-pointType field fragments
@@ -5003,7 +5044,6 @@ components:
             Optional. When true, indicates this point is a setpoint (a target
             value written to control equipment behavior).
 
-
     LiquidTemperatureSpRequestFields:
       type: object
       description: >
@@ -5020,7 +5060,6 @@ components:
         engUnit:
           type: string
           enum: [C]
-
 
     GenericObjectLiquidTemperatureSpRequestFields:
       type: object
@@ -5095,7 +5134,6 @@ components:
         scope:
           type: string
           description: BMS scope being echoed (optional).
-
 
     # =========================================================================
     # SECTION 5 — Fully composed per-pointType metadata schemas
@@ -5547,7 +5585,6 @@ components:
         objectType:
           type: string
           enum: [GenericObject]
-
 
     # =========================================================================
     # Per-objectType metadata schemas (objectType constraint for examples)
@@ -6816,7 +6853,6 @@ components:
         Field fragment for a vendor-specific or unmapped GenericPoint.
         `processArea` is required.
 
-
         `engUnit` and `stateText` are both optional but **mutually exclusive** —
         include at most one. See the two variants below.
       required:
@@ -6869,7 +6905,7 @@ components:
               type: array
               description: >
                 State label mapping. Each entry maps a numeric state value to its
-                human-readable label (e.g., [{value: 0, text: "Off"}, {value: 1, text: "On"}]).
+                human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`).
               items:
                 type: object
                 required: [value, text]
@@ -6883,7 +6919,6 @@ components:
                 additionalProperties: false
           not:
             required: [engUnit]
-
 
     GenericEquipmentPointMetadata:
       description: |
@@ -6913,6 +6948,6 @@ components:
         - $ref: '#/components/schemas/PowerMeterMetadataBase'
         - $ref: '#/components/schemas/GenericPointFields'
       unevaluatedProperties: false
-```
+````
 
-</details>
+</Accordion>

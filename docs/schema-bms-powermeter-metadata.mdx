@@ -38,10 +38,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "Voltage",
@@ -52,9 +51,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -70,10 +69,9 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "PowerFactor",
@@ -83,9 +81,9 @@ BMS-published metadata for all PowerMeter points.
     "string"
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -102,10 +100,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "Frequency",
@@ -116,9 +113,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -135,10 +132,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "ApparentPower",
@@ -149,9 +145,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -168,10 +164,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "ActivePower",
@@ -182,9 +177,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -201,10 +196,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "Current",
@@ -215,9 +209,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -234,10 +228,9 @@ BMS-published metadata for all PowerMeter points.
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "CurrentLimit",
@@ -248,9 +241,9 @@ BMS-published metadata for all PowerMeter points.
   ],
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -268,10 +261,9 @@ BMS-published metadata for all PowerMeter points.
 | `engUnit` | string | Yes |  |
 | `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "PowerMeter",
   "pointType": "PhaseCurrent",
@@ -283,9 +275,9 @@ BMS-published metadata for all PowerMeter points.
   "engUnit": "string",
   "phase": "A"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -307,12 +299,11 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "string",
   "pointType": "GenericPoint",
@@ -328,6 +319,6 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
   "integration": "string",
   "isSetpoint": false
 }
-```
+````
 
-</details>
+</Accordion>

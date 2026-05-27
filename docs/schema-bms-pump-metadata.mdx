@@ -41,18 +41,17 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "engUnit": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -89,10 +88,9 @@ via the parent `oneOf`.
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectName": "string",
   "objectId": "string",
@@ -100,9 +98,9 @@ via the parent `oneOf`.
     "string"
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -141,10 +139,9 @@ via the parent `oneOf`.
 |------|------|----------|-------------|
 | `associateId` | string | Yes | Identifier of the associated entity. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectName": "string",
   "objectId": "string",
@@ -152,6 +149,6 @@ via the parent `oneOf`.
     "string"
   ]
 }
-```
+````
 
-</details>
+</Accordion>

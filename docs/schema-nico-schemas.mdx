@@ -12,8 +12,8 @@ Dpu was discovered by a site-explorer and is being configuring via redfish.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `dpu_states` | [DpuDiscoveringStates](#dpudiscoveringstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [DpuDiscoveringState](#dpudiscoveringstate)\> | Yes |  |
+| `dpu_states` | [DpuDiscoveringStates](schema-nico-schemas#dpudiscoveringstates) | Yes |  |
+| `dpu_states.states` | map\&lt;string, [DpuDiscoveringState](schema-nico-schemas#dpudiscoveringstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpudiscoveringstate` |
 
 ### dpuinit
@@ -22,8 +22,8 @@ DPU is not yet ready.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `dpu_states` | [DpuInitStates](#dpuinitstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [DpuInitState](#dpuinitstate)\> | Yes |  |
+| `dpu_states` | [DpuInitStates](schema-nico-schemas#dpuinitstates) | Yes |  |
+| `dpu_states.states` | map\&lt;string, [DpuInitState](schema-nico-schemas#dpuinitstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpuinit` |
 
 ### hostinit
@@ -32,7 +32,7 @@ DPU is ready, Host is not yet Ready.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `machine_state` | [MachineState](#machinestate) | Yes |  |
+| `machine_state` | [MachineState](schema-nico-schemas#machinestate) | Yes |  |
 | `state` | string | Yes | Values: `hostinit` |
 
 ### validation
@@ -42,7 +42,7 @@ Host validation state for machine and DPU validation
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `validation` |
-| `validation_state` | [ValidationState](#validationstate) | Yes |  |
+| `validation_state` | [ValidationState](schema-nico-schemas#validationstate) | Yes |  |
 
 ### ready
 
@@ -58,7 +58,7 @@ Host is assigned to an Instance.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `instance_state` | [InstanceState](#instancestate) | Yes | Possible Instance state-machine implementation, for when the machine host is assigned to a tenant |
+| `instance_state` | [InstanceState](schema-nico-schemas#instancestate) | Yes | Possible Instance state-machine implementation, for when the machine host is assigned to a tenant |
 | `state` | string | Yes | Values: `assigned` |
 
 ### waitingforcleanup
@@ -67,7 +67,7 @@ Some cleanup is going on.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `cleanup_state` | [CleanupState](#cleanupstate) | Yes |  |
+| `cleanup_state` | [CleanupState](schema-nico-schemas#cleanupstate) | Yes |  |
 | `state` | string | Yes | Values: `waitingforcleanup` |
 
 ### forcedeletion
@@ -92,11 +92,11 @@ Machine moved to failed state. Recovery will be based on FailedCause
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `details` | [FailureDetails](#failuredetails) | Yes |  |
-| `details.cause` | [FailureCause](#failurecause) | Yes |  |
+| `details` | [FailureDetails](schema-nico-schemas#failuredetails) | Yes |  |
+| `details.cause` | [FailureCause](schema-nico-schemas#failurecause) | Yes |  |
 | `details.failed_at` | string (date-time) | Yes |  |
-| `details.source` | [FailureSource](#failuresource) | Yes |  |
-| `machine_id` | [MachineId](#machineid) | Yes |  |
+| `details.source` | [FailureSource](schema-nico-schemas#failuresource) | Yes |  |
+| `machine_id` | [MachineId](schema-nico-schemas#machineid) | Yes |  |
 | `retry_count` | integer (uint32) | No |  |
 | `state` | string | Yes | Values: `failed` |
 
@@ -106,8 +106,8 @@ State used to indicate that DPU reprovisioning is going on.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `dpu_states` | [DpuReprovisionStates](#dpureprovisionstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
+| `dpu_states` | [DpuReprovisionStates](schema-nico-schemas#dpureprovisionstates) | Yes |  |
+| `dpu_states.states` | map\&lt;string, [ReprovisionState](schema-nico-schemas#reprovisionstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
 
 ### hostreprovision
@@ -116,7 +116,7 @@ State used to indicate that host reprovisioning is going on
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `reprovision_state` | [HostReprovisionState](#hostreprovisionstate) | Yes |  |
+| `reprovision_state` | [HostReprovisionState](schema-nico-schemas#hostreprovisionstate) | Yes |  |
 | `retry_count` | integer (uint32) | No |  |
 | `state` | string | Yes | Values: `hostreprovision` |
 
@@ -126,21 +126,21 @@ State used to indicate the API is currently waiting on the machine to send attes
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
+| `measuring_state` | [MeasuringState](schema-nico-schemas#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `measuring` |
 
 ### postassignedmeasuring
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
+| `measuring_state` | [MeasuringState](schema-nico-schemas#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `postassignedmeasuring` |
 
 ### bomvalidating
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `bom_validating_state` | [BomValidating](#bomvalidating) | Yes |  |
+| `bom_validating_state` | [BomValidating](schema-nico-schemas#bomvalidating) | Yes |  |
 | `state` | string | Yes | Values: `bomvalidating` |
 
 ---
@@ -158,7 +158,7 @@ State used to indicate the API is currently waiting on the machine to send attes
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bmcfirmwareupdatesubstate` | string | Yes | Values: `waitforupdatecompletion` |
-| `firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
 | `task_id` | string | Yes |  |
 
 ### Variant 3
@@ -201,49 +201,49 @@ State used to indicate the API is currently waiting on the machine to send attes
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `MatchingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `MatchingSku.machine_validation_context` | string | null | No |  |
-| `MatchingSku.reboot_retry_count` | integer | null | No |  |
+| `MatchingSku` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `MatchingSku.machine_validation_context` | string or null | No |  |
+| `MatchingSku.reboot_retry_count` | integer or null | No |  |
 
 ### Variant 2
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `UpdatingInventory` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `UpdatingInventory.machine_validation_context` | string | null | No |  |
-| `UpdatingInventory.reboot_retry_count` | integer | null | No |  |
+| `UpdatingInventory` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `UpdatingInventory.machine_validation_context` | string or null | No |  |
+| `UpdatingInventory.reboot_retry_count` | integer or null | No |  |
 
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `VerifyingSku` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `VerifyingSku.machine_validation_context` | string | null | No |  |
-| `VerifyingSku.reboot_retry_count` | integer | null | No |  |
+| `VerifyingSku` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `VerifyingSku.machine_validation_context` | string or null | No |  |
+| `VerifyingSku.reboot_retry_count` | integer or null | No |  |
 
 ### Variant 4
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `SkuVerificationFailed` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuVerificationFailed.machine_validation_context` | string | null | No |  |
-| `SkuVerificationFailed.reboot_retry_count` | integer | null | No |  |
+| `SkuVerificationFailed` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `SkuVerificationFailed.machine_validation_context` | string or null | No |  |
+| `SkuVerificationFailed.reboot_retry_count` | integer or null | No |  |
 
 ### Variant 5
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `WaitingForSkuAssignment` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `WaitingForSkuAssignment.machine_validation_context` | string | null | No |  |
-| `WaitingForSkuAssignment.reboot_retry_count` | integer | null | No |  |
+| `WaitingForSkuAssignment` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `WaitingForSkuAssignment.machine_validation_context` | string or null | No |  |
+| `WaitingForSkuAssignment.reboot_retry_count` | integer or null | No |  |
 
 ### Variant 6
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `SkuMissing` | [BomValidatingContext](#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
-| `SkuMissing.machine_validation_context` | string | null | No |  |
-| `SkuMissing.reboot_retry_count` | integer | null | No |  |
+| `SkuMissing` | [BomValidatingContext](schema-nico-schemas#bomvalidatingcontext) | Yes | A context for passing information between states thoughout the BOM validation process. |
+| `SkuMissing.machine_validation_context` | string or null | No |  |
+| `SkuMissing.reboot_retry_count` | integer or null | No |  |
 
 ---
 
@@ -253,8 +253,8 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `machine_validation_context` | string | null | No |  |
-| `reboot_retry_count` | integer | null | No |  |
+| `machine_validation_context` | string or null | No |  |
+| `reboot_retry_count` | integer or null | No |  |
 
 ---
 
@@ -270,29 +270,29 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `secure_erase_boss_context` | [SecureEraseBossContext](#secureerasebosscontext) | Yes |  |
+| `secure_erase_boss_context` | [SecureEraseBossContext](schema-nico-schemas#secureerasebosscontext) | Yes |  |
 | `secure_erase_boss_context.boss_controller_id` | string | Yes |  |
-| `secure_erase_boss_context.iteration` | integer | null | No |  |
-| `secure_erase_boss_context.secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_boss_context.secure_erase_jid` | string | null | No |  |
+| `secure_erase_boss_context.iteration` | integer or null | No |  |
+| `secure_erase_boss_context.secure_erase_boss_state` | [SecureEraseBossState](schema-nico-schemas#secureerasebossstate) | Yes |  |
+| `secure_erase_boss_context.secure_erase_jid` | string or null | No |  |
 | `state` | string | Yes | Values: `secureeraseboss` |
 
 ### hostcleanup
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `boss_controller_id` | string | null | No |  |
+| `boss_controller_id` | string or null | No |  |
 | `state` | string | Yes | Values: `hostcleanup` |
 
 ### createbossvolume
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `create_boss_volume_context` | [CreateBossVolumeContext](#createbossvolumecontext) | Yes |  |
+| `create_boss_volume_context` | [CreateBossVolumeContext](schema-nico-schemas#createbossvolumecontext) | Yes |  |
 | `create_boss_volume_context.boss_controller_id` | string | Yes |  |
-| `create_boss_volume_context.create_boss_volume_jid` | string | null | No |  |
-| `create_boss_volume_context.create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `create_boss_volume_context.iteration` | integer | null | No |  |
+| `create_boss_volume_context.create_boss_volume_jid` | string or null | No |  |
+| `create_boss_volume_context.create_boss_volume_state` | [CreateBossVolumeState](schema-nico-schemas#createbossvolumestate) | Yes |  |
+| `create_boss_volume_context.iteration` | integer or null | No |  |
 | `state` | string | Yes | Values: `createbossvolume` |
 
 ### disablebiosbmclockdown
@@ -308,9 +308,9 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `create_boss_volume_jid` | string | null | No |  |
-| `create_boss_volume_state` | [CreateBossVolumeState](#createbossvolumestate) | Yes |  |
-| `iteration` | integer | null | No |  |
+| `create_boss_volume_jid` | string or null | No |  |
+| `create_boss_volume_state` | [CreateBossVolumeState](schema-nico-schemas#createbossvolumestate) | Yes |  |
+| `iteration` | integer or null | No |  |
 
 ---
 
@@ -382,7 +382,7 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `count` | integer (uint32) | Yes |  |
 | `dpudiscoverystate` | string | Yes | Values: `enablesecureboot` |
-| `enable_secure_boot_state` | [SetSecureBootState](#setsecurebootstate) | Yes |  |
+| `enable_secure_boot_state` | [SetSecureBootState](schema-nico-schemas#setsecurebootstate) | Yes |  |
 
 ### Variant 5
 
@@ -410,7 +410,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [DpuDiscoveringState](#dpudiscoveringstate)\> | Yes |  |
+| `states` | map\&lt;string, [DpuDiscoveringState](schema-nico-schemas#dpudiscoveringstate)\> | Yes |  |
 
 ---
 
@@ -421,7 +421,7 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `installdpuos` |
-| `substate` | [InstallDpuOsState](#installdpuosstate) | Yes |  |
+| `substate` | [InstallDpuOsState](schema-nico-schemas#installdpuosstate) | Yes |  |
 
 ### Variant 2
 
@@ -434,7 +434,7 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpustate` | string | Yes | Values: `waitingforplatformpowercycle` |
-| `substate` | [PerformPowerOperation](#performpoweroperation) | Yes |  |
+| `substate` | [PerformPowerOperation](schema-nico-schemas#performpoweroperation) | Yes |  |
 
 ### Variant 4
 
@@ -466,7 +466,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [DpuInitState](#dpuinitstate)\> | Yes |  |
+| `states` | map\&lt;string, [DpuInitState](schema-nico-schemas#dpuinitstate)\> | Yes |  |
 
 ---
 
@@ -474,7 +474,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
+| `states` | map\&lt;string, [ReprovisionState](schema-nico-schemas#reprovisionstate)\> | Yes |  |
 
 ---
 
@@ -553,9 +553,9 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `cause` | [FailureCause](#failurecause) | Yes |  |
+| `cause` | [FailureCause](schema-nico-schemas#failurecause) | Yes |  |
 | `failed_at` | string (date-time) | Yes |  |
-| `source` | [FailureSource](#failuresource) | Yes |  |
+| `source` | [FailureSource](schema-nico-schemas#failuresource) | Yes |  |
 
 ---
 
@@ -569,7 +569,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `statemachinearea` | [StateMachineArea](#statemachinearea) | Yes | Values: `default`, `hostinit`, `mainflow`, `assignedinstance` |
+| `statemachinearea` | [StateMachineArea](schema-nico-schemas#statemachinearea) | Yes | Values: `default`, `hostinit`, `mainflow`, `assignedinstance` |
 
 ---
 
@@ -616,9 +616,9 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `set_boot_order_info` | [SetBootOrderInfo](#setbootorderinfo) | Yes |  |
-| `set_boot_order_info.set_boot_order_jid` | string | null | No |  |
-| `set_boot_order_info.set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
+| `set_boot_order_info` | [SetBootOrderInfo](schema-nico-schemas#setbootorderinfo) | Yes |  |
+| `set_boot_order_info.set_boot_order_jid` | string or null | No |  |
+| `set_boot_order_info.set_boot_order_state` | [SetBootOrderState](schema-nico-schemas#setbootorderstate) | Yes |  |
 | `state` | string | Yes | Values: `setbootorder` |
 
 ### lockhost
@@ -641,7 +641,7 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `initialreset` | object | Yes |  |
 | `initialreset.last_time` | string (date-time) | Yes |  |
-| `initialreset.phase` | [InitialResetPhase](#initialresetphase) | Yes | Values: `start`, `bmcwasreset`, `waithostboot` |
+| `initialreset.phase` | [InitialResetPhase](schema-nico-schemas#initialresetphase) | Yes | Values: `start`, `bmcwasreset`, `waithostboot` |
 
 ### Variant 3
 
@@ -655,9 +655,9 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforupload` | object | Yes |  |
 | `waitingforupload.final_version` | string | Yes |  |
-| `waitingforupload.firmware_number` | integer | null | No |  |
-| `waitingforupload.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforupload.power_drains_needed` | integer | null | No |  |
+| `waitingforupload.firmware_number` | integer or null | No |  |
+| `waitingforupload.firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `waitingforupload.power_drains_needed` | integer or null | No |  |
 
 ### Variant 5
 
@@ -665,10 +665,10 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `waitingforfirmwareupgrade` | object | Yes |  |
 | `waitingforfirmwareupgrade.final_version` | string | Yes |  |
-| `waitingforfirmwareupgrade.firmware_number` | integer | null | No |  |
-| `waitingforfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `waitingforfirmwareupgrade.power_drains_needed` | integer | null | No |  |
-| `waitingforfirmwareupgrade.started_waiting` | string | null | No |  |
+| `waitingforfirmwareupgrade.firmware_number` | integer or null | No |  |
+| `waitingforfirmwareupgrade.firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `waitingforfirmwareupgrade.power_drains_needed` | integer or null | No |  |
+| `waitingforfirmwareupgrade.started_waiting` | string or null | No |  |
 | `waitingforfirmwareupgrade.task_id` | string | Yes |  |
 
 ### Variant 6
@@ -676,11 +676,11 @@ A context for passing information between states thoughout the BOM validation pr
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `resetfornewfirmware` | object | Yes |  |
-| `resetfornewfirmware.delay_until` | integer | null | No |  |
+| `resetfornewfirmware.delay_until` | integer or null | No |  |
 | `resetfornewfirmware.final_version` | string | Yes |  |
-| `resetfornewfirmware.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `resetfornewfirmware.firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
 | `resetfornewfirmware.last_power_drain_operation` | any | No |  |
-| `resetfornewfirmware.power_drains_needed` | integer | null | No |  |
+| `resetfornewfirmware.power_drains_needed` | integer or null | No |  |
 
 ### Variant 7
 
@@ -688,17 +688,17 @@ A context for passing information between states thoughout the BOM validation pr
 |------|------|----------|-------------|
 | `newfirmwarereportedwait` | object | Yes |  |
 | `newfirmwarereportedwait.final_version` | string | Yes |  |
-| `newfirmwarereportedwait.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `newfirmwarereportedwait.previous_reset_time` | integer | null | No |  |
+| `newfirmwarereportedwait.firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `newfirmwarereportedwait.previous_reset_time` | integer or null | No |  |
 
 ### Variant 8
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `failedfirmwareupgrade` | object | Yes |  |
-| `failedfirmwareupgrade.firmware_type` | [FirmwareComponentType](#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
-| `failedfirmwareupgrade.reason` | string | null | No |  |
-| `failedfirmwareupgrade.report_time` | string | null | No |  |
+| `failedfirmwareupgrade.firmware_type` | [FirmwareComponentType](schema-nico-schemas#firmwarecomponenttype) | Yes | Values: `bmc`, `cec`, `uefi`, `nic`, `cpldmb`, `cpldpdb`, `hgxbmc`, `combinedbmcuefi`, ... (10 total) |
+| `failedfirmwareupgrade.reason` | string or null | No |  |
+| `failedfirmwareupgrade.report_time` | string or null | No |  |
 
 ---
 
@@ -803,7 +803,7 @@ Possible Instance state-machine implementation, for when the machine host is ass
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `platform_config_state` | [HostPlatformConfigurationState](#hostplatformconfigurationstate) | Yes |  |
+| `platform_config_state` | [HostPlatformConfigurationState](schema-nico-schemas#hostplatformconfigurationstate) | Yes |  |
 | `state` | string | Yes | Values: `hostplatformconfiguration` |
 
 ### waitingfordpustoup
@@ -836,33 +836,33 @@ Possible Instance state-machine implementation, for when the machine host is ass
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `dpu_states` | [DpuReprovisionStates](#dpureprovisionstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [ReprovisionState](#reprovisionstate)\> | Yes |  |
+| `dpu_states` | [DpuReprovisionStates](schema-nico-schemas#dpureprovisionstates) | Yes |  |
+| `dpu_states.states` | map\&lt;string, [ReprovisionState](schema-nico-schemas#reprovisionstate)\> | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
 
 ### failed
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `details` | [FailureDetails](#failuredetails) | Yes |  |
-| `details.cause` | [FailureCause](#failurecause) | Yes |  |
+| `details` | [FailureDetails](schema-nico-schemas#failuredetails) | Yes |  |
+| `details.cause` | [FailureCause](schema-nico-schemas#failurecause) | Yes |  |
 | `details.failed_at` | string (date-time) | Yes |  |
-| `details.source` | [FailureSource](#failuresource) | Yes |  |
-| `machine_id` | [MachineId](#machineid) | Yes |  |
+| `details.source` | [FailureSource](schema-nico-schemas#failuresource) | Yes |  |
+| `machine_id` | [MachineId](schema-nico-schemas#machineid) | Yes |  |
 | `state` | string | Yes | Values: `failed` |
 
 ### hostreprovision
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `reprovision_state` | [HostReprovisionState](#hostreprovisionstate) | Yes |  |
+| `reprovision_state` | [HostReprovisionState](schema-nico-schemas#hostreprovisionstate) | Yes |  |
 | `state` | string | Yes | Values: `hostreprovision` |
 
 ### networkconfigupdate
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `network_config_update_state` | [NetworkConfigUpdateState](#networkconfigupdatestate) | Yes | Tenant has requested network config update for the existing instance. At this point, instance config, instance network config version are already increased. Values: `waitingfornetworksegmenttoberea... |
+| `network_config_update_state` | [NetworkConfigUpdateState](schema-nico-schemas#networkconfigupdatestate) | Yes | Tenant has requested network config update for the existing instance. At this point, instance config, instance network config version are already increased. Values: `waitingfornetworksegmenttoberea... |
 | `state` | string | Yes | Values: `networkconfigupdate` |
 
 ---
@@ -871,8 +871,8 @@ Possible Instance state-machine implementation, for when the machine host is ass
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `mode` | [LockdownMode](#lockdownmode) | Yes | Whether lockdown should be enabled or disabled in an operation Values: `enable`, `disable` |
-| `state` | [LockdownState](#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
+| `mode` | [LockdownMode](schema-nico-schemas#lockdownmode) | Yes | Whether lockdown should be enabled or disabled in an operation Values: `enable`, `disable` |
+| `state` | [LockdownState](schema-nico-schemas#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
 
 ---
 
@@ -934,15 +934,15 @@ Whether lockdown should be enabled or disabled in an operation
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `state` | string | Yes | Values: `uefisetup` |
-| `uefi_setup_info` | [UefiSetupInfo](#uefisetupinfo) | Yes |  |
-| `uefi_setup_info.uefi_password_jid` | string | null | No |  |
-| `uefi_setup_info.uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
+| `uefi_setup_info` | [UefiSetupInfo](schema-nico-schemas#uefisetupinfo) | Yes |  |
+| `uefi_setup_info.uefi_password_jid` | string or null | No |  |
+| `uefi_setup_info.uefi_setup_state` | [UefiSetupState](schema-nico-schemas#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
 
 ### measuring
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `measuring_state` | [MeasuringState](#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
+| `measuring_state` | [MeasuringState](schema-nico-schemas#measuringstate) | Yes | MeasuringState contains states used for host attestion (or measured boot). |
 | `state` | string | Yes | Values: `measuring` |
 
 ### waitingfordiscovery
@@ -964,9 +964,9 @@ Lockdown handling.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `lockdown_info` | [LockdownInfo](#lockdowninfo) | Yes |  |
-| `lockdown_info.mode` | [LockdownMode](#lockdownmode) | Yes | Whether lockdown should be enabled or disabled in an operation Values: `enable`, `disable` |
-| `lockdown_info.state` | [LockdownState](#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
+| `lockdown_info` | [LockdownInfo](schema-nico-schemas#lockdowninfo) | Yes |  |
+| `lockdown_info.mode` | [LockdownMode](schema-nico-schemas#lockdownmode) | Yes | Whether lockdown should be enabled or disabled in an operation Values: `enable`, `disable` |
+| `lockdown_info.state` | [LockdownState](schema-nico-schemas#lockdownstate) | Yes | Values: `setlockdown`, `timewaitfordpudown`, `waitfordpuup`, `pollinglockdownstatus` |
 | `state` | string | Yes | Values: `waitingforlockdown` |
 
 ---
@@ -1050,14 +1050,14 @@ Tenant has requested network config update for the existing instance. At this po
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `bmcfirmwareupgrade` | object | Yes |  |
-| `bmcfirmwareupgrade.substate` | [BmcFirmwareUpgradeSubstate](#bmcfirmwareupgradesubstate) | Yes |  |
+| `bmcfirmwareupgrade.substate` | [BmcFirmwareUpgradeSubstate](schema-nico-schemas#bmcfirmwareupgradesubstate) | Yes |  |
 
 ### Variant 3
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `installdpuos` | object | Yes |  |
-| `installdpuos.substate` | [InstallDpuOsState](#installdpuosstate) | Yes |  |
+| `installdpuos.substate` | [InstallDpuOsState](schema-nico-schemas#installdpuosstate) | Yes |  |
 
 ---
 
@@ -1074,9 +1074,9 @@ Tenant has requested network config update for the existing instance. At this po
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `boss_controller_id` | string | Yes |  |
-| `iteration` | integer | null | No |  |
-| `secure_erase_boss_state` | [SecureEraseBossState](#secureerasebossstate) | Yes |  |
-| `secure_erase_jid` | string | null | No |  |
+| `iteration` | integer or null | No |  |
+| `secure_erase_boss_state` | [SecureEraseBossState](schema-nico-schemas#secureerasebossstate) | Yes |  |
+| `secure_erase_jid` | string or null | No |  |
 
 ---
 
@@ -1114,8 +1114,8 @@ Tenant has requested network config update for the existing instance. At this po
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `set_boot_order_jid` | string | null | No |  |
-| `set_boot_order_state` | [SetBootOrderState](#setbootorderstate) | Yes |  |
+| `set_boot_order_jid` | string or null | No |  |
+| `set_boot_order_state` | [SetBootOrderState](schema-nico-schemas#setbootorderstate) | Yes |  |
 
 ---
 
@@ -1193,8 +1193,8 @@ Tenant has requested network config update for the existing instance. At this po
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `uefi_password_jid` | string | null | No |  |
-| `uefi_setup_state` | [UefiSetupState](#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
+| `uefi_password_jid` | string or null | No |  |
+| `uefi_setup_state` | [UefiSetupState](schema-nico-schemas#uefisetupstate) | Yes | Substates of enabling/disabling lockdown |
 
 ---
 
@@ -1248,7 +1248,7 @@ Substates of enabling/disabling lockdown
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `machine_validation` | [MachineValidatingState](#machinevalidatingstate) | Yes |  |
+| `machine_validation` | [MachineValidatingState](schema-nico-schemas#machinevalidatingstate) | Yes |  |
 | `validation_type` | string | Yes | Values: `machinevalidation` |
 
 ---

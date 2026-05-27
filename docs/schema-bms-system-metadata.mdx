@@ -35,18 +35,17 @@ BMS-published metadata for all System point types.
 | `pointType` | string | Yes | Values: `HeartbeatTimestampBms` |
 | `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "string",
   "pointType": "HeartbeatTimestampBms",
   "scope": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -60,18 +59,17 @@ BMS-published metadata for all System point types.
 | `pointType` | string | Yes | Values: `HeartbeatEchoBms` |
 | `integration` | string | Yes | Integration whose timestamp is being echoed. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "string",
   "pointType": "HeartbeatEchoBms",
   "integration": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -85,18 +83,17 @@ BMS-published metadata for all System point types.
 | `pointType` | string | Yes | Values: `HearbeatTimestampIntegration` |
 | `integration` | string | Yes | Integration identifier. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "string",
   "pointType": "HearbeatTimestampIntegration",
   "integration": "string"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -111,16 +108,15 @@ BMS-published metadata for all System point types.
 | `integration` | string | Yes | Integration identifier. |
 | `scope` | string | No | BMS scope being echoed (optional). |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "string",
   "pointType": "HeartbeatEchoIntegration",
   "integration": "string",
   "scope": "string"
 }
-```
+````
 
-</details>
+</Accordion>

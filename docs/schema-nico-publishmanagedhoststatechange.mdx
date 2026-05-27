@@ -26,12 +26,11 @@ NICO/v1/machine/{machineId}/state
 |------|------|----------|-------------|
 | `machine_id` | string | Yes | Unique identifier for the managed host machine. |
 | `timestamp` | string (date-time) | Yes | ISO 8601 timestamp of the state change. |
-| `managed_host_state` | [ManagedHostState](#managedhoststate) | Yes | Possible Machine state-machine implementation Possible ManagedHost state-machine implementation Only DPU machine field in DB will contain state. Host will be empty. DPU state field will be used to ... |
+| `managed_host_state` | [ManagedHostState](schema-nico-schemas#managedhoststate) | Yes | Possible Machine state-machine implementation Possible ManagedHost state-machine implementation Only DPU machine field in DB will contain state. Host will be empty. DPU state field will be used to ... |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "machine_id": "string",
   "timestamp": "2026-05-14T12:00:00Z",
@@ -44,6 +43,6 @@ NICO/v1/machine/{machineId}/state
     "state": "dpudiscoveringstate"
   }
 }
-```
+````
 
-</details>
+</Accordion>

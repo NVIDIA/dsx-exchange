@@ -10,7 +10,7 @@ metadata message.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `value` | number | null | Yes | Live reading for the point (float). May be null when the BMS has no valid reading available. |
+| `value` | number or null | Yes | Live reading for the point (float). May be null when the BMS has no valid reading available. |
 | `timestamp` | integer | Yes | Unix timestamp in epoch milliseconds (source event time). |
 | `quality` | integer | Yes | `1` = good quality. Any other integer indicates value is not trustworthy |
 
@@ -371,7 +371,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -391,7 +391,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -411,7 +411,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -501,7 +501,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -521,7 +521,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -541,7 +541,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -561,7 +561,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -616,7 +616,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -636,7 +636,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -656,7 +656,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1285,7 +1285,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1305,7 +1305,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1325,7 +1325,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1345,7 +1345,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1400,7 +1400,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1420,7 +1420,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1440,7 +1440,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1495,7 +1495,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1515,7 +1515,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -1535,7 +1535,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2115,7 +2115,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2135,7 +2135,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2155,7 +2155,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2175,7 +2175,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2195,7 +2195,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2215,7 +2215,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2235,7 +2235,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2255,7 +2255,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2275,7 +2275,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2295,7 +2295,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2365,7 +2365,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2385,7 +2385,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2405,7 +2405,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2495,7 +2495,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2515,7 +2515,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2535,7 +2535,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2555,7 +2555,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2610,7 +2610,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2630,7 +2630,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2650,7 +2650,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2705,7 +2705,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2725,7 +2725,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2745,7 +2745,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2835,7 +2835,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2855,7 +2855,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2875,7 +2875,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2895,7 +2895,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2950,7 +2950,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2970,7 +2970,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -2990,7 +2990,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3045,7 +3045,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3065,7 +3065,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3085,7 +3085,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3175,7 +3175,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3195,7 +3195,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3215,7 +3215,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3235,7 +3235,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3290,7 +3290,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3310,7 +3310,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3330,7 +3330,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3385,7 +3385,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3405,7 +3405,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3425,7 +3425,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3515,7 +3515,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3535,7 +3535,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3555,7 +3555,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3575,7 +3575,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3630,7 +3630,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3650,7 +3650,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3670,7 +3670,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3725,7 +3725,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3745,7 +3745,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3765,7 +3765,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3855,7 +3855,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3875,7 +3875,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3895,7 +3895,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3915,7 +3915,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3970,7 +3970,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -3990,7 +3990,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4010,7 +4010,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4065,7 +4065,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4085,7 +4085,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4105,7 +4105,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4195,7 +4195,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4215,7 +4215,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4235,7 +4235,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4255,7 +4255,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4310,7 +4310,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4330,7 +4330,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4350,7 +4350,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4405,7 +4405,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4425,7 +4425,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4445,7 +4445,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4535,7 +4535,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4555,7 +4555,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4575,7 +4575,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4595,7 +4595,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4650,7 +4650,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4670,7 +4670,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4690,7 +4690,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4749,7 +4749,7 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4804,7 +4804,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4824,7 +4824,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4844,7 +4844,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4934,7 +4934,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4954,7 +4954,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4974,7 +4974,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -4994,7 +4994,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5049,7 +5049,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5069,7 +5069,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5089,7 +5089,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5144,7 +5144,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5164,7 +5164,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5184,7 +5184,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5274,7 +5274,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5294,7 +5294,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5314,7 +5314,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5334,7 +5334,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5389,7 +5389,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5409,7 +5409,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 
@@ -5429,7 +5429,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., [\{value: 0, text: "Off"\}, \{value: 1, text: "On"\}]). |
+| `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 ---
 

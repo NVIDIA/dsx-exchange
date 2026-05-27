@@ -38,10 +38,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `C` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidSupplyTemperature",
@@ -49,9 +48,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "C"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -67,10 +66,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `C` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidReturnTemperature",
@@ -78,9 +76,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "C"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -96,10 +94,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `LPM` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidFlow",
@@ -107,9 +104,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "LPM"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -125,10 +122,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `kPa` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidDifferentialPressure",
@@ -136,9 +132,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "kPa"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -155,10 +151,9 @@ Includes integration-owned points which carries the `integration` field.
 | `engUnit` | string | Yes | Values: `kPa` |
 | `isSetpoint` | boolean | No | Optional inclusion. Indicates this point is a target value written to control equipment behavior. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidDifferentialPressureSp",
@@ -167,9 +162,9 @@ Includes integration-owned points which carries the `integration` field.
   "engUnit": "kPa",
   "isSetpoint": false
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -185,10 +180,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `%` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackControlValvePosition",
@@ -196,9 +190,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "%"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -214,10 +208,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `engUnit` | string | Yes | Values: `kW` |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackPower",
@@ -225,9 +218,9 @@ Includes integration-owned points which carries the `integration` field.
   "rackLocationId": "string",
   "engUnit": "kW"
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -243,10 +236,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak detection. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLeakDetect",
@@ -263,9 +255,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -281,10 +273,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for leak sensor fault status. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLeakSensorFault",
@@ -301,9 +292,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -319,10 +310,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLeakDetectTray",
@@ -339,9 +329,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -357,10 +347,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation status. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidIsolationStatus",
@@ -377,9 +366,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -395,10 +384,9 @@ Includes integration-owned points which carries the `integration` field.
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation status. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackElectricalIsolationStatus",
@@ -415,9 +403,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -434,10 +422,9 @@ Includes integration-owned points which carries the `integration` field.
 | `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for liquid isolation request. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackLiquidIsolationRequest",
@@ -455,9 +442,9 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
 
 ## Message: Message
 
@@ -474,10 +461,9 @@ Includes integration-owned points which carries the `integration` field.
 | `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for electrical isolation request. |
 
-<details>
-<summary>Example payload</summary>
+<Accordion title="Example payload">
 
-```json
+````json
 {
   "objectType": "Rack",
   "pointType": "RackElectricalIsolationRequest",
@@ -495,6 +481,6 @@ Includes integration-owned points which carries the `integration` field.
     }
   ]
 }
-```
+````
 
-</details>
+</Accordion>
