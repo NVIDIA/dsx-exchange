@@ -57,3 +57,12 @@ eventBus:
       mtls: {}
       noauth:
         account: "CPC"
+
+nats:
+  container:
+    env:
+      LEAF_LAUNCHLAYER_USER_SEED:
+        valueFrom:
+          secretKeyRef:
+            name: nats-leaf-launchlayer-csc
+            key: seed

@@ -18,4 +18,4 @@ jobs:
     name: Mark Stale Issues and PRs
     runs-on: linux-amd64-cpu4
     steps:
-      - uses: NVIDIA/dsx-github-actions/.github/actions/stale-check@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/stale-check@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1

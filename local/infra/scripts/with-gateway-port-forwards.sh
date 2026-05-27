@@ -9,6 +9,9 @@ if [ "$#" -eq 0 ]; then
   exit 2
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required" >&2; exit 1; }
 command -v nc >/dev/null 2>&1 || { echo "ERROR: nc is required" >&2; exit 1; }
 
@@ -103,6 +106,9 @@ start_forward() {
 start_forward "CSC MQTT" "kind-csc" 11883 1883
 start_forward "CPC-1 MQTT" "kind-cpc-1" 11884 1883
 start_forward "CPC-2 MQTT" "kind-cpc-2" 11885 1883
+start_forward "CSC NATS" "kind-csc" 14222 4222
+start_forward "CPC-1 NATS" "kind-cpc-1" 14223 4222
+start_forward "CPC-2 NATS" "kind-cpc-2" 14224 4222
 start_forward "CSC MQTT mTLS" "kind-csc" 18883 8883
 start_forward "CSC Keycloak HTTP" "kind-csc" 18080 80
 
@@ -110,6 +116,8 @@ export CSC_BROKER_URL="tcp://127.0.0.1:11883"
 export CPC1_BROKER_URL="tcp://127.0.0.1:11884"
 export CPC2_BROKER_URL="tcp://127.0.0.1:11885"
 export MQTT_BROKERS="CSC=${CSC_BROKER_URL},CPC-1=${CPC1_BROKER_URL},CPC-2=${CPC2_BROKER_URL}"
+export NATS_BROKERS="CSC=nats://127.0.0.1:14222,CPC-1=nats://127.0.0.1:14223,CPC-2=nats://127.0.0.1:14224"
+export LAUNCHLAYER_NKEY_ROOT="${LOCAL_ROOT}/nats/secrets"
 export MQTT_MTLS_BROKER="ssl://localhost:18883"
 export MQTT_TCP_BROKER="${CSC_BROKER_URL}"
 export KEYCLOAK_URL="http://127.0.0.1:18080"

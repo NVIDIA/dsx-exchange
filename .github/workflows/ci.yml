@@ -31,14 +31,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: NVIDIA/dsx-github-actions/.github/actions/commitlint@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/commitlint@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
 
   license-headers:
     name: License Headers
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/license-headers@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/license-headers@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           license: apache
           copyright-holder: "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
@@ -52,7 +52,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           go-version: "1.25.5"
           go-flags: "-mod=vendor"
@@ -63,7 +63,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           go-version: "1.25.5"
           go-flags: "-mod=vendor"
@@ -121,7 +121,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           image: dsx-exchange-auth-callout
           tags: ci-validation
@@ -144,7 +144,7 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: false
-      - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           languages: go
           upload-sarif: "false"
@@ -160,7 +160,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: NVIDIA/dsx-github-actions/.github/actions/trufflehog-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/trufflehog-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           post-pr-comment: "true"
           fail-on-findings: "true"
@@ -172,7 +172,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           image: dsx-exchange-auth-callout
           tags: scan-validation
@@ -180,7 +180,7 @@ jobs:
           dockerfile: auth-callout/build/package/Dockerfile
           platforms: linux/amd64
           push: "false"
-      - uses: NVIDIA/dsx-github-actions/.github/actions/security-container-scan@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/security-container-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           image: dsx-exchange-auth-callout:scan-validation
 
@@ -189,7 +189,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           chart-path: auth-callout/deploy
 
@@ -198,7 +198,7 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           chart-path: deploy/nats-event-bus
           lint: "true"
@@ -229,7 +229,7 @@ jobs:
       CI_STATUS: ${{ contains(needs.*.result, 'failure') && 'FAILED' || 'PASSED' }}
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - uses: NVIDIA/dsx-github-actions/.github/actions/slack-notify@739847ddf00fda38916504ef84e1f504eac3158f # v1.16.0
+      - uses: NVIDIA/dsx-github-actions/.github/actions/slack-notify@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: C09VC8R4E92

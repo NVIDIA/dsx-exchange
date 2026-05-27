@@ -68,3 +68,13 @@ auth-callout:
         secretKeyRef:
           name: nats-leaf-cpc-2
           key: pubkey
+    NKEY_LEAF_LAUNCHLAYER_CPC_1_PUBKEY:
+      valueFrom:
+        secretKeyRef:
+          name: nats-leaf-launchlayer-cpc-1
+          key: pubkey
+    NKEY_LEAF_LAUNCHLAYER_CPC_2_PUBKEY:
+      valueFrom:
+        secretKeyRef:
+          name: nats-leaf-launchlayer-cpc-2
+          key: pubkey
