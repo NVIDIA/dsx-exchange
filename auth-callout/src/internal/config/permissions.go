@@ -14,7 +14,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
 
-	nvconfig "gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config"
+	nvconfig "gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config"
 )
 
 const permissionsReloadPollingInterval = 5 * time.Second

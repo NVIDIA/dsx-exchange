@@ -55,6 +55,19 @@ Every source file requires an SPDX header:
 
 CI checks this. Run `make add-license-headers` to fix.
 
+## Third-party licenses
+
+Regenerate `THIRD_PARTY_LICENSES.csv` when dependencies change in any Go
+module (`auth-callout/`, `local/mqtt-client/`, `local/mqttbs/`). Use the repo
+target instead of editing it by hand:
+
+```bash
+make third-party-licenses
+```
+
+Include the regenerated CSV in the same branch as the dependency change that
+made it stale.
+
 ## Go conventions
 
 - Go modules use vendored dependencies (`-mod=vendor`).

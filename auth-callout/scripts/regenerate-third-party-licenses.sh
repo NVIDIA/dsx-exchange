@@ -22,9 +22,58 @@ if [[ -z "${GOCACHE:-}" ]]; then
 	cache_dir="$(mktemp -d)"
 	export GOCACHE="$cache_dir"
 fi
+raw_licenses="$(mktemp)"
 licenses="$(mktemp)"
 warnings="$(mktemp)"
-trap 'rm -f "$licenses" "$warnings"; if [[ -n "$cache_dir" ]]; then rm -rf "$cache_dir"; fi' EXIT
+trap 'rm -f "$raw_licenses" "$licenses" "$warnings"; if [[ -n "$cache_dir" ]]; then rm -rf "$cache_dir"; fi' EXIT
+
+spdx_license_for_package() {
+	local package_dir="$auth_dir/vendor/$1"
+	if [[ ! -d "$package_dir" ]]; then
+		return 0
+	fi
+
+	local package_licenses
+	package_licenses="$(
+		find "$package_dir" -type f -print0 |
+			xargs -0 awk '
+				/SPDX-License-Identifier:/ {
+					sub(/^.*SPDX-License-Identifier:[[:space:]]*/, "")
+					gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+					print
+				}
+			' |
+			sort -u
+	)"
+
+	if [[ -z "$package_licenses" ]]; then
+		return 0
+	fi
+
+	if [[ "$(printf '%s\n' "$package_licenses" | wc -l | tr -d ' ')" != "1" ]]; then
+		return 0
+	fi
+
+	printf '%s' "$package_licenses"
+}
+
+normalize_license_report() {
+	local package_name
+	local license_url
+	local license_name
+	local spdx_license
+
+	while IFS=, read -r package_name license_url license_name; do
+		if [[ "$license_url" == "Unknown" && "$license_name" == "Unknown" ]]; then
+			spdx_license="$(spdx_license_for_package "$package_name")"
+			if [[ -n "$spdx_license" ]]; then
+				license_name="$spdx_license"
+			fi
+		fi
+
+		printf '%s,%s,%s\n' "$package_name" "$license_url" "$license_name"
+	done < "$raw_licenses" > "$licenses"
+}
 
 report_module() {
 	local module_dir="$1"
@@ -33,7 +82,7 @@ report_module() {
 	if ! (
 		cd "$module_dir"
 		GOOS=linux GOARCH=amd64 GOFLAGS="$goflags" "$go_licenses" report ./...
-	) 2>> "$warnings" | awk -F, '$1 !~ /^github\.com\/NVIDIA\/dsx-exchange\//' >> "$licenses"; then
+	) 2>> "$warnings" | awk -F, '$1 !~ /^github\.com\/NVIDIA\/dsx-exchange\//' >> "$raw_licenses"; then
 		cat "$warnings" >&2
 		exit 1
 	fi
@@ -41,10 +90,13 @@ report_module() {
 
 report_module "$auth_dir" "-mod=vendor"
 report_module "$repo_dir/local/mqtt-client" ""
+report_module "$repo_dir/local/mqttbs" ""
 
 if [[ -n "${DSX_LICENSE_VERBOSE:-}" && -s "$warnings" ]]; then
 	cat "$warnings" >&2
 fi
+
+normalize_license_report
 
 # go-licenses v1 still supports vendored module projects, but its classifier
 # collapses some multi-license packages to the first detected license.
