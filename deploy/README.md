@@ -306,7 +306,7 @@ global:
           sectionName: nats-leafnode
         mqttMtls:
           enabled: true
-          kind: TCPRoute
+          kind: TLSRoute
           gatewayName: shared-gateway
           gatewayNamespace: envoy-gateway-system
           sectionName: mqtt-mtls
@@ -728,14 +728,14 @@ References:
 
 ## Exposed Ports
 
-External access via Envoy Gateway TCPRoutes:
+External access via Envoy Gateway TCPRoutes/TLSRoutes:
 
 | Port | Protocol | Service | Description |
 |------|----------|---------|-------------|
 | 1883 | MQTT | nats | Standard MQTT 3.1.1 (TLS terminated at Envoy) |
 | 4222 | NATS | nats | NATS client connections |
 | 7422 | NATS | nats | Leaf node connections (cross-cluster federation) |
-| 8883 | MQTT | nats-mtls | mTLS MQTT 3.1.1 (TCP passthrough, TLS at NATS pod) |
+| 8883 | MQTT | nats-mtls | mTLS MQTT 3.1.1 (TLS passthrough to NATS pod) |
 
 ### Internal Services
 

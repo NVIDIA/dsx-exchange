@@ -211,7 +211,7 @@ global:
           # hostnames: []  # Optional: only used when kind is TLSRoute
         mqttMtls:
           enabled: true
-          kind: TCPRoute  # TCPRoute or TLSRoute
+          kind: TLSRoute  # TLSRoute preserves the client certificate chain for mTLS
           gatewayName: shared-gateway
           gatewayNamespace: envoy-gateway-system
           sectionName: mqtt-mtls

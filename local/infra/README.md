@@ -116,7 +116,7 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 
 **Usage:**
 
-The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system` namespace and provides TCP listeners for NATS (ports 1883, 4222, 7422, 8883) and HTTP listener (port 80) for Keycloak.
+The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system` namespace and provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS passthrough listener for mTLS MQTT (port 8883), and an HTTP listener (port 80) for Keycloak.
 
 Example HTTPRoute for Keycloak:
 
