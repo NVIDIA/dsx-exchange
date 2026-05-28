@@ -1,8 +1,8 @@
 # Pre-Deployment
 
-Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, Vault integration, certificate management, and Gateway setup.
+Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, certificate management, and Gateway setup.
 
-**Estimated time**: The production path (Vault + VSO + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
+**Estimated time**: The production path (secrets pipeline + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
 
 ## Infrastructure Prerequisites
 
@@ -149,75 +149,22 @@ secrets/{cluster}/
     xkey.nk
 ```
 
-## Vault Integration (Reference Example)
+## Secrets Pipeline
 
-The interface for secrets is Kubernetes Secrets — any pipeline that materializes them works. The reference deployment uses Vault:
+The event bus consumes Kubernetes Secrets — it does not interact with any secrets backend directly. Any pipeline that materializes the secrets listed in [Required Secrets](#required-secrets) into the target namespace before `helm install` will work. The Helm chart does not assume Vault, sealed-secrets, external-secrets, or any other specific provider.
 
-- **KV Secret Engine** — stores NKeys and seeds
-- **PKI Secret Engine** — Root CA and certificate issuance
-- **Vault Secrets Operator** — materializes Vault KV secrets into Kubernetes secrets
-- **Vault Agent Injector** — injects secrets directly into the auth-callout pod
+The project's reference deployment uses HashiCorp Vault with the Vault Secrets Operator (VSO) to materialize secrets and the Vault Agent Injector for auth-callout seed injection. For Vault and VSO installation, configuration, K8s auth methods, policies, and PKI setup, see the HashiCorp documentation:
 
-```mermaid
-flowchart TB
-    subgraph Vault[Vault]
-        PKI[PKI Engine — Root CA]
-        KV[KV Store — NKeys and Seeds]
-    end
+- [Vault on Kubernetes](https://developer.hashicorp.com/vault/docs/deploy/kubernetes)
+- [Vault Secrets Operator](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso)
+- [KV Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/kv)
+- [PKI Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/pki)
 
-    subgraph K8s[Kubernetes Cluster]
-        CM[Cert-Manager]
-        VSO[Vault Secrets Operator]
-        VSS[VaultStaticSecret Resources]
-
-        subgraph Gateway[Gateway API Controller]
-            GW_Listeners[Listeners — MQTT: 1883, 8883 / NATS: 4222, 7422]
-        end
-
-        subgraph EventBus[DSX Event Bus]
-            NATS[NATS Pods — Main + mTLS]
-            AuthCallout[Auth Callout]
-            NACK[NACK Controller]
-        end
-    end
-
-    PKI -->|issues certificates| CM
-    CM -->|server certs| GW_Listeners
-    CM -->|mTLS server certs| NATS
-    CM -->|client certs| AuthCallout
-
-    KV -->|reads secrets| VSO
-    VSO -->|syncs via| VSS
-    VSS -.->|creates K8s secrets| NATS
-    KV -.->|secrets injected| AuthCallout
-    VSS -.->|creates K8s secrets| NACK
-
-    GW_Listeners -->|routes traffic| NATS
-    AuthCallout -->|authenticates| NATS
-    NACK -->|manages streams| NATS
-```
-
-### VaultStaticSecret Example
-
-```yaml
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
-  name: nack-user
-spec:
-  type: kv-v2
-  vaultAuthRef: vault-secrets-operator-system/vault-auth
-  mount: kv/components
-  path: event-bus/nack-user
-  destination:
-    name: nack-user
-    create: true
-    type: "Opaque"
-```
+[OpenBao](https://openbao.org/) is an open-source fork of Vault with a compatible API and may be used as a drop-in alternative.
 
 ## Certificate Management
 
-cert-manager with a Vault Issuer handles TLS certificate lifecycle. Vault's PKI engine issues certificates signed by the event bus Root CA.
+cert-manager handles TLS certificate lifecycle. The Issuer can be backed by any supported provider (Vault PKI, self-signed, ACME, etc.). The reference deployment uses a Vault Issuer with PKI engine certificates signed by the event bus Root CA.
 
 ### Server TLS Certificate
 

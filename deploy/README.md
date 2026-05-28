@@ -427,7 +427,7 @@ The NATS config uses `<< $VAR >>` placeholders resolved at container runtime. Th
 
 ## Recommended Setup
 
-For production deployment with Vault, cert-manager, and Gateway configuration,
+For production deployment with secrets pipeline, cert-manager, and Gateway configuration,
 see [docs/pre-deployment.md](../docs/pre-deployment.md) and
 [docs/getting-started.md](../docs/getting-started.md).
 
