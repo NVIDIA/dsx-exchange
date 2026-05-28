@@ -23,8 +23,9 @@ cd dsx-exchange
 make check
 ```
 
-If you already have a DSX Exchange broker and only need to publish your first
-message, start with the [Integrator Quickstart](docs/integrator-quickstart.md).
+If you already have a DSX Exchange broker and need to build or test an MQTT
+integration application, start with the
+[Integrator Quickstart](docs/integrator-quickstart.md).
 
 For local end-to-end validation, create the Kind environment and deploy NATS:
 

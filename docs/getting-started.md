@@ -16,7 +16,9 @@ make -C local validate-nats     # Verify connectivity
 
 See `local/README.md` for the full set of evaluation targets including functional tests, performance benchmarks, and MQTT client tooling.
 
-If you already have access to a running broker and only need to publish your first message, use the [Integrator Quickstart](integrator-quickstart.md) instead of this operator deployment flow.
+If you already have access to a running broker and need to build or test an MQTT
+integration application, use the [Integrator Quickstart](integrator-quickstart.md)
+instead of this operator deployment flow.
 
 The rest of this page covers the production deployment path.
 
