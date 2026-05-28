@@ -44,6 +44,9 @@ navigation:
       - page: Deployment
         path: ../docs/getting-started.md
         slug: deployment
+      - page: Integrator Quickstart
+        path: ../docs/integrator-quickstart.md
+        slug: integrator-quickstart
       - page: Operations
         path: ../docs/operations.md
         slug: operations
