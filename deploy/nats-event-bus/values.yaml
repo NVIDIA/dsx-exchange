@@ -59,7 +59,9 @@ global:
     # Used to generate leaf node users for cross-cluster connections.
     cpcIds: []  # e.g., ["1", "2"]
 
-    # Cross-layer subject routing configuration
+    # Cross-layer subject routing configuration.
+    # IMPORTANT: The three lists must not overlap. A subject that appears in more
+    # than one list creates cyclic NATS imports that crash the NATS pod.
     crossLayer:
       # Subjects CSC exports to all CPCs (imported unmodified)
       cscExports: []

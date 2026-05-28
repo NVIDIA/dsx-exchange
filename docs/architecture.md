@@ -128,6 +128,8 @@ Cross-layer configuration controls which topics are copied between CPC local and
 
 Routing is enforced by NATS account import/export rules generated from `global.eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
 
+**The three lists must not overlap.** A subject pattern that appears in more than one list creates cyclic NATS imports that crash the NATS pod (CrashLoopBackOff) with no user-facing error at install time.
+
 ## MQTT Support
 
 NATS provides native MQTT 3.1.1 support. MQTT topic separators (`/`) are mapped to NATS subject tokens (`.`) — for example, the MQTT topic `telemetry/temp` becomes the NATS subject `telemetry.temp`. This mapping is transparent to MQTT clients.

@@ -154,6 +154,8 @@ Cross-layer settings control which topics are copied between the CPC local topic
 | CSC to all CPCs | `cscExports` | Broadcast to all CPC topic spaces |
 | CSC to specific CPC | `cscPrefixedExports` | `cpc.{id}.` prefix stripped on delivery |
 
+**The three lists must not overlap.** A subject pattern that appears in more than one list creates cyclic NATS imports that crash the NATS pod (CrashLoopBackOff) with no user-facing error at install time.
+
 ## Gateway Configuration
 
 Configure Gateway API listeners and TCPRoute/TLSRoute resources for external access:
