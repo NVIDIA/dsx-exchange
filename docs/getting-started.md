@@ -49,8 +49,9 @@ Version-pinned where there is a known compatibility break; see [Pre-Deployment](
 
 1. Infrastructure (Gateway API controller, MetalLB, cert-manager)
 2. Keycloak or OIDC provider (if using OAuth2)
-3. CSC cluster event bus
-4. CPC cluster event buses (connect to CSC via leaf nodes)
+3. Build the auth-callout container image — see [Pre-Deployment](pre-deployment.md#auth-callout-container-image)
+4. CSC cluster event bus
+5. CPC cluster event buses (connect to CSC via leaf nodes)
 
 ## Secrets
 

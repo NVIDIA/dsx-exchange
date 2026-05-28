@@ -15,8 +15,12 @@ registry:
   username: ""
   password: ""
 
+# IMPORTANT: This image is NOT published to a public registry.
+# You MUST build it from source (make -C auth-callout docker-build),
+# push to your own registry, and set repository/tag below.
+# See docs/pre-deployment.md for the full workflow.
 image:
-  repository: ghcr.io/nvidia/dsx-exchange/auth-callout
+  repository: registry.example.com/dsx-exchange/auth-callout
   pullPolicy: IfNotPresent
   tag: ""
 

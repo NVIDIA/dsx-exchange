@@ -130,6 +130,16 @@ Subject wildcards: `*` matches one token, `>` matches one or more tokens.
 
 See https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization for details.
 
+## Building the Container Image
+
+The auth-callout image is not published to a public registry. Build it from source and push to your own registry before deploying:
+
+```bash
+make docker-build        # Produces auth-callout:latest
+```
+
+Set `auth-callout.image.repository` and `auth-callout.image.tag` in your Helm values to point at your registry. See [Pre-Deployment](../docs/pre-deployment.md#auth-callout-container-image) for the full workflow.
+
 ## Development
 
 ### Prerequisites

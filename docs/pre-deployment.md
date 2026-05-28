@@ -35,6 +35,28 @@ The following must be installed in each Kubernetes cluster before deploying the 
 
 Keycloak or another OIDC provider is required if using OAuth2 authentication.
 
+## Auth-Callout Container Image
+
+The auth-callout container image is not published to a public registry. Operators must build the image from source and push it to their own container registry before deploying the Helm chart.
+
+```bash
+make -C auth-callout docker-build
+# Produces auth-callout:latest
+
+# Tag and push to your registry
+docker tag auth-callout:latest registry.example.com/dsx-exchange/auth-callout:latest
+docker push registry.example.com/dsx-exchange/auth-callout:latest
+```
+
+Then set the image in your Helm values:
+
+```yaml
+auth-callout:
+  image:
+    repository: registry.example.com/dsx-exchange/auth-callout
+    tag: latest
+```
+
 ## Required Secrets
 
 All secrets must be provisioned before `helm install`. Secret names and keys are overridable in Helm values; these are the defaults.
