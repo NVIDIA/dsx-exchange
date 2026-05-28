@@ -8,7 +8,7 @@ global-theme: nvidia
 instances:
   - url: nvidia-dsx-exchange.docs.buildwithfern.com/dsx-exchange
     # uncomment when production domain is ready
-    # custom-domain: docs.nvidia.com/dsx-exchange
+    custom-domain: docs.nvidia.com/dsx-exchange
     multi-source: true
 
 title: DSX Exchange
@@ -34,6 +34,7 @@ layout:
 
 navigation:
   - section: DSX Exchange
+    skip-slug: true
     contents:
       - page: Architecture
         path: ../docs/architecture.md
