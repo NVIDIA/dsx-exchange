@@ -4,6 +4,19 @@ Everything that must be in place before deploying the DSX Event Bus. This covers
 
 **Estimated time**: The production path (secrets pipeline + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
 
+## Host Prerequisites
+
+The 3-cluster Kind topology (CSC + 2 CPCs) creates enough kubelets, containerd shims, gateway controllers, and fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
+
+Set these sysctl parameters on the host before creating clusters:
+
+```bash
+sudo sysctl -w fs.inotify.max_user_instances=8192
+sudo sysctl -w fs.inotify.max_user_watches=524288
+```
+
+To persist across reboots, add to `/etc/sysctl.d/` or equivalent for your OS. macOS does not use inotify; see `local/README.md` for macOS-specific setup (MetalLB networking).
+
 ## Infrastructure Prerequisites
 
 The following must be installed in each Kubernetes cluster before deploying the event bus. Components are version-pinned where there is a known API or compatibility break; unpinned components work with any recent release.
