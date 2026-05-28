@@ -35,13 +35,8 @@ configuration.
 
 ## Connection Settings
 
-Set the broker endpoint and topic you received from the operator:
-
-```bash
-export DSX_MQTT_HOST=broker.example.com
-export DSX_MQTT_PORT=1883
-export DSX_MQTT_TOPIC=test/hello
-```
+Set the broker endpoint, authentication material, and topic configuration you
+received from the operator in your application configuration.
 
 If you are using the local evaluation environment and it is already deployed,
 start the broker port forwards in one terminal and leave that terminal open
@@ -63,13 +58,8 @@ export DSX_MQTT_PORT=11883
 export DSX_MQTT_TOPIC=test/hello
 ```
 
-For OAuth2 clients, pass the token through your SDK's username/password connect
-options:
-
-```bash
-export DSX_MQTT_USERNAME=oauth2token
-export DSX_MQTT_PASSWORD="<access-token>"
-```
+For OAuth2 clients, set the MQTT username to `oauthtoken` and pass the access
+token as the MQTT password.
 
 For mTLS clients, configure the SDK's TLS options with the CA certificate, client
 certificate, and client key supplied by the operator.

@@ -806,7 +806,7 @@ kubectl get pods -n dsx
 
 # Test MQTT connectivity
 mqttx pub -h $GATEWAY_IP -p 1883 -t test/topic -m "hello" \
-  -u "oauth2" -P "$ACCESS_TOKEN" -V 3.1.1
+  -u "oauthtoken" -P "$ACCESS_TOKEN" -V 3.1.1
 
 # Or test NATS connectivity
 nats pub test.topic "hello" --server nats://$GATEWAY_IP:4222

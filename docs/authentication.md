@@ -36,7 +36,7 @@ sequenceDiagram
 
 ### OAuth2 (JWT/JWKS)
 
-Clients connect with a username of `oauth2token` and an access token as the password. The auth-callout validates the token against the OIDC provider's JWKS endpoint and matches the token's `azp` (authorized party) or `subject` claim to a permissions entry.
+Clients connect with a username of `oauthtoken` and an access token as the password. The auth-callout validates the token against the OIDC provider's JWKS endpoint and matches the token's `azp` (authorized party) or `subject` claim to a permissions entry.
 
 Configure the JWKS endpoint and issuer in the Helm values:
 
