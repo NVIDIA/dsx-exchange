@@ -19,19 +19,13 @@ setup, see [Deployment](getting-started.md).
 - Broker host, port, and authentication details from the operator.
 - Topic permissions for the messages your integration will publish or subscribe.
 - An MQTT SDK for the language or platform your application uses.
-- Optional debug tooling such as `mqttx` or `mosquitto-clients`.
+- Optional debug tooling such as `mqttx`.
 - Network access to the broker's MQTT listener.
 
-The local evaluation CSC broker provides a noauth debug path that allows
-publishing and subscribing on `test.>`. This is the NATS subject permission for
-MQTT topic `test/hello`. The broker maps MQTT `/` topic separators to NATS `.`
-subjects.
-
-For production brokers, confirm the configured authentication mode and topic
-permissions with the operator. Most software integrations should use OAuth2.
-BMS, OT, and device integrations commonly use mTLS with client certificates.
-See [Authentication](authentication.md) for OAuth2, mTLS, NKey, and noauth
-configuration.
+For authentication and topic permission configuration, see
+[Authentication](authentication.md). Most software integrations should use
+OAuth2. BMS, OT, and device integrations commonly use mTLS with client
+certificates.
 
 ## Connection Settings
 
