@@ -88,12 +88,49 @@ serviceConfig:
 
 ### mTLS Configuration
 
-For mTLS authentication, configure the CA certificate path:
+For mTLS authentication, mount the CA Secret and set the auth-callout CA path:
 
 ```yaml
 serviceConfig:
   mtls:
-    ca-path: "/etc/ssl/certs/ca.crt"
+    ca-path: "/etc/mtls-ca/ca.crt"
+
+extraVolumeMounts:
+  - name: mtls-ca
+    mountPath: /etc/mtls-ca
+    readOnly: true
+
+extraVolumes:
+  - name: mtls-ca
+    secret:
+      secretName: my-mtls-ca
+      items:
+        - key: ca.crt
+          path: ca.crt
+```
+
+Parent charts can use templated snippets when the mount depends on values
+visible to this subchart, such as `global`:
+
+```yaml
+extraVolumeMountTemplates:
+  - |
+    {{- if .Values.global.eventBus.mtls.enabled }}
+    - name: mtls-ca
+      mountPath: /etc/mtls-ca
+      readOnly: true
+    {{- end }}
+
+extraVolumeTemplates:
+  - |
+    {{- if .Values.global.eventBus.mtls.enabled }}
+    - name: mtls-ca
+      secret:
+        secretName: my-mtls-ca
+        items:
+          - key: ca.crt
+            path: ca.crt
+    {{- end }}
 ```
 
 ## Permissions Configuration

@@ -7,7 +7,11 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -476,7 +480,6 @@ func TestOAuth2RequiredScope(t *testing.T) {
 
 // TestMTLSAuthentication tests mTLS client certificate authentication
 func TestMTLSAuthentication(t *testing.T) {
-	// Create a test permissions file
 	permFile := createTestPermissionsFile(t)
 	defer os.Remove(permFile)
 
@@ -484,28 +487,24 @@ func TestMTLSAuthentication(t *testing.T) {
 	require.NoError(t, err)
 	defer pm.Close()
 
-	// Initialize mTLS authenticator without CA (for testing)
-	mtlsAuth, err := NewMTLSAuthenticator(nil, pm, testLogger(), testServiceName)
+	caPEM, caKey := createTestCA(t)
+	clientCertPEM := createClientCert(t, "device1", caPEM, caKey)
+
+	mtlsAuth, err := NewMTLSAuthenticator(caPEM, pm, testLogger(), testServiceName)
 	require.NoError(t, err)
 
-	// Test certificate (self-signed for testing)
-	testCertPEM := `-----BEGIN CERTIFICATE-----
-MIICxjCCAa4CCQDFPx3qvE6Y1DANBgkqhkiG9w0BAQsFADAkMQswCQYDVQQGEwJV
-UzEVMBMGA1UEAwwMQ049ZGV2aWNlMQ==
------END CERTIFICATE-----`
+	profile, err := mtlsAuth.Authenticate(context.Background(), clientCertPEM)
+	require.NoError(t, err)
+	require.NotNil(t, profile)
+	assert.Equal(t, "device1", profile.Name)
+	assert.Equal(t, "APP1", profile.Account)
 
-	// This would fail without a valid cert, but tests the flow
-	profile, err := mtlsAuth.Authenticate(context.Background(), testCertPEM)
-	if err != nil {
-		t.Logf("mTLS authentication failed (expected with test cert): %v", err)
-		return
-	}
+	otherCAPEM, otherCAKey := createTestCA(t)
+	untrustedCertPEM := createClientCert(t, "device1", otherCAPEM, otherCAKey)
 
-	if profile == nil {
-		t.Error("Expected non-nil profile")
-	}
-
-	t.Logf("mTLS authentication successful for profile: %s", profile.Name)
+	_, err = mtlsAuth.Authenticate(context.Background(), untrustedCertPEM)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "certificate validation failed")
 }
 
 // TestNKeyAuthentication tests NKey authentication
@@ -767,4 +766,53 @@ func createTestPermissionsFile(t *testing.T) string {
 
 	tmpFile.Close()
 	return tmpFile.Name()
+}
+
+func createTestCA(t *testing.T) ([]byte, *rsa.PrivateKey) {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber:          big.NewInt(time.Now().UnixNano()),
+		Subject:               pkix.Name{CommonName: "test-ca"},
+		NotBefore:             time.Now().Add(-time.Minute),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), key
+}
+
+func createClientCert(t *testing.T, commonName string, caPEM []byte, caKey *rsa.PrivateKey) string {
+	t.Helper()
+
+	block, _ := pem.Decode(caPEM)
+	require.NotNil(t, block)
+
+	caCert, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		Subject:      pkix.Name{CommonName: commonName},
+		NotBefore:    time.Now().Add(-time.Minute),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, caCert, &key.PublicKey, caKey)
+	require.NoError(t, err)
+
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}))
 }

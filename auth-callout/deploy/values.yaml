@@ -55,6 +55,14 @@ extraVolumes:
   #   configMap:
   #     name: my-configmap
 
+# Additional templated volume snippets.
+# Use when volume presence depends on values visible to this chart.
+extraVolumeTemplates: []
+  # - |
+  #   - name: generated-volume
+  #     secret:
+  #       secretName: generated-secret
+
 # Additional volume mounts to be added to the container
 extraVolumeMounts:
   []
@@ -63,6 +71,14 @@ extraVolumeMounts:
   # - name: secret-volume
   #   mountPath: /etc/secrets
   #   readOnly: true
+
+# Additional templated volume mount snippets.
+# Use when mount presence depends on values visible to this chart.
+extraVolumeMountTemplates: []
+  # - |
+  #   - name: generated-volume
+  #     mountPath: /etc/generated
+  #     readOnly: true
 
 podAnnotations: {}
 podLabels: {}

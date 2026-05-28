@@ -116,6 +116,12 @@ spec:
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+            {{- range $template := .Values.extraVolumeMountTemplates }}
+            {{- $rendered := tpl $template $ | trim }}
+            {{- if $rendered }}
+{{ $rendered | nindent 12 }}
+            {{- end }}
+            {{- end }}
 
           {{- if .Values.healthChecks.livenessProbe.enabled }}
           livenessProbe:
@@ -168,4 +174,10 @@ spec:
             name: {{ .Values.permissionsConfigMap | default (printf "%s-permissions" (include "app.fullname" .)) }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- range $template := .Values.extraVolumeTemplates }}
+        {{- $rendered := tpl $template $ | trim }}
+        {{- if $rendered }}
+{{ $rendered | nindent 8 }}
+        {{- end }}
         {{- end }}
