@@ -7,14 +7,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync/atomic"
+	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/nats-io/jwt/v2"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/zap"
+
+	nvconfig "gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config"
 )
+
+const permissionsReloadPollingInterval = 5 * time.Second
 
 // UserProfile contains the account and permissions for a user
 type UserProfile struct {
@@ -66,7 +69,7 @@ type PermissionsManager struct {
 	mtlsLookup    atomic.Pointer[map[string]UserProfile]          // identity -> profile
 	nkeyLookup    atomic.Pointer[map[string]UserProfile]          // public_key -> profile
 	noauthProfile atomic.Pointer[UserProfile]                     // optional no-auth profile
-	fileWatcher   *fsnotify.Watcher
+	fileWatcher   nvconfig.FileWatcher
 	logger        *otelzap.Logger
 }
 
@@ -92,7 +95,22 @@ func NewPermissionsManager(filePath string, logger *otelzap.Logger) (*Permission
 		return nil, fmt.Errorf("failed to load initial config: %w", err)
 	}
 
-	if err := pm.startWatcher(filePath); err != nil {
+	fw, err := nvconfig.NewFileWatcher(nvconfig.WithPollingInterval(permissionsReloadPollingInterval))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create file watcher: %w", err)
+	}
+	pm.fileWatcher = fw
+
+	if err := fw.WatchFile(filePath, func(_ string) error {
+		pm.logger.Info("Config file changed, reloading...")
+		if err := pm.load(filePath); err != nil {
+			pm.logger.Error("Error reloading config", zap.Error(err))
+			return err
+		}
+		pm.logger.Info("Config reloaded successfully")
+		return nil
+	}); err != nil {
+		_ = fw.Stop()
 		return nil, fmt.Errorf("failed to watch config file: %w", err)
 	}
 
@@ -198,53 +216,6 @@ func (pm *PermissionsManager) load(filePath string) error {
 	return nil
 }
 
-func (pm *PermissionsManager) startWatcher(filePath string) error {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("failed to create file watcher: %w", err)
-	}
-	pm.fileWatcher = watcher
-
-	if err := watcher.Add(filepath.Dir(filePath)); err != nil {
-		_ = watcher.Close()
-		return fmt.Errorf("failed to watch config directory: %w", err)
-	}
-
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if !shouldReload(event, filePath) {
-					continue
-				}
-				pm.logger.Info("Config file changed, reloading...")
-				if err := pm.load(filePath); err != nil {
-					pm.logger.Error("Error reloading config", zap.Error(err))
-					continue
-				}
-				pm.logger.Info("Config reloaded successfully")
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				pm.logger.Error("Config watcher error", zap.Error(err))
-			}
-		}
-	}()
-
-	return nil
-}
-
-func shouldReload(event fsnotify.Event, filePath string) bool {
-	if filepath.Clean(event.Name) != filepath.Clean(filePath) {
-		return false
-	}
-	return event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Rename)
-}
-
 // GetOAuth2Profile returns the user profile and required scope for OAuth2 claims (subject and azp)
 func (pm *PermissionsManager) GetOAuth2Profile(subject, azp string) (UserProfile, string, bool) {
 	lookup := pm.oauth2Lookup.Load()
@@ -293,8 +264,5 @@ func (pm *PermissionsManager) GetNoAuthProfile() (UserProfile, bool) {
 
 // Close stops the file watcher
 func (pm *PermissionsManager) Close() error {
-	if pm.fileWatcher == nil {
-		return nil
-	}
-	return pm.fileWatcher.Close()
+	return pm.fileWatcher.Stop()
 }

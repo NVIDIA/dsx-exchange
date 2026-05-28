@@ -1,0 +1,26 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: nv-config
+  description: Configuration Library
+  tags:
+    - go
+    - library
+    - nv-config
+  annotations:
+    gitlab.com/project-slug: ncp/vmaas/libs/golang/nv-config
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: gitlab-master.nvidia.com?owner=ncp/vmaas/libs/golang&repo=nv-config
+      title: Repository
+      icon: source
+    - url: gitlab-master.nvidia.com?owner=ncp/vmaas/libs/golang&repo=nv-config/-/pipelines
+      title: CI/CD Pipelines
+      icon: build
+    - url: gitlab-master.nvidia.com?owner=ncp/vmaas/libs/golang&repo=nv-config/-/releases
+      title: Releases
+      icon: release
+spec:
+  type: library
+  lifecycle: experimental
+  owner: user:default/wsamuels

@@ -74,6 +74,9 @@ github.com/knadh/koanf/maps
 # github.com/knadh/koanf/parsers/yaml v1.1.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/parsers/yaml
+# github.com/knadh/koanf/providers/confmap v1.0.0
+## explicit; go 1.23.0
+github.com/knadh/koanf/providers/confmap
 # github.com/knadh/koanf/providers/env v1.1.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/env
@@ -176,6 +179,11 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.4
 ## explicit; go 1.21
 github.com/uptrace/opentelemetry-go-extra/otelzap
+# gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config v0.1.7
+## explicit; go 1.24.3
+gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config
+gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config/internal/providers
+gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config/internal/watcher
 # go.opentelemetry.io/auto/sdk v1.2.1
 ## explicit; go 1.24.0
 go.opentelemetry.io/auto/sdk
