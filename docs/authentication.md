@@ -52,13 +52,13 @@ auth-callout:
 
 BMS and OT devices connect to the mTLS NATS endpoint (port 8883) with a client certificate. TLS is terminated at the NATS pod (the Gateway API controller uses TCP passthrough for this listener). The auth-callout extracts the certificate's Common Name and matches it to a permissions entry.
 
-Configure the CA certificate path:
+The event-bus chart enables the mTLS endpoint by default. When `global.eventBus.mtls.enabled: true`, it mounts `nats-mtls-server-tls` into auth-callout and sets the CA path automatically:
 
 ```yaml
-auth-callout:
-  serviceConfig:
+global:
+  eventBus:
     mtls:
-      ca-path: "/etc/mtls-ca/ca.crt"
+      enabled: true
 ```
 
 ### NKey

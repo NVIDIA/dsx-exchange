@@ -113,6 +113,11 @@ spec:
             - name: permissions-volume
               mountPath: /etc/auth-callout
               readOnly: true
+            {{- if eq (include "auth-callout.shouldMountEventBusMtlsCA" .) "true" }}
+            - name: mtls-ca
+              mountPath: {{ include "auth-callout.mtlsCAMountPath" . | quote }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -166,6 +171,14 @@ spec:
         - name: permissions-volume
           configMap:
             name: {{ .Values.permissionsConfigMap | default (printf "%s-permissions" (include "app.fullname" .)) }}
+        {{- if eq (include "auth-callout.shouldAddEventBusMtlsCAVolume" .) "true" }}
+        - name: mtls-ca
+          secret:
+            secretName: {{ .Values.mtlsCA.secretName | quote }}
+            items:
+              - key: {{ .Values.mtlsCA.key | quote }}
+                path: {{ include "auth-callout.mtlsCAFileName" . | quote }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

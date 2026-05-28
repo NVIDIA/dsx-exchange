@@ -60,6 +60,19 @@ extraVolumeMounts:
   #   mountPath: /etc/secrets
   #   readOnly: true
 
+# Optional CA Secret mount for mTLS client certificate validation.
+# When enabled and serviceConfig.mtls.ca-path is empty, the chart points
+# auth-callout at mountPath/fileName.
+mtlsCA:
+  enabled: false
+  # Parent charts can set this true so the mount is active only when
+  # global.eventBus.mtls.enabled is also true.
+  requireEventBusMtls: false
+  secretName: nats-mtls-server-tls
+  key: ca.crt
+  mountPath: /etc/mtls-ca
+  fileName: ca.crt
+
 podAnnotations: {}
 podLabels: {}
 
