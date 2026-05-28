@@ -170,6 +170,49 @@ nack:
       url: "nats://nats:4222"
 ```
 
+## Teardown
+
+`helm uninstall` removes chart-managed resources but leaves operator-provisioned secrets and service accounts in place. This is intentional — the chart does not own those resources.
+
+### Chart uninstall
+
+Run on each cluster (CSC and every CPC):
+
+```bash
+helm uninstall dsx -n dsx
+```
+
+### Removing operator-provisioned resources
+
+If you want a full teardown, delete the secrets and service accounts that were created during pre-deployment. These survive `helm uninstall` because they were created outside the chart:
+
+```bash
+# NKey and TLS secrets
+kubectl -n dsx delete secret \
+  auth-callout-keys event-bus-server-tls-certificate \
+  nats-auth-signing nats-authx-user nats-leaf-csc \
+  nats-nack-user nats-surveyor nats-xkey \
+  --ignore-not-found
+
+# mTLS secrets (if mTLS was enabled)
+kubectl -n dsx delete secret \
+  nats-mtls-server-tls nats-mtls-leaf nats-mtls-authx-leaf nats-mtls-sys-leaf \
+  --ignore-not-found
+
+# Secrets pipeline service accounts (if applicable)
+kubectl -n dsx delete sa event-bus-pki nats-event-bus-vso --ignore-not-found
+```
+
+### Full namespace reset
+
+To remove everything including the namespace:
+
+```bash
+kubectl delete ns dsx --ignore-not-found
+```
+
+If using a Vault-backed secrets pipeline, also remove the Vault PKI role, KV paths, and per-cluster Kubernetes auth mounts for a true clean slate.
+
 ## Chart Dependencies
 
 The `nats-event-bus` umbrella chart bundles these subcharts:
