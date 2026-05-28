@@ -24,12 +24,14 @@ The rest of this page covers the production deployment path.
 
 ## Prerequisites
 
-- Kubernetes 1.27+
-- Helm 4.0+
-- Kubernetes Gateway API controller (e.g., Envoy Gateway with GatewayClass `eg`)
-- MetalLB or cloud LoadBalancer
-- cert-manager (for TLS and mTLS certificates)
-- Prometheus Operator (for ServiceMonitor CRDs)
+Version-pinned where there is a known compatibility break; see [Pre-Deployment](pre-deployment.md) for details.
+
+- Kubernetes 1.27+ — Gateway API CRDs require this minimum
+- Helm 4.0+ — Helm 3 is not supported
+- Envoy Gateway 1.5+ or compatible Gateway API controller — TCPRoute/TLSRoute `v1alpha2` APIs
+- MetalLB 0.13+ or cloud LoadBalancer — CRD-based config (`IPAddressPool`)
+- cert-manager
+- Prometheus Operator
 - Keycloak or OIDC provider (if using OAuth2)
 - Secrets pipeline that materializes Kubernetes Secrets (e.g., Vault with Vault Secrets Operator)
 

@@ -6,17 +6,19 @@ Everything that must be in place before deploying the DSX Event Bus. This covers
 
 ## Infrastructure Prerequisites
 
-The following must be installed in each Kubernetes cluster before deploying the event bus:
+The following must be installed in each Kubernetes cluster before deploying the event bus. Components are version-pinned where there is a known API or compatibility break; unpinned components work with any recent release.
 
-| Component | Purpose |
-|-----------|---------|
-| Gateway API controller | e.g., Envoy Gateway (GatewayClass `eg`) for external access |
-| MetalLB or cloud LB | LoadBalancer service type for inter-cluster communication |
-| cert-manager | TLS certificate lifecycle (server certs, mTLS certs) |
-| Prometheus Operator | ServiceMonitor CRD (required by Surveyor) |
-| Secrets pipeline | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
-| [`nsc`](https://github.com/nats-io/nsc/releases) | NATS NKey generation (required by `generate-nkeys.sh`) |
-| `nk` | NATS NKey inspection (required by `generate-nkeys.sh`) |
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Kubernetes | 1.27+ | Gateway API CRDs require this minimum |
+| Helm | 4.0+ | Chart `apiVersion: v2` features; Helm 3 is not supported |
+| Gateway API controller | Envoy Gateway 1.5+ | TCPRoute/TLSRoute (`v1alpha2` APIs); older versions lack these CRDs |
+| MetalLB or cloud LB | MetalLB 0.13+ | CRD-based config (`IPAddressPool`, `L2Advertisement`); older versions use incompatible ConfigMap API |
+| cert-manager | — | TLS certificate lifecycle (server certs, mTLS certs) |
+| Prometheus Operator | — | ServiceMonitor CRD (required by Surveyor) |
+| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
+| [`nsc`](https://github.com/nats-io/nsc/releases) | — | NATS NKey generation (required by `generate-nkeys.sh`) |
+| `nk` | — | NATS NKey inspection (required by `generate-nkeys.sh`) |
 
 Keycloak or another OIDC provider is required if using OAuth2 authentication.
 

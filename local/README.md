@@ -2,33 +2,19 @@
 
 This repository contains the NATS event bus implementation for the AI Factory DSX platform.
 
-## Documentation
-
-- [Architecture Diagram](docs/event-bus-architecture.puml)
-
-## Architecture
-
-The evaluation environment simulates a multi-layer Kubernetes architecture:
-
-![Event Bus Architecture](docs/Event%20Bus%20Architecture.png)
-
-**Key Design Points:**
-
-- Each cluster (CPC, CSC) runs an isolated NATS event bus instance
-- Services connect to their local event bus via MQTT
-- CPC event buses federate to CSC via Gateway using internal protocol
-- Clusters have overlapping internal networks, isolated via MetalLB LoadBalancers
-- All inter-cluster communication flows through Envoy Gateway
+For architecture details, see [docs/architecture.md](../docs/architecture.md).
 
 ## Quick Start
 
 ### Prerequisites
 
+Version-pinned where there is a known compatibility break; unpinned tools work with any recent release.
+
 - Docker Desktop or equivalent
-- [Kind](https://kind.sigs.k8s.io/) v0.20+
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.28+
-- [Helm](https://helm.sh/) v4.0+
-- Go 1.25+ (for MQTT client)
+- [Kind](https://kind.sigs.k8s.io/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [Helm](https://helm.sh/) 4.0+ — Helm 3 is not supported
+- Go 1.25+ — required by `go.mod`
 - Make
 
 ### MacOS Tweaks
@@ -91,27 +77,8 @@ make benchmark-basic-full
 make dummy-bms
 ```
 
-## Testing Strategy
-
-### Functional Tests
-
-- MQTT 3.1.1 protocol compliance
-- QoS 0, 1, 2 message delivery
-- Retained messages and will messages
-- High availability and failover
-- Federation between layers
-- Authentication and authorization
-- Topic-based access control
-
-### Performance Tests
-
-- Default e2e smoke coverage for local Kind
-- Local and federated throughput paths
-- Retained and non-retained messages
-- QoS 0 and QoS 1 publish paths
-- Latency percentiles (p50, p95, p99)
-
-Run `make benchmark-performance` for the full benchmark profile.
+For the testing strategy (functional and performance coverage), see
+[docs/testing.md](../docs/testing.md).
 
 ## Common Commands
 
