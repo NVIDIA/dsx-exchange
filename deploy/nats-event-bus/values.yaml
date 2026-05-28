@@ -529,6 +529,11 @@ auth-callout:
   # leaf-{account}-cpc-{id}; use distinct names for operator-defined entries.
   extraEnvs: {}
 
+  serviceMonitor:
+    enabled: true
+    interval: "30s"
+    path: "/metrics"
+
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
 # See https://github.com/nats-io/nats-surveyor for metrics reference
 surveyor:
@@ -551,3 +556,4 @@ surveyor:
         key: seed
   serviceMonitor:
     enabled: true
+    interval: "30s"

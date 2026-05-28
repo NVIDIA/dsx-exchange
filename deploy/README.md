@@ -76,7 +76,7 @@ Each deployment includes:
 - Envoy Gateway operator (GatewayClass `eg`)
 - MetalLB or cloud LoadBalancer
 - cert-manager (for mTLS certificates)
-- Prometheus Operator (for ServiceMonitor CRDs - required by Surveyor)
+- Prometheus Operator (for ServiceMonitor CRDs used by Surveyor and auth-callout)
 - Persistent storage (for JetStream file storage, if enabled)
 - Keycloak or OIDC provider (if using OAuth2)
 - Local access to this repository for the bundled `auth-callout` chart
@@ -750,7 +750,7 @@ External access via Envoy Gateway TCPRoutes:
 
 ## Monitoring
 
-NATS Surveyor exports Prometheus metrics from the NATS cluster. The mTLS cluster's SYS account is federated to the main cluster via leaf node, enabling centralized monitoring of both clusters.
+NATS Surveyor exports Prometheus metrics from the NATS cluster. Auth-callout exposes authentication metrics on its Prometheus endpoint. The mTLS cluster's SYS account is federated to the main cluster via leaf node, enabling centralized monitoring of both clusters.
 
 **Prerequisite:** Prometheus Operator must be installed for the ServiceMonitor CRD. Install via `kube-prometheus-stack` Helm chart or equivalent.
 
@@ -771,6 +771,17 @@ surveyor:
         key: seed
   serviceMonitor:
     enabled: true                 # Create ServiceMonitor for Prometheus
+    interval: 30s
+```
+
+Auth-callout metrics are exposed on port 9090 at `/metrics`. The parent chart enables the auth-callout ServiceMonitor by default:
+
+```yaml
+auth-callout:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
 ```
 
 ### Metrics
@@ -791,11 +802,13 @@ graph LR
         Surveyor[NATS Surveyor]
         MainNATS[nats - SYS Account]
         mTLSNATS[nats-mtls - SYS Account]
+        AuthCallout[auth-callout]
     end
     
     Surveyor -->|SYS user| MainNATS
     mTLSNATS -->|SYS leaf| MainNATS
     Prometheus -->|scrape :7777| Surveyor
+    Prometheus -->|scrape :9090| AuthCallout
 ```
 
 ## Validation
