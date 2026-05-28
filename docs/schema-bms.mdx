@@ -1,4 +1,4 @@
-# BMS Event Bus 2.1.0
+# BMS Event Bus 1.0.0
 
 Telemetry and control event catalog for the Building Management System (BMS)
 over MQTT. Provides real-time point values and point metadata for all supported
@@ -11,17 +11,18 @@ Each monitored point follows a **Value / Metadata** pattern:
 - **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
 
   Subscribe to a value channel to receive real-time telemetry. Values are published whenever they change and republished every 100 seconds when they do not change.
+
 - **Metadata** messages describe the point (units, identifiers, relationships).
 
   **Always receive metadata before interpreting values.** Metadata is retained and published once at startup. It is subsequently published every 100 seconds.
 
 ## Topic structure
 
-| Publisher   | Topic Type | Pattern                                                               |
-|-------------|------------|-----------------------------------------------------------------------|
-| BMS         | Value      | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}`                |
-| BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`             |
-| Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`      |
+| Publisher   | Topic Type | Pattern                                                          |
+| :---------- | :--------- | :--------------------------------------------------------------- |
+| BMS         | Value      | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}`            |
+| BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`         |
+| Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`  |
 
 The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple `/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
 
@@ -32,7 +33,9 @@ Use `+` to match exactly one topic level (single-level wildcard).
 ## Publisher rules
 
 - **BMS** publishes all metadata — including for points whose values are written by integrations.
+
 - **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
+
 - **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`. Integrations do **not** publish metadata.
 
 ## Integration publishing contract
@@ -48,10 +51,7 @@ BMS publishes metadata for every monitored point — including points whose _val
 
 ### Topic derivation rule
 
-The value topic is derived **methodically** from the respective metadata topic (published by BMS) that
-carried the `integration` field. DSX Exchange Access Control Lists will
-typically be created so that MQTT Clients are provided access to publish and
-subscribe to specific namespaces that align with the `[Publisher]`:
+The value topic is derived **methodically** from the respective metadata topic (published by BMS) that carried the `integration` field. DSX Exchange Access Control Lists will typically be created so that MQTT Clients are provided access to publish and subscribe to specific namespaces that align with the `[Publisher]`:
 
  BMS/v1/**[Publisher]/[TopicType]**/\{objectType\}/\{pointType\}/\{tagPath\}
 
@@ -71,19 +71,16 @@ BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}
 
 ### Contract
 
-When an integration receives a BMS metadata message and the `integration`
-field **matches its own identifier**, the integration **MUST**:
+When an integration receives a BMS metadata message and the `integration` field **matches its own identifier**, the integration **MUST**:
 
 1. Note the full metadata topic it arrived on.
-2. Derive the value topic by substituting `PUB` → own identifier and
-   `Metadata` → `Value`, keeping `{objectType}/{pointType}/{tagPath}`
-   unchanged.
+2. Derive the value topic by substituting `PUB` → own identifier and `Metadata` → `Value`, keeping `{objectType}/{pointType}/{tagPath}` unchanged.
 3. Publish value messages to that derived topic.
 
 Integrations **MUST NOT**:
 
-- Publish values for points whose metadata `integration` field does not
-  match their own identifier.
+- Publish values for points whose metadata `integration` field does not match their own identifier.
+
 - Publish metadata (BMS is the sole metadata publisher).
 
 ### Example flow
@@ -102,121 +99,63 @@ derives its value topic →
 
 MEPAI publishes its setpoint reading to that derived topic.
 
-The same contract governs all other integration-published points, including
-`Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
-`System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
-`CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
-Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
-integration metadata, the BMS writes to the value and not the integration.
+The same contract governs all other integration-published points, including `Rack/RackLeakDetectTray`, `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`, `System/HeartbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`, `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
 
 ## Metadata types and concepts
 
-- **objectType**: Object Types are restricted to specific strings in accordance
-  with this AsyncAPI. They typically represent BMS equipment or devices.
+- **objectType**: Object Types are restricted to specific strings in accordance with this AsyncAPI. They typically represent BMS equipment or devices.
 
-  - **System**: A System can be the BMS or an Integration to the BMS.
-    Heartbeat points and system-to-system communication point types are
-    typically defined inside of a System object type. System Heartbeat point
-    types are expected to operate as follows. An integration may choose to use
-    the Echo points or not:
+  - **System**: A System can be the BMS or an Integration to the BMS. Heartbeat points and system-to-system communication point types are typically defined inside of a System object type. System Heartbeat point types are expected to operate as follows. An integration may choose to use the Echo points or not.
 
-    - **HeartbeatTimestampBms** — The BMS will publish a timestamp every 10 seconds.
-    - **HearbeatTimestampIntegration** — The Integration will publish a timestamp every 10 seconds.
-    - **HeartbeatEchoBms** — The BMS will publish an echo of the integration
-      timestamp (reads `HearbeatTimestampIntegration` value and re-publishes
-      the same value on this point type).
-    - **HeartbeatEchoIntegration** — The Integration will publish an echo of
-      the BMS timestamp (reads `HeartbeatEchoBms` value and re-publishes the
-      same value on this point type).
+    All four heartbeat pointTypes require `objectName` and `objectId` in metadata to identify which System the heartbeat belongs to. By convention, an integration's `objectId` matches the same string used as its `integration` metadata field on its other points (so MEPAI1's System object has `objectId: "MEPAI1"`).
 
-  - **Rack**: A Rack is a special object type and has specific point types that
-    can only be used with a Rack object type. Many integrations and MQTT Clients
-    will only ingest data from the Rack object type. Other integrations will
-    consider Rack data as the most important or interesting data in the AI
-    Factory. Mechanical and Electrical design (and therefore BMS Data) at the
-    rack is also more standardized than mechanical and electrical systems as you
-    move out of the white space and to the gray space of the AI Factory. For
-    these reasons, the point types associated with a Rack object type are
-    generally more specific than any other object type, making ingesting and
-    understanding rack data more straight-forward.
+    - **HeartbeatTimestampBms** — Publisher: BMS. The BMS publishes its own timestamp every 10 seconds. One instance globally. `objectId` identifies the BMS (e.g., `"BMS"`). `integration` field: not used.
 
-  - **PowerMeter**: A PowerMeter is a special object type and has specific point
-    types that can only be used with a PowerMeter object type. PowerMeter point
-    types contain the metadata needed to understand electrical power path. This
-    data is used by integrations / MQTT Clients for power management strategies.
+    - **HeartbeatTimestampIntegration** — Publisher: Integration. Each integration publishes its own timestamp every 10 seconds, one per integration. `objectId` identifies the integration publishing (e.g., `"MEPAI1"`). `integration` field: required (drives topic).
 
-  - **Electrical Equipment**: This is a general category, and several object
-    types exist in this AsyncAPI for electrical equipment. Electrical equipment
-    point types typically use metadata to associate the object / equipment with
-    a power meter to show where the equipment lands in the power path.
+    - **HeartbeatEchoBms** — Publisher: BMS. The BMS reads each integration's `HeartbeatTimestampIntegration` value and re-publishes it on this point type, allowing each integration to confirm round-trip. One instance per connected integration. `objectId` identifies the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). `integration` field: not used.
 
-  - **Mechanical Equipment**: This is a general category, and several object
-    types exist in this AsyncAPI for mechanical equipment.
+    - **HeartbeatEchoIntegration** — Publisher: Integration. Each integration reads the BMS's `HeartbeatTimestampBms` value and re-publishes it on this point type, allowing the BMS to confirm round-trip with that integration. One per connected integration. `objectId` identifies the BMS being echoed (e.g., `"BMS"`). `integration` field: required (drives topic).
 
-  - **GenericObject**: This object type is reserved and should not be used
-    unless no other object type is applicable.
+    Naming convention: the `Bms`/`Integration` suffix indicates the publisher of the point. The party whose timestamp is being echoed is encoded in `objectId`, not in the point name.
 
-- **pointType**: Point Types are restricted to specific strings in accordance
-  with this AsyncAPI. Point types are also restricted to specific object types.
-  Some point types apply to multiple object types while others are restricted
-  to specific object types.
+  - **Rack**: A Rack is a special object type and has specific point types that can only be used with a Rack object type. Many integrations and MQTT Clients will only ingest data from the Rack object type. Other integrations will consider Rack data as the most important or interesting data in the AI Factory. Mechanical and Electrical design (and therefore BMS Data) at the rack is also more standardized than mechanical and electrical systems as you move out of the white space and to the gray space of the AI Factory. For these reasons, the point types associated with a Rack object type are generally more specific than any other object type, making ingesting and understanding rack data more straight-forward.
 
-- **engUnit**: Engineering Units describe the units of measure for the point /
-  topic. If engineering units are used, then state text does not apply.
+  - **PowerMeter**: A PowerMeter is a special object type and has specific point types that can only be used with a PowerMeter object type. PowerMeter point types contain the metadata needed to understand electrical power path. This data is used by integrations / MQTT Clients for power management strategies.
 
-- **stateText**: State Text describes what a binary or integer value means.
-  Each binary or integer value will have a state text identified. If state text
-  is used, then engineering units do not apply.
+  - **Electrical Equipment**: This is a general category, and several object types exist in this AsyncAPI for electrical equipment. Electrical equipment point types typically use metadata to associate the object / equipment with a power meter to show where the equipment lands in the power path.
+
+  - **Mechanical Equipment**: This is a general category, and several object types exist in this AsyncAPI for mechanical equipment.
+
+  - **GenericObject**: This object type is reserved and should not be used unless no other object type is applicable.
+
+- **pointType**: Point Types are restricted to specific strings in accordance with this AsyncAPI. Point types are also restricted to specific object types. Some point types apply to multiple object types while others are restricted to specific object types.
+
+- **engUnit**: Engineering Units describe the units of measure for the point / topic. If engineering units are used, then state text does not apply.
+
+- **stateText**: State Text describes what a binary or integer value means. Each binary or integer value will have a state text identified. If state text is used, then engineering units do not apply.
 
 - **rackLocationName**: This is the human readable name given to a rack location.
 
-- **rackLocationId**: This is the unique identifier for a rack location. It can
-  be the same as the rackLocationName if human readable and unique. This must
-  allow the IT side integrations and OT side BMS to associate a point with the
-  same physical rack (same identifier on both systems).
+- **rackLocationId**: This is the unique identifier for a rack location. It can be the same as the rackLocationName if human readable and unique. This must allow the IT side integrations and OT side BMS to associate a point with the same physical rack (same identifier on both systems).
 
 - **objectName**: This is the human readable name given to the object.
 
-- **objectId**: This is the unique identifier for an object. It can be the same
-  as the objectName if human readable and unique.
+- **objectId**: This is the unique identifier for an object. It can be the same as the objectName if human readable and unique.
 
-- **associateId**: This will list the objectId of an associated object. The
-  intent is for this object to be considered part of the other object, especially
-  for "servesId" metadata. Commonly used to prevent parallel power paths
-  (parallel "serves" relationships) when electrical equipment objects need to be
-  associated with power meters. Also applicable to mechanical equipment object
-  types to prevent liquid and air flow parallel paths where not intended.
+- **associateId**: This will list the objectId of an associated object. The intent is for this object to be considered part of the other object, especially for `servesId` metadata. Commonly used to prevent parallel power paths (parallel "serves" relationships) when electrical equipment objects need to be associated with power meters. Also applicable to mechanical equipment object types to prevent liquid and air flow parallel paths where not intended.
 
-- **servesId**: This will list the objectId of the object that is served by
-  this object. Creates a one-way relationship. Typically used to indicate
-  electrical power path or liquid/air fluid flow path towards the rack.
+- **servesId**: This will list the objectId of the object that is served by this object. Creates a one-way relationship. Typically used to indicate electrical power path or liquid/air fluid flow path towards the rack.
 
-- **processArea**: This is used to provide more information on the point
-  location or purpose. In general, process area metadata should be used, in
-  conjunction with other metadata, to make points unique and allow integrations
-  / MQTT Clients to clearly understand what a point represents in the AI
-  factory. Example: for a CDU object type and LiquidTemperature point type, the
-  process area metadata could include "Secondary" and "Supply". This would make
-  it clear that the temperature sensor was located on the secondary side of the
-  CDU and on the supply line.
+- **processArea**: This is used to provide more information on the point location or purpose. In general, process area metadata should be used, in conjunction with other metadata, to make points unique and allow integrations / MQTT Clients to clearly understand what a point represents in the AI factory. Example: for a CDU object type and LiquidTemperature point type, the process area metadata could include `"Secondary"` and `"Supply"`. This would make it clear that the temperature sensor was located on the secondary side of the CDU and on the supply line.
 
-- **phase**: This is used to identify which phase, of a 3-phase electrical
-  system, the point is associated with.
+- **phase**: This is used to identify which phase, of a 3-phase electrical system, the point is associated with.
 
-- **isSetpoint**: This can be shown as "True" to indicate a point is a setpoint
-  as opposed to a sensor reading. A setpoint is a target or ideal value that a
-  system is trying to maintain a process variable at.
+- **isSetpoint**: This can be set to `true` (unquoted, lowercase) to indicate that a point is a setpoint rather than a sensor reading. A setpoint is a target or ideal value that a system is trying to maintain a process variable at.
 
-- **scope**: Scope is used for System heartbeat points. If the BMS has multiple
-  MQTT Clients connected to DSX Exchange, each could be publishing different
-  data to the MQTT Broker. In this case each MQTT Client should have separate
-  heartbeat points. Scope can be used in this case to identify what MQTT Topics
-  / Namespace the heartbeat point is associated with — and thereby what topics
-  are impacted when a heartbeat is lost.
+- **scope**: Scope is used for System heartbeat points. If the BMS has multiple MQTT Clients connected to DSX Exchange, each could be publishing different data to the MQTT Broker. In this case each MQTT Client should have separate heartbeat points. Scope can be used in this case to identify what MQTT Topics / Namespace the heartbeat point is associated with — and thereby what topics are impacted when a heartbeat is lost.
 
-- **integration**: Integration metadata is used to indicate which integration a
-  point is associated with. It also indicates the namespace `[Publisher]` an
-  integration is required to write the corresponding value back to.
+- **integration**: Integration metadata is used to indicate which integration a point is associated with. It also indicates the namespace `[Publisher]` an integration is required to write the corresponding value back to.
 
 ## Raw AsyncAPI Spec
 
@@ -230,7 +169,7 @@ asyncapi: 3.1.0
 
 info:
   title: BMS Event Bus
-  version: 2.1.0
+  version: 1.0.0
   description: |
     Telemetry and control event catalog for the Building Management System (BMS)
     over MQTT. Provides real-time point values and point metadata for all supported
@@ -243,17 +182,18 @@ info:
     - **Value** messages carry the live reading (`value`, `timestamp`, `quality`).
 
       Subscribe to a value channel to receive real-time telemetry. Values are published whenever they change and republished every 100 seconds when they do not change.
+
     - **Metadata** messages describe the point (units, identifiers, relationships).
 
       **Always receive metadata before interpreting values.** Metadata is retained and published once at startup. It is subsequently published every 100 seconds.
 
     ## Topic structure
 
-    | Publisher   | Topic Type | Pattern                                                               |
-    |-------------|------------|-----------------------------------------------------------------------|
-    | BMS         | Value      | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}`                |
-    | BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`             |
-    | Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`      |
+    | Publisher   | Topic Type | Pattern                                                          |
+    | :---------- | :--------- | :--------------------------------------------------------------- |
+    | BMS         | Value      | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}`            |
+    | BMS         | Metadata   | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}`         |
+    | Integration | Value      | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}`  |
 
     The `{tagPath}` is a vendor-defined hierarchical path and may contain multiple `/` segments. Each `{tagPath}` must be unique for each point and is usually derived from the BMS system based on the BMS point name.
 
@@ -264,7 +204,9 @@ info:
     ## Publisher rules
 
     - **BMS** publishes all metadata — including for points whose values are written by integrations.
+
     - **BMS** publishes its own point values on `BMS/v1/PUB/Value/...`.
+
     - **Integrations** are any system (MQTT Client) external to the BMS. Whenever they need to directly send messages to the BMS, they publish values on `BMS/v1/{integration}/Value/...`. Integrations do **not** publish metadata.
 
     ## Integration publishing contract
@@ -280,10 +222,7 @@ info:
 
     ### Topic derivation rule
 
-    The value topic is derived **methodically** from the respective metadata topic (published by BMS) that
-    carried the `integration` field. DSX Exchange Access Control Lists will
-    typically be created so that MQTT Clients are provided access to publish and
-    subscribe to specific namespaces that align with the `[Publisher]`:
+    The value topic is derived **methodically** from the respective metadata topic (published by BMS) that carried the `integration` field. DSX Exchange Access Control Lists will typically be created so that MQTT Clients are provided access to publish and subscribe to specific namespaces that align with the `[Publisher]`:
 
      BMS/v1/**[Publisher]/[TopicType]**/{objectType}/{pointType}/{tagPath}
 
@@ -303,19 +242,16 @@ info:
 
     ### Contract
 
-    When an integration receives a BMS metadata message and the `integration`
-    field **matches its own identifier**, the integration **MUST**:
+    When an integration receives a BMS metadata message and the `integration` field **matches its own identifier**, the integration **MUST**:
 
     1. Note the full metadata topic it arrived on.
-    2. Derive the value topic by substituting `PUB` → own identifier and
-       `Metadata` → `Value`, keeping `{objectType}/{pointType}/{tagPath}`
-       unchanged.
+    2. Derive the value topic by substituting `PUB` → own identifier and `Metadata` → `Value`, keeping `{objectType}/{pointType}/{tagPath}` unchanged.
     3. Publish value messages to that derived topic.
 
     Integrations **MUST NOT**:
 
-    - Publish values for points whose metadata `integration` field does not
-      match their own identifier.
+    - Publish values for points whose metadata `integration` field does not match their own identifier.
+
     - Publish metadata (BMS is the sole metadata publisher).
 
     ### Example flow
@@ -334,121 +270,63 @@ info:
 
     MEPAI publishes its setpoint reading to that derived topic.
 
-    The same contract governs all other integration-published points, including
-    `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`,
-    `System/HeartbeatEchoBms`, `System/HearbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`,
-    `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
-    Note that for the `System/HeartbeatEchoBms` point, although the BMS publishes
-    integration metadata, the BMS writes to the value and not the integration.
+    The same contract governs all other integration-published points, including `Rack/RackLeakDetectTray`, `Rack/RackLiquidIsolationRequest`, `Rack/RackElectricalIsolationRequest`, `System/HeartbeatTimestampIntegration`, `System/HeartbeatEchoIntegration`, `CDU/LiquidTemperatureSpRequest`, and any future integration-owned pointTypes.
 
     ## Metadata types and concepts
 
-    - **objectType**: Object Types are restricted to specific strings in accordance
-      with this AsyncAPI. They typically represent BMS equipment or devices.
+    - **objectType**: Object Types are restricted to specific strings in accordance with this AsyncAPI. They typically represent BMS equipment or devices.
 
-      - **System**: A System can be the BMS or an Integration to the BMS.
-        Heartbeat points and system-to-system communication point types are
-        typically defined inside of a System object type. System Heartbeat point
-        types are expected to operate as follows. An integration may choose to use
-        the Echo points or not:
+      - **System**: A System can be the BMS or an Integration to the BMS. Heartbeat points and system-to-system communication point types are typically defined inside of a System object type. System Heartbeat point types are expected to operate as follows. An integration may choose to use the Echo points or not.
 
-        - **HeartbeatTimestampBms** — The BMS will publish a timestamp every 10 seconds.
-        - **HearbeatTimestampIntegration** — The Integration will publish a timestamp every 10 seconds.
-        - **HeartbeatEchoBms** — The BMS will publish an echo of the integration
-          timestamp (reads `HearbeatTimestampIntegration` value and re-publishes
-          the same value on this point type).
-        - **HeartbeatEchoIntegration** — The Integration will publish an echo of
-          the BMS timestamp (reads `HeartbeatEchoBms` value and re-publishes the
-          same value on this point type).
+        All four heartbeat pointTypes require `objectName` and `objectId` in metadata to identify which System the heartbeat belongs to. By convention, an integration's `objectId` matches the same string used as its `integration` metadata field on its other points (so MEPAI1's System object has `objectId: "MEPAI1"`).
 
-      - **Rack**: A Rack is a special object type and has specific point types that
-        can only be used with a Rack object type. Many integrations and MQTT Clients
-        will only ingest data from the Rack object type. Other integrations will
-        consider Rack data as the most important or interesting data in the AI
-        Factory. Mechanical and Electrical design (and therefore BMS Data) at the
-        rack is also more standardized than mechanical and electrical systems as you
-        move out of the white space and to the gray space of the AI Factory. For
-        these reasons, the point types associated with a Rack object type are
-        generally more specific than any other object type, making ingesting and
-        understanding rack data more straight-forward.
+        - **HeartbeatTimestampBms** — Publisher: BMS. The BMS publishes its own timestamp every 10 seconds. One instance globally. `objectId` identifies the BMS (e.g., `"BMS"`). `integration` field: not used.
 
-      - **PowerMeter**: A PowerMeter is a special object type and has specific point
-        types that can only be used with a PowerMeter object type. PowerMeter point
-        types contain the metadata needed to understand electrical power path. This
-        data is used by integrations / MQTT Clients for power management strategies.
+        - **HeartbeatTimestampIntegration** — Publisher: Integration. Each integration publishes its own timestamp every 10 seconds, one per integration. `objectId` identifies the integration publishing (e.g., `"MEPAI1"`). `integration` field: required (drives topic).
 
-      - **Electrical Equipment**: This is a general category, and several object
-        types exist in this AsyncAPI for electrical equipment. Electrical equipment
-        point types typically use metadata to associate the object / equipment with
-        a power meter to show where the equipment lands in the power path.
+        - **HeartbeatEchoBms** — Publisher: BMS. The BMS reads each integration's `HeartbeatTimestampIntegration` value and re-publishes it on this point type, allowing each integration to confirm round-trip. One instance per connected integration. `objectId` identifies the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). `integration` field: not used.
 
-      - **Mechanical Equipment**: This is a general category, and several object
-        types exist in this AsyncAPI for mechanical equipment.
+        - **HeartbeatEchoIntegration** — Publisher: Integration. Each integration reads the BMS's `HeartbeatTimestampBms` value and re-publishes it on this point type, allowing the BMS to confirm round-trip with that integration. One per connected integration. `objectId` identifies the BMS being echoed (e.g., `"BMS"`). `integration` field: required (drives topic).
 
-      - **GenericObject**: This object type is reserved and should not be used
-        unless no other object type is applicable.
+        Naming convention: the `Bms`/`Integration` suffix indicates the publisher of the point. The party whose timestamp is being echoed is encoded in `objectId`, not in the point name.
 
-    - **pointType**: Point Types are restricted to specific strings in accordance
-      with this AsyncAPI. Point types are also restricted to specific object types.
-      Some point types apply to multiple object types while others are restricted
-      to specific object types.
+      - **Rack**: A Rack is a special object type and has specific point types that can only be used with a Rack object type. Many integrations and MQTT Clients will only ingest data from the Rack object type. Other integrations will consider Rack data as the most important or interesting data in the AI Factory. Mechanical and Electrical design (and therefore BMS Data) at the rack is also more standardized than mechanical and electrical systems as you move out of the white space and to the gray space of the AI Factory. For these reasons, the point types associated with a Rack object type are generally more specific than any other object type, making ingesting and understanding rack data more straight-forward.
 
-    - **engUnit**: Engineering Units describe the units of measure for the point /
-      topic. If engineering units are used, then state text does not apply.
+      - **PowerMeter**: A PowerMeter is a special object type and has specific point types that can only be used with a PowerMeter object type. PowerMeter point types contain the metadata needed to understand electrical power path. This data is used by integrations / MQTT Clients for power management strategies.
 
-    - **stateText**: State Text describes what a binary or integer value means.
-      Each binary or integer value will have a state text identified. If state text
-      is used, then engineering units do not apply.
+      - **Electrical Equipment**: This is a general category, and several object types exist in this AsyncAPI for electrical equipment. Electrical equipment point types typically use metadata to associate the object / equipment with a power meter to show where the equipment lands in the power path.
+
+      - **Mechanical Equipment**: This is a general category, and several object types exist in this AsyncAPI for mechanical equipment.
+
+      - **GenericObject**: This object type is reserved and should not be used unless no other object type is applicable.
+
+    - **pointType**: Point Types are restricted to specific strings in accordance with this AsyncAPI. Point types are also restricted to specific object types. Some point types apply to multiple object types while others are restricted to specific object types.
+
+    - **engUnit**: Engineering Units describe the units of measure for the point / topic. If engineering units are used, then state text does not apply.
+
+    - **stateText**: State Text describes what a binary or integer value means. Each binary or integer value will have a state text identified. If state text is used, then engineering units do not apply.
 
     - **rackLocationName**: This is the human readable name given to a rack location.
 
-    - **rackLocationId**: This is the unique identifier for a rack location. It can
-      be the same as the rackLocationName if human readable and unique. This must
-      allow the IT side integrations and OT side BMS to associate a point with the
-      same physical rack (same identifier on both systems).
+    - **rackLocationId**: This is the unique identifier for a rack location. It can be the same as the rackLocationName if human readable and unique. This must allow the IT side integrations and OT side BMS to associate a point with the same physical rack (same identifier on both systems).
 
     - **objectName**: This is the human readable name given to the object.
 
-    - **objectId**: This is the unique identifier for an object. It can be the same
-      as the objectName if human readable and unique.
+    - **objectId**: This is the unique identifier for an object. It can be the same as the objectName if human readable and unique.
 
-    - **associateId**: This will list the objectId of an associated object. The
-      intent is for this object to be considered part of the other object, especially
-      for "servesId" metadata. Commonly used to prevent parallel power paths
-      (parallel "serves" relationships) when electrical equipment objects need to be
-      associated with power meters. Also applicable to mechanical equipment object
-      types to prevent liquid and air flow parallel paths where not intended.
+    - **associateId**: This will list the objectId of an associated object. The intent is for this object to be considered part of the other object, especially for `servesId` metadata. Commonly used to prevent parallel power paths (parallel "serves" relationships) when electrical equipment objects need to be associated with power meters. Also applicable to mechanical equipment object types to prevent liquid and air flow parallel paths where not intended.
 
-    - **servesId**: This will list the objectId of the object that is served by
-      this object. Creates a one-way relationship. Typically used to indicate
-      electrical power path or liquid/air fluid flow path towards the rack.
+    - **servesId**: This will list the objectId of the object that is served by this object. Creates a one-way relationship. Typically used to indicate electrical power path or liquid/air fluid flow path towards the rack.
 
-    - **processArea**: This is used to provide more information on the point
-      location or purpose. In general, process area metadata should be used, in
-      conjunction with other metadata, to make points unique and allow integrations
-      / MQTT Clients to clearly understand what a point represents in the AI
-      factory. Example: for a CDU object type and LiquidTemperature point type, the
-      process area metadata could include "Secondary" and "Supply". This would make
-      it clear that the temperature sensor was located on the secondary side of the
-      CDU and on the supply line.
+    - **processArea**: This is used to provide more information on the point location or purpose. In general, process area metadata should be used, in conjunction with other metadata, to make points unique and allow integrations / MQTT Clients to clearly understand what a point represents in the AI factory. Example: for a CDU object type and LiquidTemperature point type, the process area metadata could include `"Secondary"` and `"Supply"`. This would make it clear that the temperature sensor was located on the secondary side of the CDU and on the supply line.
 
-    - **phase**: This is used to identify which phase, of a 3-phase electrical
-      system, the point is associated with.
+    - **phase**: This is used to identify which phase, of a 3-phase electrical system, the point is associated with.
 
-    - **isSetpoint**: This can be shown as "True" to indicate a point is a setpoint
-      as opposed to a sensor reading. A setpoint is a target or ideal value that a
-      system is trying to maintain a process variable at.
+    - **isSetpoint**: This can be set to `true` (unquoted, lowercase) to indicate that a point is a setpoint rather than a sensor reading. A setpoint is a target or ideal value that a system is trying to maintain a process variable at.
 
-    - **scope**: Scope is used for System heartbeat points. If the BMS has multiple
-      MQTT Clients connected to DSX Exchange, each could be publishing different
-      data to the MQTT Broker. In this case each MQTT Client should have separate
-      heartbeat points. Scope can be used in this case to identify what MQTT Topics
-      / Namespace the heartbeat point is associated with — and thereby what topics
-      are impacted when a heartbeat is lost.
+    - **scope**: Scope is used for System heartbeat points. If the BMS has multiple MQTT Clients connected to DSX Exchange, each could be publishing different data to the MQTT Broker. In this case each MQTT Client should have separate heartbeat points. Scope can be used in this case to identify what MQTT Topics / Namespace the heartbeat point is associated with — and thereby what topics are impacted when a heartbeat is lost.
 
-    - **integration**: Integration metadata is used to indicate which integration a
-      point is associated with. It also indicates the namespace `[Publisher]` an
-      integration is required to write the corresponding value back to.
+    - **integration**: Integration metadata is used to indicate which integration a point is associated with. It also indicates the namespace `[Publisher]` an integration is required to write the corresponding value back to.
 
 # =============================================================================
 # Servers
@@ -485,11 +363,11 @@ channels:
           - RackLiquidReturnTemperature
           - RackLiquidFlow
           - RackLiquidDifferentialPressure
+          - RackLiquidDifferentialPressureSp
           - RackControlValvePosition
           - RackPower
           - RackLeakDetect
           - RackLeakSensorFault
-          - RackLeakDetectTray
           - RackLiquidIsolationStatus
           - RackElectricalIsolationStatus
         description: BMS-published Rack point type.
@@ -571,6 +449,7 @@ channels:
         description: Integration identifier.
       pointType:
         enum:
+          - RackLeakDetectTray
           - RackLiquidIsolationRequest
           - RackElectricalIsolationRequest
         description: Integration-published Rack point type.
@@ -2285,8 +2164,6 @@ channels:
       tagPath:
         description: Vendor-defined hierarchical tag path.
     messages:
-      heartbeatEchoBms:
-        $ref: '#/components/messages/SystemHeartbeatEchoBmsMsg'
       valueMessage:
         $ref: '#/components/messages/ValueMessage'
 
@@ -2303,7 +2180,7 @@ channels:
         enum:
           - HeartbeatTimestampBms
           - HeartbeatEchoBms
-          - HearbeatTimestampIntegration
+          - HeartbeatTimestampIntegration
           - HeartbeatEchoIntegration
           - Status
           - Available
@@ -2316,8 +2193,8 @@ channels:
         $ref: '#/components/messages/SystemHeartbeatTimestampBmsMsg'
       heartbeatEchoBms:
         $ref: '#/components/messages/SystemHeartbeatEchoBmsMsg'
-      hearbeatTimestampIntegration:
-        $ref: '#/components/messages/SystemHearbeatTimestampIntegrationMsg'
+      heartbeatTimestampIntegration:
+        $ref: '#/components/messages/SystemHeartbeatTimestampIntegrationMsg'
       heartbeatEchoIntegration:
         $ref: '#/components/messages/SystemHeartbeatEchoIntegrationMsg'
       status:
@@ -2340,7 +2217,7 @@ channels:
         description: Integration identifier.
       pointType:
         enum:
-          - HearbeatTimestampIntegration
+          - HeartbeatTimestampIntegration
           - HeartbeatEchoIntegration
         description: Integration-published System point type.
       tagPath:
@@ -2946,7 +2823,7 @@ operations:
     messages:
       - $ref: '#/channels/systemMetadata/messages/heartbeatTimestampBms'
       - $ref: '#/channels/systemMetadata/messages/heartbeatEchoBms'
-      - $ref: '#/channels/systemMetadata/messages/hearbeatTimestampIntegration'
+      - $ref: '#/channels/systemMetadata/messages/heartbeatTimestampIntegration'
       - $ref: '#/channels/systemMetadata/messages/heartbeatEchoIntegration'
     description: Subscribe to System metadata for all System point types.
 
@@ -3009,138 +2886,224 @@ components:
 
     # Rack
     RackLiquidSupplyTemperatureMsg:
+      name: RackLiquidSupplyTemperatureMsg
+      title: Rack RackLiquidSupplyTemperature Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidSupplyTemperatureMetadata'
     RackLiquidReturnTemperatureMsg:
+      name: RackLiquidReturnTemperatureMsg
+      title: Rack RackLiquidReturnTemperature Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidReturnTemperatureMetadata'
     RackLiquidFlowMsg:
+      name: RackLiquidFlowMsg
+      title: Rack RackLiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidFlowMetadata'
     RackLiquidDifferentialPressureMsg:
+      name: RackLiquidDifferentialPressureMsg
+      title: Rack RackLiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidDifferentialPressureMetadata'
     RackControlValvePositionMsg:
+      name: RackControlValvePositionMsg
+      title: Rack RackControlValvePosition Metadata
       payload:
         $ref: '#/components/schemas/RackControlValvePositionMetadata'
     RackPowerMsg:
+      name: RackPowerMsg
+      title: Rack RackPower Metadata
       payload:
         $ref: '#/components/schemas/RackPowerMetadata'
     RackLeakDetectMsg:
+      name: RackLeakDetectMsg
+      title: Rack RackLeakDetect Metadata
       payload:
         $ref: '#/components/schemas/RackLeakDetectMetadata'
     RackLeakSensorFaultMsg:
+      name: RackLeakSensorFaultMsg
+      title: Rack RackLeakSensorFault Metadata
       payload:
         $ref: '#/components/schemas/RackLeakSensorFaultMetadata'
     RackLiquidIsolationStatusMsg:
+      name: RackLiquidIsolationStatusMsg
+      title: Rack RackLiquidIsolationStatus Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidIsolationStatusMetadata'
     RackElectricalIsolationStatusMsg:
+      name: RackElectricalIsolationStatusMsg
+      title: Rack RackElectricalIsolationStatus Metadata
       payload:
         $ref: '#/components/schemas/RackElectricalIsolationStatusMetadata'
     RackLeakDetectTrayMsg:
+      name: RackLeakDetectTrayMsg
+      title: Rack RackLeakDetectTray Metadata
       payload:
         $ref: '#/components/schemas/RackLeakDetectTrayMetadata'
     RackLiquidIsolationRequestMsg:
+      name: RackLiquidIsolationRequestMsg
+      title: Rack RackLiquidIsolationRequest Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidIsolationRequestMetadata'
     RackElectricalIsolationRequestMsg:
+      name: RackElectricalIsolationRequestMsg
+      title: Rack RackElectricalIsolationRequest Metadata
       payload:
         $ref: '#/components/schemas/RackElectricalIsolationRequestMetadata'
 
     # PowerMeter
     PowerMeterVoltageMsg:
+      name: PowerMeterVoltageMsg
+      title: PowerMeter Voltage Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterVoltageMetadata'
     PowerMeterPowerFactorMsg:
+      name: PowerMeterPowerFactorMsg
+      title: PowerMeter PowerFactor Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterPowerFactorMetadata'
     PowerMeterFrequencyMsg:
+      name: PowerMeterFrequencyMsg
+      title: PowerMeter Frequency Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterFrequencyMetadata'
     PowerMeterApparentPowerMsg:
+      name: PowerMeterApparentPowerMsg
+      title: PowerMeter ApparentPower Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterApparentPowerMetadata'
     PowerMeterActivePowerMsg:
+      name: PowerMeterActivePowerMsg
+      title: PowerMeter ActivePower Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterActivePowerMetadata'
     PowerMeterCurrentMsg:
+      name: PowerMeterCurrentMsg
+      title: PowerMeter Current Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterCurrentMetadata'
     PowerMeterCurrentLimitMsg:
+      name: PowerMeterCurrentLimitMsg
+      title: PowerMeter CurrentLimit Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterCurrentLimitMetadata'
     PowerMeterPhaseCurrentMsg:
+      name: PowerMeterPhaseCurrentMsg
+      title: PowerMeter PhaseCurrent Metadata
       payload:
         $ref: '#/components/schemas/PowerMeterPhaseCurrentMetadata'
 
     # Generic Equipment
     LiquidTemperatureMsg:
+      name: LiquidTemperatureMsg
+      title: LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/LiquidTemperatureMetadata'
     LiquidDifferentialPressureMsg:
+      name: LiquidDifferentialPressureMsg
+      title: LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/LiquidDifferentialPressureMetadata'
     LiquidFlowMsg:
+      name: LiquidFlowMsg
+      title: LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/LiquidFlowMetadata'
     LiquidPressureMsg:
+      name: LiquidPressureMsg
+      title: LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/LiquidPressureMetadata'
     StatusMsg:
+      name: StatusMsg
+      title: Status Metadata
       payload:
         $ref: '#/components/schemas/StatusMetadata'
     AvailableMsg:
+      name: AvailableMsg
+      title: Available Metadata
       payload:
         $ref: '#/components/schemas/AvailableMetadata'
     ValvePositionMsg:
+      name: ValvePositionMsg
+      title: ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/ValvePositionMetadata'
     PumpSpeedMsg:
+      name: PumpSpeedMsg
+      title: PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/PumpSpeedMetadata'
     FanSpeedMsg:
+      name: FanSpeedMsg
+      title: FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/FanSpeedMetadata'
     DamperPositionMsg:
+      name: DamperPositionMsg
+      title: DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/DamperPositionMetadata'
     AirTemperatureMsg:
+      name: AirTemperatureMsg
+      title: AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/AirTemperatureMetadata'
     AirDifferentialPressureMsg:
+      name: AirDifferentialPressureMsg
+      title: AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/AirDifferentialPressureMetadata'
     AirFlowMsg:
+      name: AirFlowMsg
+      title: AirFlow Metadata
       payload:
         $ref: '#/components/schemas/AirFlowMetadata'
     AirPressureMsg:
+      name: AirPressureMsg
+      title: AirPressure Metadata
       payload:
         $ref: '#/components/schemas/AirPressureMetadata'
     LiquidTemperatureSpRequestMsg:
+      name: LiquidTemperatureSpRequestMsg
+      title: CDU LiquidTemperatureSpRequest Metadata
       payload:
         $ref: '#/components/schemas/LiquidTemperatureSpRequestMetadata'
     SoundMsg:
+      name: SoundMsg
+      title: Sound Metadata
       payload:
         $ref: '#/components/schemas/SoundMetadata'
 
     # System
     SystemHeartbeatTimestampBmsMsg:
+      name: SystemHeartbeatTimestampBmsMsg
+      title: HeartbeatTimestampBms Metadata
       payload:
         $ref: '#/components/schemas/SystemHeartbeatTimestampBmsMetadata'
     SystemHeartbeatEchoBmsMsg:
+      name: SystemHeartbeatEchoBmsMsg
+      title: HeartbeatEchoBms Metadata
       payload:
         $ref: '#/components/schemas/SystemHeartbeatEchoBmsMetadata'
-    SystemHearbeatTimestampIntegrationMsg:
+    SystemHeartbeatTimestampIntegrationMsg:
+      name: SystemHeartbeatTimestampIntegrationMsg
+      title: HeartbeatTimestampIntegration Metadata
       payload:
-        $ref: '#/components/schemas/SystemHearbeatTimestampIntegrationMetadata'
+        $ref: '#/components/schemas/SystemHeartbeatTimestampIntegrationMetadata'
     SystemHeartbeatEchoIntegrationMsg:
+      name: SystemHeartbeatEchoIntegrationMsg
+      title: HeartbeatEchoIntegration Metadata
       payload:
         $ref: '#/components/schemas/SystemHeartbeatEchoIntegrationMetadata'
     SystemStatusMsg:
+      name: SystemStatusMsg
+      title: System Status Metadata
       payload:
         $ref: '#/components/schemas/SystemStatusMetadata'
     SystemAvailableMsg:
+      name: SystemAvailableMsg
+      title: System Available Metadata
       payload:
         $ref: '#/components/schemas/SystemAvailableMetadata'
 
@@ -3148,728 +3111,1090 @@ components:
     # --- Per-objectType messages (objectType constraint) ---
 
     BESSStatusMsg:
+      name: BESSStatusMsg
+      title: BESS Status Metadata
       payload:
         $ref: '#/components/schemas/BESSStatusMetadata'
 
     BESSAvailableMsg:
+      name: BESSAvailableMsg
+      title: BESS Available Metadata
       payload:
         $ref: '#/components/schemas/BESSAvailableMetadata'
 
     UPSStatusMsg:
+      name: UPSStatusMsg
+      title: UPS Status Metadata
       payload:
         $ref: '#/components/schemas/UPSStatusMetadata'
 
     UPSAvailableMsg:
+      name: UPSAvailableMsg
+      title: UPS Available Metadata
       payload:
         $ref: '#/components/schemas/UPSAvailableMetadata'
 
     ATSStatusMsg:
+      name: ATSStatusMsg
+      title: ATS Status Metadata
       payload:
         $ref: '#/components/schemas/ATSStatusMetadata'
 
     ATSAvailableMsg:
+      name: ATSAvailableMsg
+      title: ATS Available Metadata
       payload:
         $ref: '#/components/schemas/ATSAvailableMetadata'
 
     GeneratorStatusMsg:
+      name: GeneratorStatusMsg
+      title: Generator Status Metadata
       payload:
         $ref: '#/components/schemas/GeneratorStatusMetadata'
 
     GeneratorAvailableMsg:
+      name: GeneratorAvailableMsg
+      title: Generator Available Metadata
       payload:
         $ref: '#/components/schemas/GeneratorAvailableMetadata'
 
     ShuntStatusMsg:
+      name: ShuntStatusMsg
+      title: Shunt Status Metadata
       payload:
         $ref: '#/components/schemas/ShuntStatusMetadata'
 
     ShuntAvailableMsg:
+      name: ShuntAvailableMsg
+      title: Shunt Available Metadata
       payload:
         $ref: '#/components/schemas/ShuntAvailableMetadata'
 
     BreakerStatusMsg:
+      name: BreakerStatusMsg
+      title: Breaker Status Metadata
       payload:
         $ref: '#/components/schemas/BreakerStatusMetadata'
 
     BreakerAvailableMsg:
+      name: BreakerAvailableMsg
+      title: Breaker Available Metadata
       payload:
         $ref: '#/components/schemas/BreakerAvailableMetadata'
 
     ValveValvePositionMsg:
+      name: ValveValvePositionMsg
+      title: Valve ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/ValveValvePositionMetadata'
 
     PumpPumpSpeedMsg:
+      name: PumpPumpSpeedMsg
+      title: Pump PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/PumpPumpSpeedMetadata'
 
     FanFanSpeedMsg:
+      name: FanFanSpeedMsg
+      title: Fan FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/FanFanSpeedMetadata'
 
     DamperDamperPositionMsg:
+      name: DamperDamperPositionMsg
+      title: Damper DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/DamperDamperPositionMetadata'
 
     SensorLiquidTemperatureMsg:
+      name: SensorLiquidTemperatureMsg
+      title: Sensor LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/SensorLiquidTemperatureMetadata'
 
     SensorLiquidDifferentialPressureMsg:
+      name: SensorLiquidDifferentialPressureMsg
+      title: Sensor LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/SensorLiquidDifferentialPressureMetadata'
 
     SensorLiquidFlowMsg:
+      name: SensorLiquidFlowMsg
+      title: Sensor LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/SensorLiquidFlowMetadata'
 
     SensorLiquidPressureMsg:
+      name: SensorLiquidPressureMsg
+      title: Sensor LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/SensorLiquidPressureMetadata'
 
     SensorAirTemperatureMsg:
+      name: SensorAirTemperatureMsg
+      title: Sensor AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/SensorAirTemperatureMetadata'
 
     SensorAirDifferentialPressureMsg:
+      name: SensorAirDifferentialPressureMsg
+      title: Sensor AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/SensorAirDifferentialPressureMetadata'
 
     SensorAirFlowMsg:
+      name: SensorAirFlowMsg
+      title: Sensor AirFlow Metadata
       payload:
         $ref: '#/components/schemas/SensorAirFlowMetadata'
 
     SensorAirPressureMsg:
+      name: SensorAirPressureMsg
+      title: Sensor AirPressure Metadata
       payload:
         $ref: '#/components/schemas/SensorAirPressureMetadata'
 
     SensorSoundMsg:
+      name: SensorSoundMsg
+      title: Sensor Sound Metadata
       payload:
         $ref: '#/components/schemas/SensorSoundMetadata'
 
     ValveAvailableMsg:
+      name: ValveAvailableMsg
+      title: Valve Available Metadata
       payload:
         $ref: '#/components/schemas/ValveAvailableMetadata'
 
     PumpAvailableMsg:
+      name: PumpAvailableMsg
+      title: Pump Available Metadata
       payload:
         $ref: '#/components/schemas/PumpAvailableMetadata'
 
     FanAvailableMsg:
+      name: FanAvailableMsg
+      title: Fan Available Metadata
       payload:
         $ref: '#/components/schemas/FanAvailableMetadata'
 
     DamperAvailableMsg:
+      name: DamperAvailableMsg
+      title: Damper Available Metadata
       payload:
         $ref: '#/components/schemas/DamperAvailableMetadata'
 
     SensorAvailableMsg:
+      name: SensorAvailableMsg
+      title: Sensor Available Metadata
       payload:
         $ref: '#/components/schemas/SensorAvailableMetadata'
 
     CDULeakDetectMsg:
+      name: CDULeakDetectMsg
+      title: CDU LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/CDULeakDetectMetadata'
 
     CoolingTowerLeakDetectMsg:
+      name: CoolingTowerLeakDetectMsg
+      title: CoolingTower LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerLeakDetectMetadata'
 
     HXLeakDetectMsg:
+      name: HXLeakDetectMsg
+      title: HX LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/HXLeakDetectMetadata'
 
     CRAHLeakDetectMsg:
+      name: CRAHLeakDetectMsg
+      title: CRAH LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/CRAHLeakDetectMetadata'
 
     CRACLeakDetectMsg:
+      name: CRACLeakDetectMsg
+      title: CRAC LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/CRACLeakDetectMetadata'
 
     AHULeakDetectMsg:
+      name: AHULeakDetectMsg
+      title: AHU LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/AHULeakDetectMetadata'
 
     ChillerLeakDetectMsg:
+      name: ChillerLeakDetectMsg
+      title: Chiller LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/ChillerLeakDetectMetadata'
 
     TankLeakDetectMsg:
+      name: TankLeakDetectMsg
+      title: Tank LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/TankLeakDetectMetadata'
 
     SensorLeakDetectMsg:
+      name: SensorLeakDetectMsg
+      title: Sensor LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/SensorLeakDetectMetadata'
 
     GenericObjectLeakDetectMsg:
+      name: GenericObjectLeakDetectMsg
+      title: GenericObject LeakDetect Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLeakDetectMetadata'
 
     CDUAirRelativeHumidityMsg:
+      name: CDUAirRelativeHumidityMsg
+      title: CDU AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/CDUAirRelativeHumidityMetadata'
 
     CoolingTowerAirRelativeHumidityMsg:
+      name: CoolingTowerAirRelativeHumidityMsg
+      title: CoolingTower AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAirRelativeHumidityMetadata'
 
     HXAirRelativeHumidityMsg:
+      name: HXAirRelativeHumidityMsg
+      title: HX AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/HXAirRelativeHumidityMetadata'
 
     CRAHAirRelativeHumidityMsg:
+      name: CRAHAirRelativeHumidityMsg
+      title: CRAH AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/CRAHAirRelativeHumidityMetadata'
 
     CRACAirRelativeHumidityMsg:
+      name: CRACAirRelativeHumidityMsg
+      title: CRAC AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/CRACAirRelativeHumidityMetadata'
 
     AHUAirRelativeHumidityMsg:
+      name: AHUAirRelativeHumidityMsg
+      title: AHU AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/AHUAirRelativeHumidityMetadata'
 
     ChillerAirRelativeHumidityMsg:
+      name: ChillerAirRelativeHumidityMsg
+      title: Chiller AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/ChillerAirRelativeHumidityMetadata'
 
     TankAirRelativeHumidityMsg:
+      name: TankAirRelativeHumidityMsg
+      title: Tank AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/TankAirRelativeHumidityMetadata'
 
     SensorAirRelativeHumidityMsg:
+      name: SensorAirRelativeHumidityMsg
+      title: Sensor AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/SensorAirRelativeHumidityMetadata'
 
     GenericObjectAirRelativeHumidityMsg:
+      name: GenericObjectAirRelativeHumidityMsg
+      title: GenericObject AirRelativeHumidity Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAirRelativeHumidityMetadata'
 
     RackLiquidDifferentialPressureSpMsg:
+      name: RackLiquidDifferentialPressureSpMsg
+      title: Rack RackLiquidDifferentialPressureSp Metadata
       payload:
         $ref: '#/components/schemas/RackLiquidDifferentialPressureSpMetadata'
 
     CDULiquidTemperatureMsg:
+      name: CDULiquidTemperatureMsg
+      title: CDU LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/CDULiquidTemperatureMetadata'
 
     CDULiquidDifferentialPressureMsg:
+      name: CDULiquidDifferentialPressureMsg
+      title: CDU LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CDULiquidDifferentialPressureMetadata'
 
     CDULiquidFlowMsg:
+      name: CDULiquidFlowMsg
+      title: CDU LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/CDULiquidFlowMetadata'
 
     CDULiquidPressureMsg:
+      name: CDULiquidPressureMsg
+      title: CDU LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/CDULiquidPressureMetadata'
 
     CDUStatusMsg:
+      name: CDUStatusMsg
+      title: CDU Status Metadata
       payload:
         $ref: '#/components/schemas/CDUStatusMetadata'
 
     CDUAvailableMsg:
+      name: CDUAvailableMsg
+      title: CDU Available Metadata
       payload:
         $ref: '#/components/schemas/CDUAvailableMetadata'
 
     CDUValvePositionMsg:
+      name: CDUValvePositionMsg
+      title: CDU ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/CDUValvePositionMetadata'
 
     CDUPumpSpeedMsg:
+      name: CDUPumpSpeedMsg
+      title: CDU PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/CDUPumpSpeedMetadata'
 
     CDUFanSpeedMsg:
+      name: CDUFanSpeedMsg
+      title: CDU FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/CDUFanSpeedMetadata'
 
     CDUDamperPositionMsg:
+      name: CDUDamperPositionMsg
+      title: CDU DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/CDUDamperPositionMetadata'
 
     CDUAirTemperatureMsg:
+      name: CDUAirTemperatureMsg
+      title: CDU AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/CDUAirTemperatureMetadata'
 
     CDUAirDifferentialPressureMsg:
+      name: CDUAirDifferentialPressureMsg
+      title: CDU AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CDUAirDifferentialPressureMetadata'
 
     CDUAirFlowMsg:
+      name: CDUAirFlowMsg
+      title: CDU AirFlow Metadata
       payload:
         $ref: '#/components/schemas/CDUAirFlowMetadata'
 
     CDUAirPressureMsg:
+      name: CDUAirPressureMsg
+      title: CDU AirPressure Metadata
       payload:
         $ref: '#/components/schemas/CDUAirPressureMetadata'
 
     CoolingTowerLiquidTemperatureMsg:
+      name: CoolingTowerLiquidTemperatureMsg
+      title: CoolingTower LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerLiquidTemperatureMetadata'
 
     CoolingTowerLiquidDifferentialPressureMsg:
+      name: CoolingTowerLiquidDifferentialPressureMsg
+      title: CoolingTower LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerLiquidDifferentialPressureMetadata'
 
     CoolingTowerLiquidFlowMsg:
+      name: CoolingTowerLiquidFlowMsg
+      title: CoolingTower LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerLiquidFlowMetadata'
 
     CoolingTowerLiquidPressureMsg:
+      name: CoolingTowerLiquidPressureMsg
+      title: CoolingTower LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerLiquidPressureMetadata'
 
     CoolingTowerStatusMsg:
+      name: CoolingTowerStatusMsg
+      title: CoolingTower Status Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerStatusMetadata'
 
     CoolingTowerAvailableMsg:
+      name: CoolingTowerAvailableMsg
+      title: CoolingTower Available Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAvailableMetadata'
 
     CoolingTowerValvePositionMsg:
+      name: CoolingTowerValvePositionMsg
+      title: CoolingTower ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerValvePositionMetadata'
 
     CoolingTowerPumpSpeedMsg:
+      name: CoolingTowerPumpSpeedMsg
+      title: CoolingTower PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerPumpSpeedMetadata'
 
     CoolingTowerFanSpeedMsg:
+      name: CoolingTowerFanSpeedMsg
+      title: CoolingTower FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerFanSpeedMetadata'
 
     CoolingTowerDamperPositionMsg:
+      name: CoolingTowerDamperPositionMsg
+      title: CoolingTower DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerDamperPositionMetadata'
 
     CoolingTowerAirTemperatureMsg:
+      name: CoolingTowerAirTemperatureMsg
+      title: CoolingTower AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAirTemperatureMetadata'
 
     CoolingTowerAirDifferentialPressureMsg:
+      name: CoolingTowerAirDifferentialPressureMsg
+      title: CoolingTower AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAirDifferentialPressureMetadata'
 
     CoolingTowerAirFlowMsg:
+      name: CoolingTowerAirFlowMsg
+      title: CoolingTower AirFlow Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAirFlowMetadata'
 
     CoolingTowerAirPressureMsg:
+      name: CoolingTowerAirPressureMsg
+      title: CoolingTower AirPressure Metadata
       payload:
         $ref: '#/components/schemas/CoolingTowerAirPressureMetadata'
 
     HXLiquidTemperatureMsg:
+      name: HXLiquidTemperatureMsg
+      title: HX LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/HXLiquidTemperatureMetadata'
 
     HXLiquidDifferentialPressureMsg:
+      name: HXLiquidDifferentialPressureMsg
+      title: HX LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/HXLiquidDifferentialPressureMetadata'
 
     HXLiquidFlowMsg:
+      name: HXLiquidFlowMsg
+      title: HX LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/HXLiquidFlowMetadata'
 
     HXLiquidPressureMsg:
+      name: HXLiquidPressureMsg
+      title: HX LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/HXLiquidPressureMetadata'
 
     HXStatusMsg:
+      name: HXStatusMsg
+      title: HX Status Metadata
       payload:
         $ref: '#/components/schemas/HXStatusMetadata'
 
     HXAvailableMsg:
+      name: HXAvailableMsg
+      title: HX Available Metadata
       payload:
         $ref: '#/components/schemas/HXAvailableMetadata'
 
     HXValvePositionMsg:
+      name: HXValvePositionMsg
+      title: HX ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/HXValvePositionMetadata'
 
     HXPumpSpeedMsg:
+      name: HXPumpSpeedMsg
+      title: HX PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/HXPumpSpeedMetadata'
 
     HXFanSpeedMsg:
+      name: HXFanSpeedMsg
+      title: HX FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/HXFanSpeedMetadata'
 
     HXDamperPositionMsg:
+      name: HXDamperPositionMsg
+      title: HX DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/HXDamperPositionMetadata'
 
     HXAirTemperatureMsg:
+      name: HXAirTemperatureMsg
+      title: HX AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/HXAirTemperatureMetadata'
 
     HXAirDifferentialPressureMsg:
+      name: HXAirDifferentialPressureMsg
+      title: HX AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/HXAirDifferentialPressureMetadata'
 
     HXAirFlowMsg:
+      name: HXAirFlowMsg
+      title: HX AirFlow Metadata
       payload:
         $ref: '#/components/schemas/HXAirFlowMetadata'
 
     HXAirPressureMsg:
+      name: HXAirPressureMsg
+      title: HX AirPressure Metadata
       payload:
         $ref: '#/components/schemas/HXAirPressureMetadata'
 
     CRAHLiquidTemperatureMsg:
+      name: CRAHLiquidTemperatureMsg
+      title: CRAH LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/CRAHLiquidTemperatureMetadata'
 
     CRAHLiquidDifferentialPressureMsg:
+      name: CRAHLiquidDifferentialPressureMsg
+      title: CRAH LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CRAHLiquidDifferentialPressureMetadata'
 
     CRAHLiquidFlowMsg:
+      name: CRAHLiquidFlowMsg
+      title: CRAH LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/CRAHLiquidFlowMetadata'
 
     CRAHLiquidPressureMsg:
+      name: CRAHLiquidPressureMsg
+      title: CRAH LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/CRAHLiquidPressureMetadata'
 
     CRAHStatusMsg:
+      name: CRAHStatusMsg
+      title: CRAH Status Metadata
       payload:
         $ref: '#/components/schemas/CRAHStatusMetadata'
 
     CRAHAvailableMsg:
+      name: CRAHAvailableMsg
+      title: CRAH Available Metadata
       payload:
         $ref: '#/components/schemas/CRAHAvailableMetadata'
 
     CRAHValvePositionMsg:
+      name: CRAHValvePositionMsg
+      title: CRAH ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/CRAHValvePositionMetadata'
 
     CRAHPumpSpeedMsg:
+      name: CRAHPumpSpeedMsg
+      title: CRAH PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/CRAHPumpSpeedMetadata'
 
     CRAHFanSpeedMsg:
+      name: CRAHFanSpeedMsg
+      title: CRAH FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/CRAHFanSpeedMetadata'
 
     CRAHDamperPositionMsg:
+      name: CRAHDamperPositionMsg
+      title: CRAH DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/CRAHDamperPositionMetadata'
 
     CRAHAirTemperatureMsg:
+      name: CRAHAirTemperatureMsg
+      title: CRAH AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/CRAHAirTemperatureMetadata'
 
     CRAHAirDifferentialPressureMsg:
+      name: CRAHAirDifferentialPressureMsg
+      title: CRAH AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CRAHAirDifferentialPressureMetadata'
 
     CRAHAirFlowMsg:
+      name: CRAHAirFlowMsg
+      title: CRAH AirFlow Metadata
       payload:
         $ref: '#/components/schemas/CRAHAirFlowMetadata'
 
     CRAHAirPressureMsg:
+      name: CRAHAirPressureMsg
+      title: CRAH AirPressure Metadata
       payload:
         $ref: '#/components/schemas/CRAHAirPressureMetadata'
 
     CRACLiquidTemperatureMsg:
+      name: CRACLiquidTemperatureMsg
+      title: CRAC LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/CRACLiquidTemperatureMetadata'
 
     CRACLiquidDifferentialPressureMsg:
+      name: CRACLiquidDifferentialPressureMsg
+      title: CRAC LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CRACLiquidDifferentialPressureMetadata'
 
     CRACLiquidFlowMsg:
+      name: CRACLiquidFlowMsg
+      title: CRAC LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/CRACLiquidFlowMetadata'
 
     CRACLiquidPressureMsg:
+      name: CRACLiquidPressureMsg
+      title: CRAC LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/CRACLiquidPressureMetadata'
 
     CRACStatusMsg:
+      name: CRACStatusMsg
+      title: CRAC Status Metadata
       payload:
         $ref: '#/components/schemas/CRACStatusMetadata'
 
     CRACAvailableMsg:
+      name: CRACAvailableMsg
+      title: CRAC Available Metadata
       payload:
         $ref: '#/components/schemas/CRACAvailableMetadata'
 
     CRACValvePositionMsg:
+      name: CRACValvePositionMsg
+      title: CRAC ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/CRACValvePositionMetadata'
 
     CRACPumpSpeedMsg:
+      name: CRACPumpSpeedMsg
+      title: CRAC PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/CRACPumpSpeedMetadata'
 
     CRACFanSpeedMsg:
+      name: CRACFanSpeedMsg
+      title: CRAC FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/CRACFanSpeedMetadata'
 
     CRACDamperPositionMsg:
+      name: CRACDamperPositionMsg
+      title: CRAC DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/CRACDamperPositionMetadata'
 
     CRACAirTemperatureMsg:
+      name: CRACAirTemperatureMsg
+      title: CRAC AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/CRACAirTemperatureMetadata'
 
     CRACAirDifferentialPressureMsg:
+      name: CRACAirDifferentialPressureMsg
+      title: CRAC AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/CRACAirDifferentialPressureMetadata'
 
     CRACAirFlowMsg:
+      name: CRACAirFlowMsg
+      title: CRAC AirFlow Metadata
       payload:
         $ref: '#/components/schemas/CRACAirFlowMetadata'
 
     CRACAirPressureMsg:
+      name: CRACAirPressureMsg
+      title: CRAC AirPressure Metadata
       payload:
         $ref: '#/components/schemas/CRACAirPressureMetadata'
 
     AHULiquidTemperatureMsg:
+      name: AHULiquidTemperatureMsg
+      title: AHU LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/AHULiquidTemperatureMetadata'
 
     AHULiquidDifferentialPressureMsg:
+      name: AHULiquidDifferentialPressureMsg
+      title: AHU LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/AHULiquidDifferentialPressureMetadata'
 
     AHULiquidFlowMsg:
+      name: AHULiquidFlowMsg
+      title: AHU LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/AHULiquidFlowMetadata'
 
     AHULiquidPressureMsg:
+      name: AHULiquidPressureMsg
+      title: AHU LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/AHULiquidPressureMetadata'
 
     AHUStatusMsg:
+      name: AHUStatusMsg
+      title: AHU Status Metadata
       payload:
         $ref: '#/components/schemas/AHUStatusMetadata'
 
     AHUAvailableMsg:
+      name: AHUAvailableMsg
+      title: AHU Available Metadata
       payload:
         $ref: '#/components/schemas/AHUAvailableMetadata'
 
     AHUValvePositionMsg:
+      name: AHUValvePositionMsg
+      title: AHU ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/AHUValvePositionMetadata'
 
     AHUPumpSpeedMsg:
+      name: AHUPumpSpeedMsg
+      title: AHU PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/AHUPumpSpeedMetadata'
 
     AHUFanSpeedMsg:
+      name: AHUFanSpeedMsg
+      title: AHU FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/AHUFanSpeedMetadata'
 
     AHUDamperPositionMsg:
+      name: AHUDamperPositionMsg
+      title: AHU DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/AHUDamperPositionMetadata'
 
     AHUAirTemperatureMsg:
+      name: AHUAirTemperatureMsg
+      title: AHU AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/AHUAirTemperatureMetadata'
 
     AHUAirDifferentialPressureMsg:
+      name: AHUAirDifferentialPressureMsg
+      title: AHU AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/AHUAirDifferentialPressureMetadata'
 
     AHUAirFlowMsg:
+      name: AHUAirFlowMsg
+      title: AHU AirFlow Metadata
       payload:
         $ref: '#/components/schemas/AHUAirFlowMetadata'
 
     AHUAirPressureMsg:
+      name: AHUAirPressureMsg
+      title: AHU AirPressure Metadata
       payload:
         $ref: '#/components/schemas/AHUAirPressureMetadata'
 
     ChillerLiquidTemperatureMsg:
+      name: ChillerLiquidTemperatureMsg
+      title: Chiller LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/ChillerLiquidTemperatureMetadata'
 
     ChillerLiquidDifferentialPressureMsg:
+      name: ChillerLiquidDifferentialPressureMsg
+      title: Chiller LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/ChillerLiquidDifferentialPressureMetadata'
 
     ChillerLiquidFlowMsg:
+      name: ChillerLiquidFlowMsg
+      title: Chiller LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/ChillerLiquidFlowMetadata'
 
     ChillerLiquidPressureMsg:
+      name: ChillerLiquidPressureMsg
+      title: Chiller LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/ChillerLiquidPressureMetadata'
 
     ChillerStatusMsg:
+      name: ChillerStatusMsg
+      title: Chiller Status Metadata
       payload:
         $ref: '#/components/schemas/ChillerStatusMetadata'
 
     ChillerAvailableMsg:
+      name: ChillerAvailableMsg
+      title: Chiller Available Metadata
       payload:
         $ref: '#/components/schemas/ChillerAvailableMetadata'
 
     ChillerValvePositionMsg:
+      name: ChillerValvePositionMsg
+      title: Chiller ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/ChillerValvePositionMetadata'
 
     ChillerPumpSpeedMsg:
+      name: ChillerPumpSpeedMsg
+      title: Chiller PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/ChillerPumpSpeedMetadata'
 
     ChillerFanSpeedMsg:
+      name: ChillerFanSpeedMsg
+      title: Chiller FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/ChillerFanSpeedMetadata'
 
     ChillerDamperPositionMsg:
+      name: ChillerDamperPositionMsg
+      title: Chiller DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/ChillerDamperPositionMetadata'
 
     ChillerAirTemperatureMsg:
+      name: ChillerAirTemperatureMsg
+      title: Chiller AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/ChillerAirTemperatureMetadata'
 
     ChillerAirDifferentialPressureMsg:
+      name: ChillerAirDifferentialPressureMsg
+      title: Chiller AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/ChillerAirDifferentialPressureMetadata'
 
     ChillerAirFlowMsg:
+      name: ChillerAirFlowMsg
+      title: Chiller AirFlow Metadata
       payload:
         $ref: '#/components/schemas/ChillerAirFlowMetadata'
 
     ChillerAirPressureMsg:
+      name: ChillerAirPressureMsg
+      title: Chiller AirPressure Metadata
       payload:
         $ref: '#/components/schemas/ChillerAirPressureMetadata'
     GenericEquipmentPointMsg:
+      name: GenericEquipmentPointMsg
+      title: GenericEquipment GenericPoint Metadata
       payload:
         $ref: '#/components/schemas/GenericEquipmentPointMetadata'
 
     # Generic PowerMeter
     GenericPowerMeterPointMsg:
+      name: GenericPowerMeterPointMsg
+      title: PowerMeter GenericPoint Metadata
       payload:
         $ref: '#/components/schemas/GenericPowerMeterPointMetadata'
 
     # Tank
     TankLiquidTemperatureMsg:
+      name: TankLiquidTemperatureMsg
+      title: Tank LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/TankLiquidTemperatureMetadata'
 
     TankLiquidDifferentialPressureMsg:
+      name: TankLiquidDifferentialPressureMsg
+      title: Tank LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/TankLiquidDifferentialPressureMetadata'
 
     TankLiquidFlowMsg:
+      name: TankLiquidFlowMsg
+      title: Tank LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/TankLiquidFlowMetadata'
 
     TankLiquidPressureMsg:
+      name: TankLiquidPressureMsg
+      title: Tank LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/TankLiquidPressureMetadata'
 
     TankStatusMsg:
+      name: TankStatusMsg
+      title: Tank Status Metadata
       payload:
         $ref: '#/components/schemas/TankStatusMetadata'
 
     TankAvailableMsg:
+      name: TankAvailableMsg
+      title: Tank Available Metadata
       payload:
         $ref: '#/components/schemas/TankAvailableMetadata'
 
     TankValvePositionMsg:
+      name: TankValvePositionMsg
+      title: Tank ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/TankValvePositionMetadata'
 
     TankPumpSpeedMsg:
+      name: TankPumpSpeedMsg
+      title: Tank PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/TankPumpSpeedMetadata'
 
     TankFanSpeedMsg:
+      name: TankFanSpeedMsg
+      title: Tank FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/TankFanSpeedMetadata'
 
     TankDamperPositionMsg:
+      name: TankDamperPositionMsg
+      title: Tank DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/TankDamperPositionMetadata'
 
     TankAirTemperatureMsg:
+      name: TankAirTemperatureMsg
+      title: Tank AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/TankAirTemperatureMetadata'
 
     TankAirDifferentialPressureMsg:
+      name: TankAirDifferentialPressureMsg
+      title: Tank AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/TankAirDifferentialPressureMetadata'
 
     TankAirFlowMsg:
+      name: TankAirFlowMsg
+      title: Tank AirFlow Metadata
       payload:
         $ref: '#/components/schemas/TankAirFlowMetadata'
 
     TankAirPressureMsg:
+      name: TankAirPressureMsg
+      title: Tank AirPressure Metadata
       payload:
         $ref: '#/components/schemas/TankAirPressureMetadata'
 
     # GenericObject
     GenericObjectLiquidTemperatureMsg:
+      name: GenericObjectLiquidTemperatureMsg
+      title: GenericObject LiquidTemperature Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLiquidTemperatureMetadata'
 
     GenericObjectLiquidDifferentialPressureMsg:
+      name: GenericObjectLiquidDifferentialPressureMsg
+      title: GenericObject LiquidDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLiquidDifferentialPressureMetadata'
 
     GenericObjectLiquidFlowMsg:
+      name: GenericObjectLiquidFlowMsg
+      title: GenericObject LiquidFlow Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLiquidFlowMetadata'
 
     GenericObjectLiquidPressureMsg:
+      name: GenericObjectLiquidPressureMsg
+      title: GenericObject LiquidPressure Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLiquidPressureMetadata'
 
     GenericObjectStatusMsg:
+      name: GenericObjectStatusMsg
+      title: GenericObject Status Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectStatusMetadata'
 
     GenericObjectAvailableMsg:
+      name: GenericObjectAvailableMsg
+      title: GenericObject Available Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAvailableMetadata'
 
     GenericObjectValvePositionMsg:
+      name: GenericObjectValvePositionMsg
+      title: GenericObject ValvePosition Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectValvePositionMetadata'
 
     GenericObjectPumpSpeedMsg:
+      name: GenericObjectPumpSpeedMsg
+      title: GenericObject PumpSpeed Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectPumpSpeedMetadata'
 
     GenericObjectFanSpeedMsg:
+      name: GenericObjectFanSpeedMsg
+      title: GenericObject FanSpeed Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectFanSpeedMetadata'
 
     GenericObjectDamperPositionMsg:
+      name: GenericObjectDamperPositionMsg
+      title: GenericObject DamperPosition Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectDamperPositionMetadata'
 
     GenericObjectAirTemperatureMsg:
+      name: GenericObjectAirTemperatureMsg
+      title: GenericObject AirTemperature Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAirTemperatureMetadata'
 
     GenericObjectAirDifferentialPressureMsg:
+      name: GenericObjectAirDifferentialPressureMsg
+      title: GenericObject AirDifferentialPressure Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAirDifferentialPressureMetadata'
 
     GenericObjectAirFlowMsg:
+      name: GenericObjectAirFlowMsg
+      title: GenericObject AirFlow Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAirFlowMetadata'
 
     GenericObjectAirPressureMsg:
+      name: GenericObjectAirPressureMsg
+      title: GenericObject AirPressure Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectAirPressureMetadata'
 
     GenericObjectLiquidTemperatureSpRequestMsg:
+      name: GenericObjectLiquidTemperatureSpRequestMsg
+      title: GenericObject LiquidTemperatureSpRequest Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectLiquidTemperatureSpRequestMetadata'
 
     GenericObjectSoundMsg:
+      name: GenericObjectSoundMsg
+      title: GenericObject Sound Metadata
       payload:
         $ref: '#/components/schemas/GenericObjectSoundMetadata'
 
@@ -4067,7 +4392,7 @@ components:
     EquipmentAssociateMode:
       type: object
       description: |
-        _Associate Mode_ : use when the object is referenced via an
+        *Associate Mode*: use when the object is referenced via an
         association identifier.
 
         - `associateId` is **required**.
@@ -4203,6 +4528,7 @@ components:
         - RackLiquidReturnTemperature
         - RackLiquidFlow
         - RackLiquidDifferentialPressure
+        - RackLiquidDifferentialPressureSp
         - RackControlValvePosition
         - RackPower
         - RackLeakDetect
@@ -4297,7 +4623,7 @@ components:
       type: string
       description: Valid pointType values for Integration-published System points.
       enum:
-        - HearbeatTimestampIntegration
+        - HeartbeatTimestampIntegration
         - HeartbeatEchoIntegration
 
     # =========================================================================
@@ -4733,7 +5059,9 @@ components:
       type: object
       description: >
         PhaseCurrent additionally requires `phase` to identify which electrical
-        phase (A, B, or C). 3 metadata messages per meter, one per phase.
+        phase. Accepts letter form (A, B, C) or numeric form (1, 2, 3); both
+        are valid representations of the same three-phase system.
+        3 metadata messages per meter, one per phase.
       required:
         - engUnit
         - phase
@@ -4749,8 +5077,10 @@ components:
           #enum: [A]
         phase:
           type: string
-          enum: [A, B, C]
-          description: Electrical phase identifier.
+          enum: [A, B, C, "1", "2", "3"]
+          description: >
+            Electrical phase identifier. Letter form (A/B/C) and numeric form
+            (1/2/3) are both accepted to align with publisher conventions.
 
     # --- Generic Equipment fields --------------------------------------------
     # engUnit enums reflect common industry standards.
@@ -5094,46 +5424,129 @@ components:
     HeartbeatTimestampBmsFields:
       type: object
       description: >
-        Required heartbeat. Written every 5 s. `scope` optionally identifies
-        which MQTT topics this heartbeat covers.
+        BMS-published heartbeat timestamp. The BMS publishes its own
+        timestamp every 10 s; one instance globally, consumed by all
+        connected integrations. `objectName` and `objectId` identify the
+        BMS itself (the publisher). The `integration` field is NOT used
+        on this point — `integration` is reserved for value-publisher
+        identity, and the BMS is the publisher here. `scope` optionally
+        identifies which MQTT topics this heartbeat covers.
+      required:
+        - objectName
+        - objectId
       properties:
         pointType:
           type: string
           enum: [HeartbeatTimestampBms]
+        objectName:
+          type: string
+          description: Human-readable name of the BMS publishing this heartbeat.
+        objectId:
+          type: string
+          description: >
+            Stable identifier for the BMS publishing this heartbeat
+            (e.g., `"BMS"`). One instance per BMS.
         scope:
           type: string
           description: Identifies which MQTT topics this heartbeat covers.
 
     HeartbeatEchoBmsFields:
       type: object
-      description: BMS echoes back the timestamp received from a specific integration.
-      required: [integration]
+      description: >
+        BMS echoes back the timestamp received from a specific integration.
+        Published by the BMS (one instance per connected integration). The
+        integration whose timestamp is being echoed is identified by
+        `objectName` and `objectId` — by convention, `objectId` matches
+        the same string used as that integration's `integration`
+        metadata value on its other points (e.g., `objectId: "MEPAI1"`).
+        The `integration` field is intentionally NOT present on this
+        point: `integration` denotes the value-publisher elsewhere in
+        the spec, and the BMS is the publisher here. The integration
+        being echoed is encoded in `objectId`, not in `integration`.
+        `scope` optionally identifies which BMS MQTT-client/topic
+        namespace this echo is associated with — used when the BMS
+        runs multiple MQTT clients connected to DSX Exchange.
+      required:
+        - objectName
+        - objectId
       properties:
         pointType:
           type: string
           enum: [HeartbeatEchoBms]
-        integration:
+        objectName:
           type: string
-          description: Integration whose timestamp is being echoed.
+          description: >
+            Human-readable name of the integration whose timestamp is
+            being echoed.
+        objectId:
+          type: string
+          description: >
+            Stable identifier of the integration whose timestamp is
+            being echoed (e.g., `"MEPAI1"`). Matches that integration's
+            `integration` metadata value on its other points.
+        scope:
+          type: string
+          description: >
+            Optional. Identifies which BMS MQTT-client/topic namespace
+            this echo is associated with.
 
-    HearbeatTimestampIntegrationFields:
+    HeartbeatTimestampIntegrationFields:
       type: object
-      description: Integration heartbeat. Written every 5 s.
+      description: >
+        Integration-published heartbeat timestamp. Each connected
+        integration publishes its own timestamp every 10 s; one instance
+        per integration. `objectName` and `objectId` identify the
+        integration publishing this heartbeat. By convention, `objectId`
+        matches the same string used as this integration's `integration`
+        metadata value on its other points (e.g., `objectId: "MEPAI1"` with
+        `integration: "MEPAI1"`). The `integration` field is required via
+        the integration metadata base and drives the value topic.
+      required:
+        - objectName
+        - objectId
       properties:
         pointType:
           type: string
-          enum: [HearbeatTimestampIntegration]
+          enum: [HeartbeatTimestampIntegration]
+        objectName:
+          type: string
+          description: >
+            Human-readable name of the integration publishing this
+            heartbeat.
+        objectId:
+          type: string
+          description: >
+            Stable identifier of the integration publishing this
+            heartbeat (e.g., `"MEPAI1"`). By convention, matches the
+            `integration` metadata value used by this integration on
+            its other points.
 
     HeartbeatEchoIntegrationFields:
       type: object
-      description: Integration echoes the BMS timestamp, once per BMS client/scope.
+      description: >
+        Integration echoes the BMS timestamp. Each integration publishes
+        its own echo of the BMS timestamp, allowing the BMS to confirm
+        round-trip with that specific integration (one instance per
+        connected integration). The BMS whose timestamp is being echoed
+        is identified by `objectName` and `objectId`
+        (e.g., `objectId: "BMS"`). The `integration` field is required via
+        the integration metadata base and drives the value topic.
+      required:
+        - objectName
+        - objectId
       properties:
         pointType:
           type: string
           enum: [HeartbeatEchoIntegration]
-        scope:
+        objectName:
           type: string
-          description: BMS scope being echoed (optional).
+          description: >
+            Human-readable name of the BMS whose timestamp is being echoed.
+        objectId:
+          type: string
+          description: >
+            Stable identifier of the BMS whose timestamp is being
+            echoed (e.g., `"BMS"`).
 
     # =========================================================================
     # SECTION 5 — Fully composed per-pointType metadata schemas
@@ -5232,7 +5645,7 @@ components:
 
     RackLeakDetectTrayMetadata:
       allOf:
-        - $ref: '#/components/schemas/RackMetadataBase'
+        - $ref: '#/components/schemas/RackIntegrationMetadataBase'
         - $ref: '#/components/schemas/RackLeakDetectTrayFields'
       unevaluatedProperties: false
 
@@ -5412,10 +5825,10 @@ components:
         - $ref: '#/components/schemas/HeartbeatEchoBmsFields'
       unevaluatedProperties: false
 
-    SystemHearbeatTimestampIntegrationMetadata:
+    SystemHeartbeatTimestampIntegrationMetadata:
       allOf:
         - $ref: '#/components/schemas/SystemIntegrationMetadataBase'
-        - $ref: '#/components/schemas/HearbeatTimestampIntegrationFields'
+        - $ref: '#/components/schemas/HeartbeatTimestampIntegrationFields'
       unevaluatedProperties: false
 
     SystemHeartbeatEchoIntegrationMetadata:
@@ -6869,10 +7282,11 @@ components:
             Required for GenericPoint. Describes the measurement context.
         phase:
           type: string
-          enum: [A, B, C]
+          enum: [A, B, C, "1", "2", "3"]
           description: >
             Optional electrical phase identifier. Use for phase-specific
-            generic measurements on power-capable equipment.
+            generic measurements on power-capable equipment. Letter form
+            (A/B/C) and numeric form (1/2/3) are both accepted.
         integration:
           type: string
           description: >

@@ -24,7 +24,7 @@ Includes integration-owned points which carries the `integration` field.
 | `pointType` | Rack point type. Values: `RackLiquidSupplyTemperature`, `RackLiquidReturnTemperature`, `RackLiquidFlow`, `RackLiquidDifferentialPressure`, `RackLiquidDifferentialPressureSp`, `RackControlValvePosition` ... (14 total) |
 | `tagPath` | Must match the tagPath of the corresponding value topic exactly. |
 
-## Message: Message
+## Message: Rack RackLiquidSupplyTemperature Metadata
 
 **Content Type:** `application/json`
 
@@ -52,7 +52,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidReturnTemperature Metadata
 
 **Content Type:** `application/json`
 
@@ -80,7 +80,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidFlow Metadata
 
 **Content Type:** `application/json`
 
@@ -108,7 +108,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidDifferentialPressure Metadata
 
 **Content Type:** `application/json`
 
@@ -136,7 +136,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidDifferentialPressureSp Metadata
 
 **Content Type:** `application/json`
 
@@ -166,7 +166,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackControlValvePosition Metadata
 
 **Content Type:** `application/json`
 
@@ -194,7 +194,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackPower Metadata
 
 **Content Type:** `application/json`
 
@@ -222,7 +222,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLeakDetect Metadata
 
 **Content Type:** `application/json`
 
@@ -259,7 +259,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLeakSensorFault Metadata
 
 **Content Type:** `application/json`
 
@@ -296,7 +296,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLeakDetectTray Metadata
 
 **Content Type:** `application/json`
 
@@ -308,6 +308,7 @@ Includes integration-owned points which carries the `integration` field.
 | `pointType` | string | Yes | Values: `RackLeakDetectTray` |
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
 
 <Accordion title="Example payload">
@@ -318,6 +319,7 @@ Includes integration-owned points which carries the `integration` field.
   "pointType": "RackLeakDetectTray",
   "rackLocationName": "string",
   "rackLocationId": "string",
+  "integration": "string",
   "stateText": [
     {
       "value": 0,
@@ -333,7 +335,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidIsolationStatus Metadata
 
 **Content Type:** `application/json`
 
@@ -370,7 +372,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackElectricalIsolationStatus Metadata
 
 **Content Type:** `application/json`
 
@@ -407,7 +409,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackLiquidIsolationRequest Metadata
 
 **Content Type:** `application/json`
 
@@ -446,7 +448,7 @@ Includes integration-owned points which carries the `integration` field.
 
 </Accordion>
 
-## Message: Message
+## Message: Rack RackElectricalIsolationRequest Metadata
 
 **Content Type:** `application/json`
 

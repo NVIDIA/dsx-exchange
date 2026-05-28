@@ -23,7 +23,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | PowerMeter point type. Values: `Voltage`, `PowerFactor`, `Frequency`, `ApparentPower`, `ActivePower`, `Current` ... (9 total) |
 | `tagPath` | Vendor-defined hierarchical tag path. |
 
-## Message: Message
+## Message: PowerMeter Voltage Metadata
 
 **Content Type:** `application/json`
 
@@ -55,7 +55,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter PowerFactor Metadata
 
 **Content Type:** `application/json`
 
@@ -85,7 +85,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter Frequency Metadata
 
 **Content Type:** `application/json`
 
@@ -117,7 +117,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter ApparentPower Metadata
 
 **Content Type:** `application/json`
 
@@ -149,7 +149,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter ActivePower Metadata
 
 **Content Type:** `application/json`
 
@@ -181,7 +181,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter Current Metadata
 
 **Content Type:** `application/json`
 
@@ -213,7 +213,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter CurrentLimit Metadata
 
 **Content Type:** `application/json`
 
@@ -245,7 +245,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter PhaseCurrent Metadata
 
 **Content Type:** `application/json`
 
@@ -259,7 +259,7 @@ BMS-published metadata for all PowerMeter points.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-| `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
+| `phase` | string | Yes | Electrical phase identifier. Letter form (A/B/C) and numeric form (1/2/3) are both accepted to align with publisher conventions. Values: `A`, `B`, `C`, `1`, `2`, `3` |
 
 <Accordion title="Example payload">
 
@@ -279,7 +279,7 @@ BMS-published metadata for all PowerMeter points.
 
 </Accordion>
 
-## Message: Message
+## Message: PowerMeter GenericPoint Metadata
 
 **Content Type:** `application/json`
 

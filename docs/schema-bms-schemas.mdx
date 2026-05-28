@@ -116,7 +116,7 @@ the parent `oneOf`.
 
 ## EquipmentAssociateMode
 
-_Associate Mode_ : use when the object is referenced via an
+*Associate Mode*: use when the object is referenced via an
 association identifier.
 
 - `associateId` is **required**.
@@ -278,7 +278,7 @@ Required `integration` field for integration-published System metadata messages.
 
 Valid pointType values for BMS-published Rack points.
 
-**Allowed values:** `RackLiquidSupplyTemperature`, `RackLiquidReturnTemperature`, `RackLiquidFlow`, `RackLiquidDifferentialPressure`, `RackControlValvePosition`, `RackPower`, `RackLeakDetect`, `RackLeakSensorFault`, `RackLiquidIsolationStatus`, `RackElectricalIsolationStatus`
+**Allowed values:** `RackLiquidSupplyTemperature`, `RackLiquidReturnTemperature`, `RackLiquidFlow`, `RackLiquidDifferentialPressure`, `RackLiquidDifferentialPressureSp`, `RackControlValvePosition`, `RackPower`, `RackLeakDetect`, `RackLeakSensorFault`, `RackLiquidIsolationStatus`, `RackElectricalIsolationStatus`
 
 ---
 
@@ -334,7 +334,7 @@ Valid pointType values for BMS-published System points.
 
 Valid pointType values for Integration-published System points.
 
-**Allowed values:** `HearbeatTimestampIntegration`, `HeartbeatEchoIntegration`
+**Allowed values:** `HeartbeatTimestampIntegration`, `HeartbeatEchoIntegration`
 
 ---
 
@@ -555,14 +555,14 @@ Dimensionless 0–1. engUnit not required.
 
 ## PhaseCurrentFields
 
-PhaseCurrent additionally requires `phase` to identify which electrical phase (A, B, or C). 3 metadata messages per meter, one per phase.
+PhaseCurrent additionally requires `phase` to identify which electrical phase. Accepts letter form (A, B, C) or numeric form (1, 2, 3); both are valid representations of the same three-phase system. 3 metadata messages per meter, one per phase.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `pointType` | string | No | Values: `PhaseCurrent` |
 | `objectType` | string | No | Values: `PowerMeter` |
 | `engUnit` | string | Yes |  |
-| `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
+| `phase` | string | Yes | Electrical phase identifier. Letter form (A/B/C) and numeric form (1/2/3) are both accepted to align with publisher conventions. Values: `A`, `B`, `C`, `1`, `2`, `3` |
 
 ---
 
@@ -769,44 +769,51 @@ Setpoint request for a GenericObject. BMS publishes metadata; the integration pu
 
 ## HeartbeatTimestampBmsFields
 
-Required heartbeat. Written every 5 s. `scope` optionally identifies which MQTT topics this heartbeat covers.
+BMS-published heartbeat timestamp. The BMS publishes its own timestamp every 10 s; one instance globally, consumed by all connected integrations. `objectName` and `objectId` identify the BMS itself (the publisher). The `integration` field is NOT used on this point — `integration` is reserved for value-publisher identity, and the BMS is the publisher here. `scope` optionally identifies which MQTT topics this heartbeat covers.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `pointType` | string | No | Values: `HeartbeatTimestampBms` |
+| `objectName` | string | Yes | Human-readable name of the BMS publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier for the BMS publishing this heartbeat (e.g., `"BMS"`). One instance per BMS. |
 | `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
 
 ---
 
 ## HeartbeatEchoBmsFields
 
-BMS echoes back the timestamp received from a specific integration.
+BMS echoes back the timestamp received from a specific integration. Published by the BMS (one instance per connected integration). The integration whose timestamp is being echoed is identified by `objectName` and `objectId` — by convention, `objectId` matches the same string used as that integration's `integration` metadata value on its other points (e.g., `objectId: "MEPAI1"`). The `integration` field is intentionally NOT present on this point: `integration` denotes the value-publisher elsewhere in the spec, and the BMS is the publisher here. The integration being echoed is encoded in `objectId`, not in `integration`. `scope` optionally identifies which BMS MQTT-client/topic namespace this echo is associated with — used when the BMS runs multiple MQTT clients connected to DSX Exchange.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `pointType` | string | No | Values: `HeartbeatEchoBms` |
-| `integration` | string | Yes | Integration whose timestamp is being echoed. |
+| `objectName` | string | Yes | Human-readable name of the integration whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). Matches that integration's `integration` metadata value on its other points. |
+| `scope` | string | No | Optional. Identifies which BMS MQTT-client/topic namespace this echo is associated with. |
 
 ---
 
-## HearbeatTimestampIntegrationFields
+## HeartbeatTimestampIntegrationFields
 
-Integration heartbeat. Written every 5 s.
+Integration-published heartbeat timestamp. Each connected integration publishes its own timestamp every 10 s; one instance per integration. `objectName` and `objectId` identify the integration publishing this heartbeat. By convention, `objectId` matches the same string used as this integration's `integration` metadata value on its other points (e.g., `objectId: "MEPAI1"` with `integration: "MEPAI1"`). The `integration` field is required via the integration metadata base and drives the value topic.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `pointType` | string | No | Values: `HearbeatTimestampIntegration` |
+| `pointType` | string | No | Values: `HeartbeatTimestampIntegration` |
+| `objectName` | string | Yes | Human-readable name of the integration publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier of the integration publishing this heartbeat (e.g., `"MEPAI1"`). By convention, matches the `integration` metadata value used by this integration on its other points. |
 
 ---
 
 ## HeartbeatEchoIntegrationFields
 
-Integration echoes the BMS timestamp, once per BMS client/scope.
+Integration echoes the BMS timestamp. Each integration publishes its own echo of the BMS timestamp, allowing the BMS to confirm round-trip with that specific integration (one instance per connected integration). The BMS whose timestamp is being echoed is identified by `objectName` and `objectId` (e.g., `objectId: "BMS"`). The `integration` field is required via the integration metadata base and drives the value topic.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `pointType` | string | No | Values: `HeartbeatEchoIntegration` |
-| `scope` | string | No | BMS scope being echoed (optional). |
+| `objectName` | string | Yes | Human-readable name of the BMS whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the BMS whose timestamp is being echoed (e.g., `"BMS"`). |
 
 ---
 
@@ -986,6 +993,7 @@ Rack-specific identifier fields added to all Rack metadata messages.
 | `pointType` | string | Yes | Values: `RackLeakDetectTray` |
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
 
 ---
@@ -1126,7 +1134,7 @@ PowerMeter-specific identifier fields added to all PowerMeter metadata messages.
 
 ## PowerMeterPhaseCurrentMetadata
 
-PhaseCurrent additionally requires `phase` to identify which electrical phase (A, B, or C). 3 metadata messages per meter, one per phase.
+PhaseCurrent additionally requires `phase` to identify which electrical phase. Accepts letter form (A, B, C) or numeric form (1, 2, 3); both are valid representations of the same three-phase system. 3 metadata messages per meter, one per phase.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
@@ -1136,7 +1144,7 @@ PhaseCurrent additionally requires `phase` to identify which electrical phase (A
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-| `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
+| `phase` | string | Yes | Electrical phase identifier. Letter form (A/B/C) and numeric form (1/2/3) are both accepted to align with publisher conventions. Values: `A`, `B`, `C`, `1`, `2`, `3` |
 
 ---
 
@@ -1552,50 +1560,57 @@ via the parent `oneOf`.
 
 ## SystemHeartbeatTimestampBmsMetadata
 
-Required heartbeat. Written every 5 s. `scope` optionally identifies which MQTT topics this heartbeat covers.
+BMS-published heartbeat timestamp. The BMS publishes its own timestamp every 10 s; one instance globally, consumed by all connected integrations. `objectName` and `objectId` identify the BMS itself (the publisher). The `integration` field is NOT used on this point — `integration` is reserved for value-publisher identity, and the BMS is the publisher here. `scope` optionally identifies which MQTT topics this heartbeat covers.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatTimestampBms` |
+| `objectName` | string | Yes | Human-readable name of the BMS publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier for the BMS publishing this heartbeat (e.g., `"BMS"`). One instance per BMS. |
 | `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
 
 ---
 
 ## SystemHeartbeatEchoBmsMetadata
 
-BMS echoes back the timestamp received from a specific integration.
+BMS echoes back the timestamp received from a specific integration. Published by the BMS (one instance per connected integration). The integration whose timestamp is being echoed is identified by `objectName` and `objectId` — by convention, `objectId` matches the same string used as that integration's `integration` metadata value on its other points (e.g., `objectId: "MEPAI1"`). The `integration` field is intentionally NOT present on this point: `integration` denotes the value-publisher elsewhere in the spec, and the BMS is the publisher here. The integration being echoed is encoded in `objectId`, not in `integration`. `scope` optionally identifies which BMS MQTT-client/topic namespace this echo is associated with — used when the BMS runs multiple MQTT clients connected to DSX Exchange.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatEchoBms` |
-| `integration` | string | Yes | Integration whose timestamp is being echoed. |
+| `objectName` | string | Yes | Human-readable name of the integration whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). Matches that integration's `integration` metadata value on its other points. |
+| `scope` | string | No | Optional. Identifies which BMS MQTT-client/topic namespace this echo is associated with. |
 
 ---
 
-## SystemHearbeatTimestampIntegrationMetadata
+## SystemHeartbeatTimestampIntegrationMetadata
 
-Integration heartbeat. Written every 5 s.
+Integration-published heartbeat timestamp. Each connected integration publishes its own timestamp every 10 s; one instance per integration. `objectName` and `objectId` identify the integration publishing this heartbeat. By convention, `objectId` matches the same string used as this integration's `integration` metadata value on its other points (e.g., `objectId: "MEPAI1"` with `integration: "MEPAI1"`). The `integration` field is required via the integration metadata base and drives the value topic.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
-| `pointType` | string | Yes | Values: `HearbeatTimestampIntegration` |
+| `pointType` | string | Yes | Values: `HeartbeatTimestampIntegration` |
 | `integration` | string | Yes | Integration identifier. |
+| `objectName` | string | Yes | Human-readable name of the integration publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier of the integration publishing this heartbeat (e.g., `"MEPAI1"`). By convention, matches the `integration` metadata value used by this integration on its other points. |
 
 ---
 
 ## SystemHeartbeatEchoIntegrationMetadata
 
-Integration echoes the BMS timestamp, once per BMS client/scope.
+Integration echoes the BMS timestamp. Each integration publishes its own echo of the BMS timestamp, allowing the BMS to confirm round-trip with that specific integration (one instance per connected integration). The BMS whose timestamp is being echoed is identified by `objectName` and `objectId` (e.g., `objectId: "BMS"`). The `integration` field is required via the integration metadata base and drives the value topic.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatEchoIntegration` |
 | `integration` | string | Yes | Integration identifier. |
-| `scope` | string | No | BMS scope being echoed (optional). |
+| `objectName` | string | Yes | Human-readable name of the BMS whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the BMS whose timestamp is being echoed (e.g., `"BMS"`). |
 
 ---
 

@@ -16,7 +16,7 @@ metadata message.
 
 ---
 
-## RackLiquidSupplyTemperatureMsg
+## Rack RackLiquidSupplyTemperature Metadata
 
 ### Payload
 
@@ -30,7 +30,7 @@ metadata message.
 
 ---
 
-## RackLiquidReturnTemperatureMsg
+## Rack RackLiquidReturnTemperature Metadata
 
 ### Payload
 
@@ -44,7 +44,7 @@ metadata message.
 
 ---
 
-## RackLiquidFlowMsg
+## Rack RackLiquidFlow Metadata
 
 ### Payload
 
@@ -58,7 +58,7 @@ metadata message.
 
 ---
 
-## RackLiquidDifferentialPressureMsg
+## Rack RackLiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -72,7 +72,7 @@ metadata message.
 
 ---
 
-## RackControlValvePositionMsg
+## Rack RackControlValvePosition Metadata
 
 ### Payload
 
@@ -86,7 +86,7 @@ metadata message.
 
 ---
 
-## RackPowerMsg
+## Rack RackPower Metadata
 
 ### Payload
 
@@ -100,7 +100,7 @@ metadata message.
 
 ---
 
-## RackLeakDetectMsg
+## Rack RackLeakDetect Metadata
 
 ### Payload
 
@@ -114,7 +114,7 @@ metadata message.
 
 ---
 
-## RackLeakSensorFaultMsg
+## Rack RackLeakSensorFault Metadata
 
 ### Payload
 
@@ -128,7 +128,7 @@ metadata message.
 
 ---
 
-## RackLiquidIsolationStatusMsg
+## Rack RackLiquidIsolationStatus Metadata
 
 ### Payload
 
@@ -142,7 +142,7 @@ metadata message.
 
 ---
 
-## RackElectricalIsolationStatusMsg
+## Rack RackElectricalIsolationStatus Metadata
 
 ### Payload
 
@@ -156,7 +156,7 @@ metadata message.
 
 ---
 
-## RackLeakDetectTrayMsg
+## Rack RackLeakDetectTray Metadata
 
 ### Payload
 
@@ -166,11 +166,12 @@ metadata message.
 | `pointType` | string | Yes | Values: `RackLeakDetectTray` |
 | `rackLocationName` | string | Yes | Human-readable rack name as defined by the BMS. |
 | `rackLocationId` | string | Yes | Stable unique identifier for the rack. |
+| `integration` | string | Yes | Integration identifier responsible for publishing this value. |
 | `stateText` | array\&lt;map\&lt;string, any\>\> | Yes | State label mapping for tray leak detection. |
 
 ---
 
-## RackLiquidIsolationRequestMsg
+## Rack RackLiquidIsolationRequest Metadata
 
 ### Payload
 
@@ -185,7 +186,7 @@ metadata message.
 
 ---
 
-## RackElectricalIsolationRequestMsg
+## Rack RackElectricalIsolationRequest Metadata
 
 ### Payload
 
@@ -200,7 +201,7 @@ metadata message.
 
 ---
 
-## PowerMeterVoltageMsg
+## PowerMeter Voltage Metadata
 
 ### Payload
 
@@ -215,7 +216,7 @@ metadata message.
 
 ---
 
-## PowerMeterPowerFactorMsg
+## PowerMeter PowerFactor Metadata
 
 ### Payload
 
@@ -229,7 +230,7 @@ metadata message.
 
 ---
 
-## PowerMeterFrequencyMsg
+## PowerMeter Frequency Metadata
 
 ### Payload
 
@@ -244,7 +245,7 @@ metadata message.
 
 ---
 
-## PowerMeterApparentPowerMsg
+## PowerMeter ApparentPower Metadata
 
 ### Payload
 
@@ -259,7 +260,7 @@ metadata message.
 
 ---
 
-## PowerMeterActivePowerMsg
+## PowerMeter ActivePower Metadata
 
 ### Payload
 
@@ -274,7 +275,7 @@ metadata message.
 
 ---
 
-## PowerMeterCurrentMsg
+## PowerMeter Current Metadata
 
 ### Payload
 
@@ -289,7 +290,7 @@ metadata message.
 
 ---
 
-## PowerMeterCurrentLimitMsg
+## PowerMeter CurrentLimit Metadata
 
 ### Payload
 
@@ -304,7 +305,7 @@ metadata message.
 
 ---
 
-## PowerMeterPhaseCurrentMsg
+## PowerMeter PhaseCurrent Metadata
 
 ### Payload
 
@@ -316,11 +317,11 @@ metadata message.
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
 | `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
-| `phase` | string | Yes | Electrical phase identifier. Values: `A`, `B`, `C` |
+| `phase` | string | Yes | Electrical phase identifier. Letter form (A/B/C) and numeric form (1/2/3) are both accepted to align with publisher conventions. Values: `A`, `B`, `C`, `1`, `2`, `3` |
 
 ---
 
-## LiquidTemperatureMsg
+## LiquidTemperature Metadata
 
 ### Payload
 
@@ -355,7 +356,7 @@ via the parent `oneOf`.
 
 ---
 
-## LiquidDifferentialPressureMsg
+## LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -375,7 +376,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## LiquidFlowMsg
+## LiquidFlow Metadata
 
 ### Payload
 
@@ -395,7 +396,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## LiquidPressureMsg
+## LiquidPressure Metadata
 
 ### Payload
 
@@ -415,7 +416,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## StatusMsg
+## Status Metadata
 
 ### Payload
 
@@ -450,7 +451,7 @@ via the parent `oneOf`.
 
 ---
 
-## AvailableMsg
+## Available Metadata
 
 ### Payload
 
@@ -485,7 +486,7 @@ via the parent `oneOf`.
 
 ---
 
-## ValvePositionMsg
+## ValvePosition Metadata
 
 ### Payload
 
@@ -505,7 +506,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## PumpSpeedMsg
+## PumpSpeed Metadata
 
 ### Payload
 
@@ -525,7 +526,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## FanSpeedMsg
+## FanSpeed Metadata
 
 ### Payload
 
@@ -545,7 +546,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## DamperPositionMsg
+## DamperPosition Metadata
 
 ### Payload
 
@@ -565,7 +566,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## AirTemperatureMsg
+## AirTemperature Metadata
 
 ### Payload
 
@@ -600,7 +601,7 @@ via the parent `oneOf`.
 
 ---
 
-## AirDifferentialPressureMsg
+## AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -620,7 +621,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## AirFlowMsg
+## AirFlow Metadata
 
 ### Payload
 
@@ -640,7 +641,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## AirPressureMsg
+## AirPressure Metadata
 
 ### Payload
 
@@ -660,7 +661,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## LiquidTemperatureSpRequestMsg
+## CDU LiquidTemperatureSpRequest Metadata
 
 ### Payload
 
@@ -695,7 +696,7 @@ via the parent `oneOf`.
 
 ---
 
-## SoundMsg
+## Sound Metadata
 
 ### Payload
 
@@ -730,7 +731,7 @@ via the parent `oneOf`.
 
 ---
 
-## SystemHeartbeatTimestampBmsMsg
+## HeartbeatTimestampBms Metadata
 
 ### Payload
 
@@ -738,11 +739,13 @@ via the parent `oneOf`.
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatTimestampBms` |
+| `objectName` | string | Yes | Human-readable name of the BMS publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier for the BMS publishing this heartbeat (e.g., `"BMS"`). One instance per BMS. |
 | `scope` | string | No | Identifies which MQTT topics this heartbeat covers. |
 
 ---
 
-## SystemHeartbeatEchoBmsMsg
+## HeartbeatEchoBms Metadata
 
 ### Payload
 
@@ -750,23 +753,27 @@ via the parent `oneOf`.
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatEchoBms` |
-| `integration` | string | Yes | Integration whose timestamp is being echoed. |
+| `objectName` | string | Yes | Human-readable name of the integration whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). Matches that integration's `integration` metadata value on its other points. |
+| `scope` | string | No | Optional. Identifies which BMS MQTT-client/topic namespace this echo is associated with. |
 
 ---
 
-## SystemHearbeatTimestampIntegrationMsg
+## HeartbeatTimestampIntegration Metadata
 
 ### Payload
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
-| `pointType` | string | Yes | Values: `HearbeatTimestampIntegration` |
+| `pointType` | string | Yes | Values: `HeartbeatTimestampIntegration` |
 | `integration` | string | Yes | Integration identifier. |
+| `objectName` | string | Yes | Human-readable name of the integration publishing this heartbeat. |
+| `objectId` | string | Yes | Stable identifier of the integration publishing this heartbeat (e.g., `"MEPAI1"`). By convention, matches the `integration` metadata value used by this integration on its other points. |
 
 ---
 
-## SystemHeartbeatEchoIntegrationMsg
+## HeartbeatEchoIntegration Metadata
 
 ### Payload
 
@@ -775,11 +782,12 @@ via the parent `oneOf`.
 | `objectType` | string | Yes | Canonical object type. Matches the objectType MQTT topic segment. |
 | `pointType` | string | Yes | Values: `HeartbeatEchoIntegration` |
 | `integration` | string | Yes | Integration identifier. |
-| `scope` | string | No | BMS scope being echoed (optional). |
+| `objectName` | string | Yes | Human-readable name of the BMS whose timestamp is being echoed. |
+| `objectId` | string | Yes | Stable identifier of the BMS whose timestamp is being echoed (e.g., `"BMS"`). |
 
 ---
 
-## SystemStatusMsg
+## System Status Metadata
 
 ### Payload
 
@@ -814,7 +822,7 @@ via the parent `oneOf`.
 
 ---
 
-## SystemAvailableMsg
+## System Available Metadata
 
 ### Payload
 
@@ -849,7 +857,7 @@ via the parent `oneOf`.
 
 ---
 
-## BESSStatusMsg
+## BESS Status Metadata
 
 ### Payload
 
@@ -884,7 +892,7 @@ via the parent `oneOf`.
 
 ---
 
-## BESSAvailableMsg
+## BESS Available Metadata
 
 ### Payload
 
@@ -919,7 +927,7 @@ via the parent `oneOf`.
 
 ---
 
-## UPSStatusMsg
+## UPS Status Metadata
 
 ### Payload
 
@@ -954,7 +962,7 @@ via the parent `oneOf`.
 
 ---
 
-## UPSAvailableMsg
+## UPS Available Metadata
 
 ### Payload
 
@@ -989,7 +997,7 @@ via the parent `oneOf`.
 
 ---
 
-## ATSStatusMsg
+## ATS Status Metadata
 
 ### Payload
 
@@ -1024,7 +1032,7 @@ via the parent `oneOf`.
 
 ---
 
-## ATSAvailableMsg
+## ATS Available Metadata
 
 ### Payload
 
@@ -1059,7 +1067,7 @@ via the parent `oneOf`.
 
 ---
 
-## GeneratorStatusMsg
+## Generator Status Metadata
 
 ### Payload
 
@@ -1094,7 +1102,7 @@ via the parent `oneOf`.
 
 ---
 
-## GeneratorAvailableMsg
+## Generator Available Metadata
 
 ### Payload
 
@@ -1129,7 +1137,7 @@ via the parent `oneOf`.
 
 ---
 
-## ShuntStatusMsg
+## Shunt Status Metadata
 
 ### Payload
 
@@ -1164,7 +1172,7 @@ via the parent `oneOf`.
 
 ---
 
-## ShuntAvailableMsg
+## Shunt Available Metadata
 
 ### Payload
 
@@ -1199,7 +1207,7 @@ via the parent `oneOf`.
 
 ---
 
-## BreakerStatusMsg
+## Breaker Status Metadata
 
 ### Payload
 
@@ -1234,7 +1242,7 @@ via the parent `oneOf`.
 
 ---
 
-## BreakerAvailableMsg
+## Breaker Available Metadata
 
 ### Payload
 
@@ -1269,7 +1277,7 @@ via the parent `oneOf`.
 
 ---
 
-## ValveValvePositionMsg
+## Valve ValvePosition Metadata
 
 ### Payload
 
@@ -1289,7 +1297,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## PumpPumpSpeedMsg
+## Pump PumpSpeed Metadata
 
 ### Payload
 
@@ -1309,7 +1317,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## FanFanSpeedMsg
+## Fan FanSpeed Metadata
 
 ### Payload
 
@@ -1329,7 +1337,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## DamperDamperPositionMsg
+## Damper DamperPosition Metadata
 
 ### Payload
 
@@ -1349,7 +1357,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## SensorLiquidTemperatureMsg
+## Sensor LiquidTemperature Metadata
 
 ### Payload
 
@@ -1384,7 +1392,7 @@ via the parent `oneOf`.
 
 ---
 
-## SensorLiquidDifferentialPressureMsg
+## Sensor LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -1404,7 +1412,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## SensorLiquidFlowMsg
+## Sensor LiquidFlow Metadata
 
 ### Payload
 
@@ -1424,7 +1432,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## SensorLiquidPressureMsg
+## Sensor LiquidPressure Metadata
 
 ### Payload
 
@@ -1444,7 +1452,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## SensorAirTemperatureMsg
+## Sensor AirTemperature Metadata
 
 ### Payload
 
@@ -1479,7 +1487,7 @@ via the parent `oneOf`.
 
 ---
 
-## SensorAirDifferentialPressureMsg
+## Sensor AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -1499,7 +1507,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## SensorAirFlowMsg
+## Sensor AirFlow Metadata
 
 ### Payload
 
@@ -1519,7 +1527,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## SensorAirPressureMsg
+## Sensor AirPressure Metadata
 
 ### Payload
 
@@ -1539,7 +1547,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## SensorSoundMsg
+## Sensor Sound Metadata
 
 ### Payload
 
@@ -1574,7 +1582,7 @@ via the parent `oneOf`.
 
 ---
 
-## ValveAvailableMsg
+## Valve Available Metadata
 
 ### Payload
 
@@ -1609,7 +1617,7 @@ via the parent `oneOf`.
 
 ---
 
-## PumpAvailableMsg
+## Pump Available Metadata
 
 ### Payload
 
@@ -1644,7 +1652,7 @@ via the parent `oneOf`.
 
 ---
 
-## FanAvailableMsg
+## Fan Available Metadata
 
 ### Payload
 
@@ -1679,7 +1687,7 @@ via the parent `oneOf`.
 
 ---
 
-## DamperAvailableMsg
+## Damper Available Metadata
 
 ### Payload
 
@@ -1714,7 +1722,7 @@ via the parent `oneOf`.
 
 ---
 
-## SensorAvailableMsg
+## Sensor Available Metadata
 
 ### Payload
 
@@ -1749,7 +1757,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDULeakDetectMsg
+## CDU LeakDetect Metadata
 
 ### Payload
 
@@ -1784,7 +1792,7 @@ via the parent `oneOf`.
 
 ---
 
-## CoolingTowerLeakDetectMsg
+## CoolingTower LeakDetect Metadata
 
 ### Payload
 
@@ -1819,7 +1827,7 @@ via the parent `oneOf`.
 
 ---
 
-## HXLeakDetectMsg
+## HX LeakDetect Metadata
 
 ### Payload
 
@@ -1854,7 +1862,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRAHLeakDetectMsg
+## CRAH LeakDetect Metadata
 
 ### Payload
 
@@ -1889,7 +1897,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRACLeakDetectMsg
+## CRAC LeakDetect Metadata
 
 ### Payload
 
@@ -1924,7 +1932,7 @@ via the parent `oneOf`.
 
 ---
 
-## AHULeakDetectMsg
+## AHU LeakDetect Metadata
 
 ### Payload
 
@@ -1959,7 +1967,7 @@ via the parent `oneOf`.
 
 ---
 
-## ChillerLeakDetectMsg
+## Chiller LeakDetect Metadata
 
 ### Payload
 
@@ -1994,7 +2002,7 @@ via the parent `oneOf`.
 
 ---
 
-## TankLeakDetectMsg
+## Tank LeakDetect Metadata
 
 ### Payload
 
@@ -2029,7 +2037,7 @@ via the parent `oneOf`.
 
 ---
 
-## SensorLeakDetectMsg
+## Sensor LeakDetect Metadata
 
 ### Payload
 
@@ -2064,7 +2072,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectLeakDetectMsg
+## GenericObject LeakDetect Metadata
 
 ### Payload
 
@@ -2099,7 +2107,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDUAirRelativeHumidityMsg
+## CDU AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2119,7 +2127,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## CoolingTowerAirRelativeHumidityMsg
+## CoolingTower AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2139,7 +2147,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## HXAirRelativeHumidityMsg
+## HX AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2159,7 +2167,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## CRAHAirRelativeHumidityMsg
+## CRAH AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2179,7 +2187,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## CRACAirRelativeHumidityMsg
+## CRAC AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2199,7 +2207,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## AHUAirRelativeHumidityMsg
+## AHU AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2219,7 +2227,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## ChillerAirRelativeHumidityMsg
+## Chiller AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2239,7 +2247,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## TankAirRelativeHumidityMsg
+## Tank AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2259,7 +2267,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## SensorAirRelativeHumidityMsg
+## Sensor AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2279,7 +2287,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## GenericObjectAirRelativeHumidityMsg
+## GenericObject AirRelativeHumidity Metadata
 
 ### Payload
 
@@ -2299,7 +2307,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## RackLiquidDifferentialPressureSpMsg
+## Rack RackLiquidDifferentialPressureSp Metadata
 
 ### Payload
 
@@ -2314,7 +2322,7 @@ Measurement fields for AirRelativeHumidity. Typical engUnit: %RH. The identifier
 
 ---
 
-## CDULiquidTemperatureMsg
+## CDU LiquidTemperature Metadata
 
 ### Payload
 
@@ -2349,7 +2357,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDULiquidDifferentialPressureMsg
+## CDU LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -2369,7 +2377,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## CDULiquidFlowMsg
+## CDU LiquidFlow Metadata
 
 ### Payload
 
@@ -2389,7 +2397,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## CDULiquidPressureMsg
+## CDU LiquidPressure Metadata
 
 ### Payload
 
@@ -2409,7 +2417,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## CDUStatusMsg
+## CDU Status Metadata
 
 ### Payload
 
@@ -2444,7 +2452,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDUAvailableMsg
+## CDU Available Metadata
 
 ### Payload
 
@@ -2479,7 +2487,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDUValvePositionMsg
+## CDU ValvePosition Metadata
 
 ### Payload
 
@@ -2499,7 +2507,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## CDUPumpSpeedMsg
+## CDU PumpSpeed Metadata
 
 ### Payload
 
@@ -2519,7 +2527,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## CDUFanSpeedMsg
+## CDU FanSpeed Metadata
 
 ### Payload
 
@@ -2539,7 +2547,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## CDUDamperPositionMsg
+## CDU DamperPosition Metadata
 
 ### Payload
 
@@ -2559,7 +2567,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## CDUAirTemperatureMsg
+## CDU AirTemperature Metadata
 
 ### Payload
 
@@ -2594,7 +2602,7 @@ via the parent `oneOf`.
 
 ---
 
-## CDUAirDifferentialPressureMsg
+## CDU AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -2614,7 +2622,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## CDUAirFlowMsg
+## CDU AirFlow Metadata
 
 ### Payload
 
@@ -2634,7 +2642,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## CDUAirPressureMsg
+## CDU AirPressure Metadata
 
 ### Payload
 
@@ -2654,7 +2662,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## CoolingTowerLiquidTemperatureMsg
+## CoolingTower LiquidTemperature Metadata
 
 ### Payload
 
@@ -2689,7 +2697,7 @@ via the parent `oneOf`.
 
 ---
 
-## CoolingTowerLiquidDifferentialPressureMsg
+## CoolingTower LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -2709,7 +2717,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## CoolingTowerLiquidFlowMsg
+## CoolingTower LiquidFlow Metadata
 
 ### Payload
 
@@ -2729,7 +2737,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## CoolingTowerLiquidPressureMsg
+## CoolingTower LiquidPressure Metadata
 
 ### Payload
 
@@ -2749,7 +2757,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## CoolingTowerStatusMsg
+## CoolingTower Status Metadata
 
 ### Payload
 
@@ -2784,7 +2792,7 @@ via the parent `oneOf`.
 
 ---
 
-## CoolingTowerAvailableMsg
+## CoolingTower Available Metadata
 
 ### Payload
 
@@ -2819,7 +2827,7 @@ via the parent `oneOf`.
 
 ---
 
-## CoolingTowerValvePositionMsg
+## CoolingTower ValvePosition Metadata
 
 ### Payload
 
@@ -2839,7 +2847,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## CoolingTowerPumpSpeedMsg
+## CoolingTower PumpSpeed Metadata
 
 ### Payload
 
@@ -2859,7 +2867,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## CoolingTowerFanSpeedMsg
+## CoolingTower FanSpeed Metadata
 
 ### Payload
 
@@ -2879,7 +2887,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## CoolingTowerDamperPositionMsg
+## CoolingTower DamperPosition Metadata
 
 ### Payload
 
@@ -2899,7 +2907,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## CoolingTowerAirTemperatureMsg
+## CoolingTower AirTemperature Metadata
 
 ### Payload
 
@@ -2934,7 +2942,7 @@ via the parent `oneOf`.
 
 ---
 
-## CoolingTowerAirDifferentialPressureMsg
+## CoolingTower AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -2954,7 +2962,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## CoolingTowerAirFlowMsg
+## CoolingTower AirFlow Metadata
 
 ### Payload
 
@@ -2974,7 +2982,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## CoolingTowerAirPressureMsg
+## CoolingTower AirPressure Metadata
 
 ### Payload
 
@@ -2994,7 +3002,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## HXLiquidTemperatureMsg
+## HX LiquidTemperature Metadata
 
 ### Payload
 
@@ -3029,7 +3037,7 @@ via the parent `oneOf`.
 
 ---
 
-## HXLiquidDifferentialPressureMsg
+## HX LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -3049,7 +3057,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## HXLiquidFlowMsg
+## HX LiquidFlow Metadata
 
 ### Payload
 
@@ -3069,7 +3077,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## HXLiquidPressureMsg
+## HX LiquidPressure Metadata
 
 ### Payload
 
@@ -3089,7 +3097,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## HXStatusMsg
+## HX Status Metadata
 
 ### Payload
 
@@ -3124,7 +3132,7 @@ via the parent `oneOf`.
 
 ---
 
-## HXAvailableMsg
+## HX Available Metadata
 
 ### Payload
 
@@ -3159,7 +3167,7 @@ via the parent `oneOf`.
 
 ---
 
-## HXValvePositionMsg
+## HX ValvePosition Metadata
 
 ### Payload
 
@@ -3179,7 +3187,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## HXPumpSpeedMsg
+## HX PumpSpeed Metadata
 
 ### Payload
 
@@ -3199,7 +3207,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## HXFanSpeedMsg
+## HX FanSpeed Metadata
 
 ### Payload
 
@@ -3219,7 +3227,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## HXDamperPositionMsg
+## HX DamperPosition Metadata
 
 ### Payload
 
@@ -3239,7 +3247,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## HXAirTemperatureMsg
+## HX AirTemperature Metadata
 
 ### Payload
 
@@ -3274,7 +3282,7 @@ via the parent `oneOf`.
 
 ---
 
-## HXAirDifferentialPressureMsg
+## HX AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -3294,7 +3302,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## HXAirFlowMsg
+## HX AirFlow Metadata
 
 ### Payload
 
@@ -3314,7 +3322,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## HXAirPressureMsg
+## HX AirPressure Metadata
 
 ### Payload
 
@@ -3334,7 +3342,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## CRAHLiquidTemperatureMsg
+## CRAH LiquidTemperature Metadata
 
 ### Payload
 
@@ -3369,7 +3377,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRAHLiquidDifferentialPressureMsg
+## CRAH LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -3389,7 +3397,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## CRAHLiquidFlowMsg
+## CRAH LiquidFlow Metadata
 
 ### Payload
 
@@ -3409,7 +3417,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## CRAHLiquidPressureMsg
+## CRAH LiquidPressure Metadata
 
 ### Payload
 
@@ -3429,7 +3437,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## CRAHStatusMsg
+## CRAH Status Metadata
 
 ### Payload
 
@@ -3464,7 +3472,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRAHAvailableMsg
+## CRAH Available Metadata
 
 ### Payload
 
@@ -3499,7 +3507,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRAHValvePositionMsg
+## CRAH ValvePosition Metadata
 
 ### Payload
 
@@ -3519,7 +3527,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## CRAHPumpSpeedMsg
+## CRAH PumpSpeed Metadata
 
 ### Payload
 
@@ -3539,7 +3547,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## CRAHFanSpeedMsg
+## CRAH FanSpeed Metadata
 
 ### Payload
 
@@ -3559,7 +3567,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## CRAHDamperPositionMsg
+## CRAH DamperPosition Metadata
 
 ### Payload
 
@@ -3579,7 +3587,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## CRAHAirTemperatureMsg
+## CRAH AirTemperature Metadata
 
 ### Payload
 
@@ -3614,7 +3622,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRAHAirDifferentialPressureMsg
+## CRAH AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -3634,7 +3642,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## CRAHAirFlowMsg
+## CRAH AirFlow Metadata
 
 ### Payload
 
@@ -3654,7 +3662,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## CRAHAirPressureMsg
+## CRAH AirPressure Metadata
 
 ### Payload
 
@@ -3674,7 +3682,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## CRACLiquidTemperatureMsg
+## CRAC LiquidTemperature Metadata
 
 ### Payload
 
@@ -3709,7 +3717,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRACLiquidDifferentialPressureMsg
+## CRAC LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -3729,7 +3737,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## CRACLiquidFlowMsg
+## CRAC LiquidFlow Metadata
 
 ### Payload
 
@@ -3749,7 +3757,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## CRACLiquidPressureMsg
+## CRAC LiquidPressure Metadata
 
 ### Payload
 
@@ -3769,7 +3777,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## CRACStatusMsg
+## CRAC Status Metadata
 
 ### Payload
 
@@ -3804,7 +3812,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRACAvailableMsg
+## CRAC Available Metadata
 
 ### Payload
 
@@ -3839,7 +3847,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRACValvePositionMsg
+## CRAC ValvePosition Metadata
 
 ### Payload
 
@@ -3859,7 +3867,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## CRACPumpSpeedMsg
+## CRAC PumpSpeed Metadata
 
 ### Payload
 
@@ -3879,7 +3887,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## CRACFanSpeedMsg
+## CRAC FanSpeed Metadata
 
 ### Payload
 
@@ -3899,7 +3907,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## CRACDamperPositionMsg
+## CRAC DamperPosition Metadata
 
 ### Payload
 
@@ -3919,7 +3927,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## CRACAirTemperatureMsg
+## CRAC AirTemperature Metadata
 
 ### Payload
 
@@ -3954,7 +3962,7 @@ via the parent `oneOf`.
 
 ---
 
-## CRACAirDifferentialPressureMsg
+## CRAC AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -3974,7 +3982,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## CRACAirFlowMsg
+## CRAC AirFlow Metadata
 
 ### Payload
 
@@ -3994,7 +4002,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## CRACAirPressureMsg
+## CRAC AirPressure Metadata
 
 ### Payload
 
@@ -4014,7 +4022,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## AHULiquidTemperatureMsg
+## AHU LiquidTemperature Metadata
 
 ### Payload
 
@@ -4049,7 +4057,7 @@ via the parent `oneOf`.
 
 ---
 
-## AHULiquidDifferentialPressureMsg
+## AHU LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -4069,7 +4077,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## AHULiquidFlowMsg
+## AHU LiquidFlow Metadata
 
 ### Payload
 
@@ -4089,7 +4097,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## AHULiquidPressureMsg
+## AHU LiquidPressure Metadata
 
 ### Payload
 
@@ -4109,7 +4117,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## AHUStatusMsg
+## AHU Status Metadata
 
 ### Payload
 
@@ -4144,7 +4152,7 @@ via the parent `oneOf`.
 
 ---
 
-## AHUAvailableMsg
+## AHU Available Metadata
 
 ### Payload
 
@@ -4179,7 +4187,7 @@ via the parent `oneOf`.
 
 ---
 
-## AHUValvePositionMsg
+## AHU ValvePosition Metadata
 
 ### Payload
 
@@ -4199,7 +4207,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## AHUPumpSpeedMsg
+## AHU PumpSpeed Metadata
 
 ### Payload
 
@@ -4219,7 +4227,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## AHUFanSpeedMsg
+## AHU FanSpeed Metadata
 
 ### Payload
 
@@ -4239,7 +4247,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## AHUDamperPositionMsg
+## AHU DamperPosition Metadata
 
 ### Payload
 
@@ -4259,7 +4267,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## AHUAirTemperatureMsg
+## AHU AirTemperature Metadata
 
 ### Payload
 
@@ -4294,7 +4302,7 @@ via the parent `oneOf`.
 
 ---
 
-## AHUAirDifferentialPressureMsg
+## AHU AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -4314,7 +4322,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## AHUAirFlowMsg
+## AHU AirFlow Metadata
 
 ### Payload
 
@@ -4334,7 +4342,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## AHUAirPressureMsg
+## AHU AirPressure Metadata
 
 ### Payload
 
@@ -4354,7 +4362,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## ChillerLiquidTemperatureMsg
+## Chiller LiquidTemperature Metadata
 
 ### Payload
 
@@ -4389,7 +4397,7 @@ via the parent `oneOf`.
 
 ---
 
-## ChillerLiquidDifferentialPressureMsg
+## Chiller LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -4409,7 +4417,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## ChillerLiquidFlowMsg
+## Chiller LiquidFlow Metadata
 
 ### Payload
 
@@ -4429,7 +4437,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## ChillerLiquidPressureMsg
+## Chiller LiquidPressure Metadata
 
 ### Payload
 
@@ -4449,7 +4457,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## ChillerStatusMsg
+## Chiller Status Metadata
 
 ### Payload
 
@@ -4484,7 +4492,7 @@ via the parent `oneOf`.
 
 ---
 
-## ChillerAvailableMsg
+## Chiller Available Metadata
 
 ### Payload
 
@@ -4519,7 +4527,7 @@ via the parent `oneOf`.
 
 ---
 
-## ChillerValvePositionMsg
+## Chiller ValvePosition Metadata
 
 ### Payload
 
@@ -4539,7 +4547,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## ChillerPumpSpeedMsg
+## Chiller PumpSpeed Metadata
 
 ### Payload
 
@@ -4559,7 +4567,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## ChillerFanSpeedMsg
+## Chiller FanSpeed Metadata
 
 ### Payload
 
@@ -4579,7 +4587,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## ChillerDamperPositionMsg
+## Chiller DamperPosition Metadata
 
 ### Payload
 
@@ -4599,7 +4607,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## ChillerAirTemperatureMsg
+## Chiller AirTemperature Metadata
 
 ### Payload
 
@@ -4634,7 +4642,7 @@ via the parent `oneOf`.
 
 ---
 
-## ChillerAirDifferentialPressureMsg
+## Chiller AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -4654,7 +4662,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## ChillerAirFlowMsg
+## Chiller AirFlow Metadata
 
 ### Payload
 
@@ -4674,7 +4682,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## ChillerAirPressureMsg
+## Chiller AirPressure Metadata
 
 ### Payload
 
@@ -4694,7 +4702,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## GenericEquipmentPointMsg
+## GenericEquipment GenericPoint Metadata
 
 ### Payload
 
@@ -4731,7 +4739,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericPowerMeterPointMsg
+## PowerMeter GenericPoint Metadata
 
 ### Payload
 
@@ -4753,7 +4761,7 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 
 ---
 
-## TankLiquidTemperatureMsg
+## Tank LiquidTemperature Metadata
 
 ### Payload
 
@@ -4788,7 +4796,7 @@ via the parent `oneOf`.
 
 ---
 
-## TankLiquidDifferentialPressureMsg
+## Tank LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -4808,7 +4816,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## TankLiquidFlowMsg
+## Tank LiquidFlow Metadata
 
 ### Payload
 
@@ -4828,7 +4836,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## TankLiquidPressureMsg
+## Tank LiquidPressure Metadata
 
 ### Payload
 
@@ -4848,7 +4856,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## TankStatusMsg
+## Tank Status Metadata
 
 ### Payload
 
@@ -4883,7 +4891,7 @@ via the parent `oneOf`.
 
 ---
 
-## TankAvailableMsg
+## Tank Available Metadata
 
 ### Payload
 
@@ -4918,7 +4926,7 @@ via the parent `oneOf`.
 
 ---
 
-## TankValvePositionMsg
+## Tank ValvePosition Metadata
 
 ### Payload
 
@@ -4938,7 +4946,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## TankPumpSpeedMsg
+## Tank PumpSpeed Metadata
 
 ### Payload
 
@@ -4958,7 +4966,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## TankFanSpeedMsg
+## Tank FanSpeed Metadata
 
 ### Payload
 
@@ -4978,7 +4986,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## TankDamperPositionMsg
+## Tank DamperPosition Metadata
 
 ### Payload
 
@@ -4998,7 +5006,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## TankAirTemperatureMsg
+## Tank AirTemperature Metadata
 
 ### Payload
 
@@ -5033,7 +5041,7 @@ via the parent `oneOf`.
 
 ---
 
-## TankAirDifferentialPressureMsg
+## Tank AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -5053,7 +5061,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## TankAirFlowMsg
+## Tank AirFlow Metadata
 
 ### Payload
 
@@ -5073,7 +5081,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## TankAirPressureMsg
+## Tank AirPressure Metadata
 
 ### Payload
 
@@ -5093,7 +5101,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## GenericObjectLiquidTemperatureMsg
+## GenericObject LiquidTemperature Metadata
 
 ### Payload
 
@@ -5128,7 +5136,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectLiquidDifferentialPressureMsg
+## GenericObject LiquidDifferentialPressure Metadata
 
 ### Payload
 
@@ -5148,7 +5156,7 @@ Measurement fields for LiquidDifferentialPressure. Typical engUnit: kPa. The ide
 
 ---
 
-## GenericObjectLiquidFlowMsg
+## GenericObject LiquidFlow Metadata
 
 ### Payload
 
@@ -5168,7 +5176,7 @@ Measurement fields for LiquidFlow. Typical engUnit: LPM. The identifier (named-o
 
 ---
 
-## GenericObjectLiquidPressureMsg
+## GenericObject LiquidPressure Metadata
 
 ### Payload
 
@@ -5188,7 +5196,7 @@ Measurement fields for LiquidPressure. Typical engUnit: kPa. The identifier (nam
 
 ---
 
-## GenericObjectStatusMsg
+## GenericObject Status Metadata
 
 ### Payload
 
@@ -5223,7 +5231,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectAvailableMsg
+## GenericObject Available Metadata
 
 ### Payload
 
@@ -5258,7 +5266,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectValvePositionMsg
+## GenericObject ValvePosition Metadata
 
 ### Payload
 
@@ -5278,7 +5286,7 @@ Measurement fields for ValvePosition. Typical engUnit: %. The identifier (named-
 
 ---
 
-## GenericObjectPumpSpeedMsg
+## GenericObject PumpSpeed Metadata
 
 ### Payload
 
@@ -5298,7 +5306,7 @@ Measurement fields for PumpSpeed. Typical engUnit: RPM. The identifier (named-ob
 
 ---
 
-## GenericObjectFanSpeedMsg
+## GenericObject FanSpeed Metadata
 
 ### Payload
 
@@ -5318,7 +5326,7 @@ Measurement fields for FanSpeed. Typical engUnit: RPM. The identifier (named-obj
 
 ---
 
-## GenericObjectDamperPositionMsg
+## GenericObject DamperPosition Metadata
 
 ### Payload
 
@@ -5338,7 +5346,7 @@ Measurement fields for DamperPosition. Typical engUnit: %. The identifier (named
 
 ---
 
-## GenericObjectAirTemperatureMsg
+## GenericObject AirTemperature Metadata
 
 ### Payload
 
@@ -5373,7 +5381,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectAirDifferentialPressureMsg
+## GenericObject AirDifferentialPressure Metadata
 
 ### Payload
 
@@ -5393,7 +5401,7 @@ Measurement fields for AirDifferentialPressure. Typical engUnit: Pa. The identif
 
 ---
 
-## GenericObjectAirFlowMsg
+## GenericObject AirFlow Metadata
 
 ### Payload
 
@@ -5413,7 +5421,7 @@ Measurement fields for AirFlow. Typical engUnit: CFM. The identifier (named-obje
 
 ---
 
-## GenericObjectAirPressureMsg
+## GenericObject AirPressure Metadata
 
 ### Payload
 
@@ -5433,7 +5441,7 @@ Measurement fields for AirPressure. Typical engUnit: Pa. The identifier (named-o
 
 ---
 
-## GenericObjectLiquidTemperatureSpRequestMsg
+## GenericObject LiquidTemperatureSpRequest Metadata
 
 ### Payload
 
@@ -5468,7 +5476,7 @@ via the parent `oneOf`.
 
 ---
 
-## GenericObjectSoundMsg
+## GenericObject Sound Metadata
 
 ### Payload
 
