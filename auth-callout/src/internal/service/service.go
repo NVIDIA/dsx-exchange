@@ -31,6 +31,12 @@ import (
 	obstracing "github.com/NVIDIA/dsx-exchange/auth-callout/src/internal/observability/tracing"
 )
 
+const (
+	natsClientName         = "auth-callout-service"
+	natsStartupConnectWait = 2 * time.Second
+	natsMaxReconnects      = -1 // Keep retrying while readiness reports NATS unavailable.
+)
+
 // Service wraps HTTP server with graceful shutdown
 type Service struct {
 	config         ServiceConfig
@@ -191,31 +197,37 @@ func New(config ServiceConfig, logger *otelzap.Logger) *Service {
 // The service will wait for interrupt signals and perform a graceful shutdown with a 5-second timeout.
 func (s *Service) Run() error {
 	// =================================================
-	// Put your unauthenticated routes here (eg healthz)
+	// Put unauthenticated health routes here.
 	// =================================================
+	s.rootRouter.HandleFunc("/livez", livezHandler)
 	s.rootRouter.HandleFunc("/healthz", s.HealthHandler)
 
-	// Connect to NATS
-	var opts []nats.Option
-	if s.config.NATS.NKeySeed != "" {
-		kp, err := nkeys.FromSeed([]byte(s.config.NATS.NKeySeed))
-		if err != nil {
-			return fmt.Errorf("error loading NATS NKey: %w", err)
-		}
-		pubKey, err := kp.PublicKey()
-		if err != nil {
-			return fmt.Errorf("error getting NATS NKey public key: %w", err)
-		}
-		opts = append(opts, nats.Nkey(pubKey, kp.Sign))
+	initialConnectCh := make(chan struct{}, 1)
+	opts, err := s.buildNATSOptions(initialConnectCh)
+	if err != nil {
+		return err
 	}
-	opts = append(opts, nats.Name("auth-callout-service"))
 
 	nc, err := nats.Connect(s.config.NATS.URL, opts...)
 	if err != nil {
 		return fmt.Errorf("error connecting to NATS: %w", err)
 	}
 	s.natsConn = nc
-	s.logger.Info("Connected to NATS", zap.String("url", s.config.NATS.URL))
+	if !nc.IsConnected() {
+		select {
+		case <-initialConnectCh:
+		case <-time.After(natsStartupConnectWait):
+		}
+	}
+	if nc.IsConnected() {
+		s.logger.Info("Connected to NATS", zap.String("url", s.config.NATS.URL))
+	} else {
+		s.logger.Warn(
+			"NATS still connecting after startup check",
+			zap.String("url", s.config.NATS.URL),
+			zap.Duration("timeout", natsStartupConnectWait),
+		)
+	}
 
 	// Create authorization handler
 	authorizerFn := func(req *jwt.AuthorizationRequest) (string, error) {
@@ -292,6 +304,46 @@ func (s *Service) Run() error {
 
 	s.logger.Warn("service shut down successfully")
 	return nil
+}
+
+func (s *Service) buildNATSOptions(initialConnectCh chan<- struct{}) ([]nats.Option, error) {
+	opts := []nats.Option{
+		nats.Name(natsClientName),
+		nats.RetryOnFailedConnect(true),
+		nats.MaxReconnects(natsMaxReconnects),
+		nats.ConnectHandler(func(_ *nats.Conn) {
+			select {
+			case initialConnectCh <- struct{}{}:
+			default:
+			}
+		}),
+		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
+			if err != nil {
+				s.logger.Warn("NATS disconnected", zap.String("url", s.config.NATS.URL), zap.Error(err))
+			}
+		}),
+		nats.ReconnectHandler(func(_ *nats.Conn) {
+			s.logger.Info("Connected to NATS", zap.String("url", s.config.NATS.URL))
+		}),
+		nats.ReconnectErrHandler(func(_ *nats.Conn, err error) {
+			s.logger.Debug("NATS reconnect failed", zap.String("url", s.config.NATS.URL), zap.Error(err))
+		}),
+	}
+
+	if s.config.NATS.NKeySeed == "" {
+		return opts, nil
+	}
+
+	kp, err := nkeys.FromSeed([]byte(s.config.NATS.NKeySeed))
+	if err != nil {
+		return nil, fmt.Errorf("error loading NATS NKey: %w", err)
+	}
+	pubKey, err := kp.PublicKey()
+	if err != nil {
+		return nil, fmt.Errorf("error getting NATS NKey public key: %w", err)
+	}
+
+	return append(opts, nats.Nkey(pubKey, kp.Sign)), nil
 }
 
 // handleAuthRequest processes NATS authorization requests

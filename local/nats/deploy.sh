@@ -37,6 +37,7 @@ cluster=${1:-csc}
 kind_cluster="${cluster}"
 context="kind-${kind_cluster}"
 namespace="event-bus"
+nats_client_rollout_timeout="10m"
 
 echo "Deploying NATS Event Bus to ${cluster}..."
 
@@ -422,14 +423,14 @@ kubectl delete pods -l app.kubernetes.io/name=auth-callout -n ${namespace} --con
 echo "Waiting for NATS pods to be ready..."
 kubectl rollout status statefulset/nats -n ${namespace} --context "${context}" --timeout=3m
 kubectl rollout status statefulset/nats-mtls -n ${namespace} --context "${context}" --timeout=2m
-kubectl rollout status deployment/nats-event-bus-surveyor -n ${namespace} --context "${context}" --timeout=2m
+kubectl rollout status deployment/nats-event-bus-surveyor -n ${namespace} --context "${context}" --timeout="${nats_client_rollout_timeout}"
 kubectl rollout status deployment/nack -n ${namespace} --context "${context}" --timeout=2m
 
 echo "Waiting for JetStream streams to be ready..."
 kubectl wait --for=condition=Ready stream --all -n ${namespace} --context "${context}" --timeout=2m
 
 echo "Waiting for auth-callout pods to be ready..."
-kubectl rollout status deployment/auth-callout -n ${namespace} --context "${context}" --timeout=2m
+kubectl rollout status deployment/auth-callout -n ${namespace} --context "${context}" --timeout="${nats_client_rollout_timeout}"
 
 echo "Waiting for shared Gateway to be programmed..."
 kubectl wait --for=condition=Programmed gateway/shared-gateway -n envoy-gateway-system --context "${context}" --timeout=2m

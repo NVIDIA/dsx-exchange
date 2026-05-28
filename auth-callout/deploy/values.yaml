@@ -147,7 +147,7 @@ healthChecks:
   livenessProbe:
     enabled: true # Enable liveness probe
     httpGet:
-      path: "/healthz" # Health check endpoint path
+      path: "/livez" # Liveness endpoint path
       port: "http" # Port name or number
       scheme: "HTTP" # HTTP or HTTPS
     initialDelaySeconds: 10 # Initial delay before starting probes
@@ -160,7 +160,7 @@ healthChecks:
   readinessProbe:
     enabled: true # Enable readiness probe
     httpGet:
-      path: "/healthz" # Health check endpoint path
+      path: "/healthz" # Health endpoint path, including NATS connectivity
       port: "http" # Port name or number
       scheme: "HTTP" # HTTP or HTTPS
     initialDelaySeconds: 5 # Initial delay before starting probes
