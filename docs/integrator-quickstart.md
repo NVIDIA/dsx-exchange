@@ -76,16 +76,17 @@ certificate, and client key supplied by the operator.
 
 ## Choose an MQTT SDK
 
-Use the MQTT library that best fits the application you are already building.
-Common options include:
+Use the MQTT library that fits the application you are already building. These
+are examples, not a required list:
 
 | Runtime | SDK examples |
 |---------|--------------|
-| Go | Eclipse Paho Go (`github.com/eclipse/paho.mqtt.golang`) |
-| Python | Eclipse Paho Python (`paho-mqtt`) |
-| Node.js | MQTT.js (`mqtt`) |
-| Java | Eclipse Paho Java |
-| C/C++ | Eclipse Paho C/C++ or libmosquitto |
+| Go | [Eclipse Paho Go](https://eclipse.dev/paho/clients/golang/) |
+| Python | [Eclipse Paho Python](https://eclipse.dev/paho/files/paho.mqtt.python/html/) |
+| Node.js | [MQTT.js](https://github.com/mqttjs/MQTT.js) |
+| Java | [Eclipse Paho Java](https://eclipse.dev/paho/clients/java/) |
+| C | [Eclipse Paho C](https://eclipse.dev/paho/clients/c/) |
+| C++ | [Eclipse Paho C++](https://eclipse.dev/paho/clients/cpp/) |
 
 All SDKs follow the same basic flow:
 
@@ -94,102 +95,6 @@ All SDKs follow the same basic flow:
 3. Connect with the authentication mode assigned by the operator.
 4. Subscribe, publish, or both, using topics allowed by your permissions.
 5. Handle reconnects, publish acknowledgements, and application shutdown.
-
-## Python SDK Sample
-
-This sample uses the Python Paho MQTT SDK to publish one debug message. Replace
-`DSX_MQTT_TOPIC` and the payload with the topic and schema payload for your
-integration.
-
-```bash
-python3 -m pip install paho-mqtt
-```
-
-```python
-# dsx_publish.py
-import json
-import os
-
-import paho.mqtt.client as mqtt
-
-
-host = os.environ["DSX_MQTT_HOST"]
-port = int(os.getenv("DSX_MQTT_PORT", "1883"))
-topic = os.getenv("DSX_MQTT_TOPIC", "test/hello")
-
-client = mqtt.Client(
-    mqtt.CallbackAPIVersion.VERSION2,
-    client_id=os.getenv("DSX_MQTT_CLIENT_ID", "dsx-quickstart-publisher"),
-    protocol=mqtt.MQTTv311,
-)
-
-username = os.getenv("DSX_MQTT_USERNAME")
-password = os.getenv("DSX_MQTT_PASSWORD")
-if username or password:
-    client.username_pw_set(username, password)
-
-ca_file = os.getenv("DSX_MQTT_CA")
-cert_file = os.getenv("DSX_MQTT_CERT")
-key_file = os.getenv("DSX_MQTT_KEY")
-if ca_file or cert_file or key_file:
-    client.tls_set(ca_certs=ca_file, certfile=cert_file, keyfile=key_file)
-
-payload = json.dumps({"message": "hello from dsx exchange"})
-
-client.connect(host, port, keepalive=30)
-client.loop_start()
-result = client.publish(topic, payload, qos=1)
-result.wait_for_publish()
-client.loop_stop()
-client.disconnect()
-```
-
-Run it with the connection settings from the previous section:
-
-```bash
-python3 dsx_publish.py
-```
-
-To subscribe from an application, use the same connection setup and register a
-message handler:
-
-```python
-# dsx_subscribe.py
-import os
-
-import paho.mqtt.client as mqtt
-
-
-def on_message(client, userdata, message):
-    print(f"{message.topic}: {message.payload.decode()}")
-
-
-host = os.environ["DSX_MQTT_HOST"]
-port = int(os.getenv("DSX_MQTT_PORT", "1883"))
-topic = os.getenv("DSX_MQTT_TOPIC", "test/hello")
-
-client = mqtt.Client(
-    mqtt.CallbackAPIVersion.VERSION2,
-    client_id=os.getenv("DSX_MQTT_CLIENT_ID", "dsx-quickstart-subscriber"),
-    protocol=mqtt.MQTTv311,
-)
-client.on_message = on_message
-
-username = os.getenv("DSX_MQTT_USERNAME")
-password = os.getenv("DSX_MQTT_PASSWORD")
-if username or password:
-    client.username_pw_set(username, password)
-
-ca_file = os.getenv("DSX_MQTT_CA")
-cert_file = os.getenv("DSX_MQTT_CERT")
-key_file = os.getenv("DSX_MQTT_KEY")
-if ca_file or cert_file or key_file:
-    client.tls_set(ca_certs=ca_file, certfile=cert_file, keyfile=key_file)
-
-client.connect(host, port, keepalive=30)
-client.subscribe(topic, qos=1)
-client.loop_forever()
-```
 
 ## CLI Debug Smoke Test
 
