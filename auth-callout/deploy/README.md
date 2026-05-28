@@ -91,13 +91,25 @@ serviceConfig:
 
 ### mTLS Configuration
 
-For mTLS authentication, configure the CA certificate path:
+For mTLS authentication, let the chart mount a CA Secret and set the path:
+
+```yaml
+mtlsCA:
+  enabled: true
+  secretName: nats-mtls-server-tls
+  key: ca.crt
+```
+
+Or mount the CA yourself and set the path directly:
 
 ```yaml
 serviceConfig:
   mtls:
-    ca-path: "/etc/ssl/certs/ca.crt"
+    ca-path: "/etc/mtls-ca/ca.crt"
 ```
+
+If `serviceConfig.mtls.ca-path` is set, the chart treats the CA mount as
+operator-managed and does not add the `mtlsCA` volume.
 
 ## Permissions Configuration
 

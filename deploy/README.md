@@ -365,6 +365,8 @@ global:
       enabled: true  # default
 ```
 
+When enabled, the chart mounts the `nats-mtls-server-tls` Secret's `ca.crt` into auth-callout at `/etc/mtls-ca/ca.crt` and sets `auth-callout.serviceConfig.mtls.ca-path` to that file.
+
 Set `global.eventBus.mtls.enabled: false` to disable the mTLS NATS cluster. When disabled:
 
 - The `nats-mtls` subchart is not rendered (no pods, services, or config)
@@ -372,6 +374,7 @@ Set `global.eventBus.mtls.enabled: false` to disable the mTLS NATS cluster. When
 - The `nats-mtls-accounts-config` ConfigMap is not created
 - mTLS-specific keys are omitted from `nats-env-config`
 - mTLS leaf nkey entries are omitted from the auth-callout permissions
+- The mTLS CA Secret is not mounted into auth-callout
 - The mTLS secrets (`nats-mtls-server-tls`, `nats-mtls-leaf`, `nats-mtls-authx-leaf`, `nats-mtls-sys-leaf`) are not required
 
 ## Subchart Configuration
@@ -543,8 +546,6 @@ auth-callout:
     jwks:
       url: "https://keycloak.example.com/realms/event-bus/protocol/openid-connect/certs"
       issuer: "https://keycloak.example.com/realms/event-bus"
-    mtls:
-      ca-path: "/etc/mtls-ca/ca.crt"
 ```
 
 ### CSC Cluster
