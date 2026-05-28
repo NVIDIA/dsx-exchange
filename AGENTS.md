@@ -36,6 +36,7 @@ type(scope): short description
 Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 
 All commits must include a DCO sign-off (`git commit -s`). Semantic-release on main generates tags and changelog from commit types.
+Keep commit message body lines under 100 characters; commitlint enforces this.
 
 ## License headers
 
