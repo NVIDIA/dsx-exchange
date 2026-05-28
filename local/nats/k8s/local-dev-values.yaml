@@ -9,6 +9,10 @@
 # Auth-callout service configuration
 global:
   eventBus:
+    gateway:
+      routes:
+        mqttMtls:
+          kind: TLSRoute
     extraAccounts:
       LaunchLayer:
         enabled: true

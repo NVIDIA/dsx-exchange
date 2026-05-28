@@ -35,11 +35,14 @@ spec:
         namespaces:
           from: All
     - name: mqtt-mtls
-      protocol: TCP
+      protocol: TLS
       port: 8883
+      tls:
+        mode: Passthrough
       allowedRoutes:
         kinds:
-          - kind: TCPRoute
+          - group: gateway.networking.k8s.io
+            kind: TLSRoute
         namespaces:
           from: All
     # Keycloak listener
@@ -66,4 +69,3 @@ spec:
     maxConnections: 32768
     maxPendingRequests: 32768
     maxRequestsPerConnection: 32768
-
