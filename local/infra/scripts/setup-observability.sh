@@ -35,7 +35,7 @@ deploy_to_cluster() {
       --values "$PROJECT_ROOT/infra/prometheus/values.yaml" \
       --kube-context "$context" \
       --wait \
-      --timeout 2m
+      --timeout 10m
 
   echo "Observability stack deployed to ${cluster}"
 }
