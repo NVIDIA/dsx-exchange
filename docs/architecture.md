@@ -24,6 +24,10 @@ DSX Exchange consists of four components:
 
 The DSX Event Bus is a [NATS](https://nats.io/)-based messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI Factory topology. It is the transport that makes the rest of DSX Exchange possible.
 
+### Why MQTT 3.1.1
+
+DSX Exchange targets MQTT 3.1.1 rather than MQTT 5 because the primary integration surface is building management systems. BMS vendors overwhelmingly ship MQTT 3.1.1 clients, BMS engineers are not typically in a position to adopt newer protocol versions, and the 3.1.1 protocol is simpler with fewer edge cases. This is a deliberate architectural decision — NATS implements MQTT 3.1.1 only, and 3.1.1 maximizes compatibility with the installed base of OT and BMS devices in a gigawatt-scale AI factory.
+
 Concrete signal paths it enables today:
 
 - **BMS -> DPS**: real-time power telemetry so DPS can close the MaxLPS dynamic power allocation loop (recovering up to 40% stranded capacity)
