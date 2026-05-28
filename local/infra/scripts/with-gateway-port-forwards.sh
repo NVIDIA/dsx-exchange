@@ -20,17 +20,21 @@ logs=()
 
 cleanup() {
   local pid
-  for pid in "${pids[@]}"; do
-    if kill -0 "${pid}" >/dev/null 2>&1; then
-      kill "${pid}" >/dev/null 2>&1 || true
-    fi
-  done
-  wait >/dev/null 2>&1 || true
+  if [ "${#pids[@]}" -gt 0 ]; then
+    for pid in "${pids[@]}"; do
+      if kill -0 "${pid}" >/dev/null 2>&1; then
+        kill "${pid}" >/dev/null 2>&1 || true
+      fi
+    done
+    wait >/dev/null 2>&1 || true
+  fi
 
   local log
-  for log in "${logs[@]}"; do
-    rm -f "${log}"
-  done
+  if [ "${#logs[@]}" -gt 0 ]; then
+    for log in "${logs[@]}"; do
+      rm -f "${log}"
+    done
+  fi
 }
 
 trap cleanup EXIT
@@ -48,13 +52,15 @@ gateway_service() {
 wait_for_local_port() {
   local port="$1"
   local log="$2"
+  local pid
 
   for _ in {1..60}; do
     if nc -z 127.0.0.1 "${port}" >/dev/null 2>&1; then
       return 0
     fi
 
-    if ! kill -0 "${pids[-1]}" >/dev/null 2>&1; then
+    pid="${pids[$((${#pids[@]} - 1))]}"
+    if ! kill -0 "${pid}" >/dev/null 2>&1; then
       echo "ERROR: port-forward for local port ${port} exited before becoming ready" >&2
       cat "${log}" >&2
       return 1

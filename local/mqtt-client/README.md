@@ -179,6 +179,54 @@ your own sample or edit the sample for custom data.
 
 From the repo root, run `make dummy-bms` after the local environment is
 deployed. For direct runs, pass the broker, CSV, and schema paths explicitly.
+Authentication options for real clients are covered in
+[authentication.md](../../docs/authentication.md); the local dummy-BMS target
+uses the no-auth example profile.
+
+### Dummy BMS Scenario CSV
+
+Scenario files must use exactly this header:
+
+```csv
+offset,topic,payload
+```
+
+Each row is one MQTT publish:
+
+- `offset` is a Go duration such as `0s`, `500ms`, or `2m`. Offsets must be
+  non-negative and non-decreasing because they are replayed relative to the
+  start of each pass.
+- `topic` must be a concrete topic that matches a BMS AsyncAPI channel. For
+  BMS-originated sample data, use
+  `BMS/v1/PUB/{Value|Metadata}/{objectType}/{pointType}/{tagPath}`. For
+  example, `BMS/v1/PUB/Metadata/Rack/RackPower/site-a/row-1/rack-1/power` and
+  `BMS/v1/PUB/Value/Rack/RackPower/site-a/row-1/rack-1/power` are valid
+  concrete topics. Empty segments and MQTT wildcards (`+`, `#`) are rejected.
+- `payload` must be JSON and must validate against the BMS AsyncAPI schema for
+  the selected topic. Any topic parameter fields present in the payload must
+  match the topic.
+- `{{timestamp_ms}}` in the payload is replaced at publish time with the current
+  Unix timestamp in milliseconds.
+- `Metadata` topics are published retained. `Value` topics are live,
+  non-retained publishes.
+
+The command loops the scenario until interrupted. Add `--once` to publish one
+pass and exit:
+
+```bash
+go run ./cmd/dummy-bms \
+  --broker tcp://127.0.0.1:11883 \
+  --csv examples/dsx_exemplar.csv \
+  --schema ../../schema/schema/bms/bms.yaml \
+  --once
+```
+
+To verify messages while `make dummy-bms` is running, subscribe to the forwarded
+CSC broker from another terminal:
+
+```bash
+mosquitto_sub -h 127.0.0.1 -p 11883 -t 'BMS/v1/PUB/#' -v
+```
 
 ## Development
 

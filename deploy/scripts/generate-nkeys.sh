@@ -45,6 +45,10 @@ EOF
 cleanup() {
   local dir
 
+  if [ "${#TEMP_DIRS[@]}" -eq 0 ]; then
+    return 0
+  fi
+
   for dir in "${TEMP_DIRS[@]}"; do
     if [ -n "${dir}" ] && [ -d "${dir}" ]; then
       rm -rf "${dir}"
@@ -172,6 +176,10 @@ validate_extra_account_tokens() {
   local account_name
   local token
   local seen_tokens=""
+
+  if [ "${#EXTRA_ACCOUNTS[@]}" -eq 0 ]; then
+    return 0
+  fi
 
   for account_name in "${EXTRA_ACCOUNTS[@]}"; do
     token=$(extra_account_secret_token "${account_name}")
@@ -521,9 +529,11 @@ main() {
     for cpc_id in "${CPC_IDS[@]}"; do
       generate_cluster "cpc-${cpc_id}"
       generate_cpc_leaf_outputs "${cpc_id}"
-      for extra_account in "${EXTRA_ACCOUNTS[@]}"; do
-        generate_extra_account_leaf_outputs "${extra_account}" "${cpc_id}"
-      done
+      if [ "${#EXTRA_ACCOUNTS[@]}" -gt 0 ]; then
+        for extra_account in "${EXTRA_ACCOUNTS[@]}"; do
+          generate_extra_account_leaf_outputs "${extra_account}" "${cpc_id}"
+        done
+      fi
     done
   fi
 
