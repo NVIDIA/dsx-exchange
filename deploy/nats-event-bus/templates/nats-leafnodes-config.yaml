@@ -16,21 +16,21 @@ metadata:
     app.kubernetes.io/part-of: nats-event-bus
 data:
   leafnodes.conf: |
-{{- $serverTls := .Values.eventBus.cscLeafServerTLS | default dict }}
-{{- $remoteTls := .Values.eventBus.cpcLeafClientTLS | default dict }}
-{{- if and (eq .Values.eventBus.clusterType "csc") (not (empty $serverTls)) }}
+{{- $serverTls := .Values.global.eventBus.cscLeafServerTLS | default dict }}
+{{- $remoteTls := .Values.global.eventBus.cpcLeafClientTLS | default dict }}
+{{- if and (eq .Values.global.eventBus.clusterType "csc") (not (empty $serverTls)) }}
 {{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $serverTls) | nindent 4 }}
 {{- end }}
-{{- if and (eq .Values.eventBus.clusterType "cpc") .Values.eventBus.cscEndpoint }}
+{{- if and (eq .Values.global.eventBus.clusterType "cpc") .Values.global.eventBus.cscEndpoint }}
     remotes: [
       {
-        urls: [{{ .Values.eventBus.cscEndpoint | quote }}]
+        urls: [{{ .Values.global.eventBus.cscEndpoint | quote }}]
         nkey: $LEAF_USER_SEED
         account: CSC
         {{- if not (empty $remoteTls) }}
 {{ include "nats-event-bus.natsConfBlock" (dict "name" "tls" "fields" $remoteTls) | nindent 8 }}{{- end }}
       }
-{{- range $name, $config := $.Values.eventBus.extraAccounts }}
+{{- range $name, $config := $.Values.global.eventBus.extraAccounts }}
 {{- $enabled := true -}}
 {{- if hasKey $config "enabled" -}}
 {{- $enabled = $config.enabled -}}
@@ -40,7 +40,7 @@ data:
 {{- $seedEnv := printf "LEAF_%s_USER_SEED" $accountEnvName -}}
 {{ printf "\n" }}
       {
-        urls: [{{ $.Values.eventBus.cscEndpoint | quote }}]
+        urls: [{{ $.Values.global.eventBus.cscEndpoint | quote }}]
         nkey: ${{ $seedEnv }}
         account: {{ $name | quote }}
         {{- if not (empty $remoteTls) }}

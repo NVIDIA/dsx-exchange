@@ -17,6 +17,14 @@ helm lint deploy/nats-event-bus
 helm lint auth-callout/deploy
 ```
 
+Local Kind e2e deploys and functional tests must run outside the sandbox. The
+local e2e path builds Docker images, updates Docker buildx state under
+`~/.docker`, loads images into Kind, and starts `kubectl port-forward` processes
+for NATS and Keycloak. In the sandbox this has failed with Docker buildx
+permission errors and host-side Keycloak timeouts. Use the local Make targets
+with unsandboxed execution, for example `make -C local deploy-nats` and
+`make -C local test-functional`.
+
 ## Commit conventions
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this via commitlint.
@@ -49,7 +57,7 @@ CI checks this. Run `make add-license-headers` to fix.
 ## Helm chart conventions
 
 - The main chart is `deploy/nats-event-bus/` with `auth-callout/deploy/` as a subchart dependency.
-- Values follow the `eventBus.*` namespace for bus config, `auth-callout.*` for the subchart.
+- Values follow the `global.eventBus.*` namespace for bus config, `auth-callout.*` for the subchart.
 - Chart validation: `helm lint` + template rendering in CI.
 
 ## Fern docs

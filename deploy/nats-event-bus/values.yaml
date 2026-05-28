@@ -18,304 +18,212 @@ _config:
 # This section provides operator-facing configuration. Internal NATS details
 # (accounts, mappings, leaf nodes) are auto-generated based on clusterType.
 
-eventBus:
-  # Cluster type: "csc" (Common Services Cluster) or "cpc" (Control Plane Cluster)
-  # This controls automatic configuration of accounts, leaf nodes, and JetStream domains
-  clusterType: "csc" # Required: must be set to "csc" or "cpc"
+global:
+  eventBus:
+    # Cluster type: "csc" (Common Services Cluster) or "cpc" (Control Plane Cluster)
+    # This controls automatic configuration of accounts, leaf nodes, and JetStream domains
+    clusterType: "csc" # Required: must be set to "csc" or "cpc"
 
-  # Cluster ID for CPC clusters (e.g., "1", "2")
-  # Required when clusterType is "cpc"
-  clusterId: ""
+    # Cluster ID for CPC clusters (e.g., "1", "2")
+    # Required when clusterType is "cpc"
+    clusterId: ""
 
-  # CSC endpoint for CPC leaf node connections
-  # Required when clusterType is "cpc"
-  cscEndpoint: ""  # e.g., "nats://172.18.200.1:7422" or "tls://csc-gateway:7422"
+    # CSC endpoint for CPC leaf node connections
+    # Required when clusterType is "cpc"
+    cscEndpoint: ""  # e.g., "nats://172.18.200.1:7422" or "tls://csc-gateway:7422"
 
-  # CSC accepting-side leafnode TLS
-  # The certificate files need to mounted into the nats container as volumes in the expected paths.
-  # https://docs.nats.io/running-a-nats-service/configuration/leafnodes/leafnode_conf
-  cscLeafServerTLS: {}
-    # Example (TLS-first handshake, NATS v2.10+):
-    # handshake_first: true
-    # cert_file: /etc/nats-certs/leafnodes/tls.crt
-    # key_file: /etc/nats-certs/leafnodes/tls.key
-    # ca_file: /etc/nats-certs/leafnodes/ca.crt
-    # verify: true
+    # CSC accepting-side leafnode TLS
+    # The certificate files need to mounted into the nats container as volumes in the expected paths.
+    # https://docs.nats.io/running-a-nats-service/configuration/leafnodes/leafnode_conf
+    cscLeafServerTLS: {}
+      # Example (TLS-first handshake, NATS v2.10+):
+      # handshake_first: true
+      # cert_file: /etc/nats-certs/leafnodes/tls.crt
+      # key_file: /etc/nats-certs/leafnodes/tls.key
+      # ca_file: /etc/nats-certs/leafnodes/ca.crt
+      # verify: true
 
-  # CPC outbound remote leafnode TLS.
-  # The certificate files need to mounted into the nats container as volumes in the expected paths.
-  cpcLeafClientTLS: {}
+    # CPC outbound remote leafnode TLS.
+    # The certificate files need to mounted into the nats container as volumes in the expected paths.
+    cpcLeafClientTLS: {}
+      # Example:
+      # handshake_first: true
+      # cert_file: /etc/nats-certs/leafnodes/tls.crt
+      # key_file: /etc/nats-certs/leafnodes/tls.key
+      # ca_file: /etc/nats-certs/leafnodes/ca.crt
+      # verify: true
+
+    # List of CPC IDs that will connect to this CSC (CSC only).
+    # CPC IDs must use lower-case letters and numbers only because they are used
+    # in Kubernetes secret names and auth-callout env var names.
+    # Used to generate leaf node users for cross-cluster connections.
+    cpcIds: []  # e.g., ["1", "2"]
+
+    # Cross-layer subject routing configuration
+    crossLayer:
+      # Subjects CSC exports to all CPCs (imported unmodified)
+      cscExports: []
+      # Subjects CSC exports with cpc.{id}. prefix (prefix stripped on import)
+      cscPrefixedExports: []
+      # Subjects CPC exports to CSC (prefixed with cpc.{id}. on CSC side)
+      cpcExports: []
+
+    # mTLS MQTT endpoint (separate NATS instance with client certificate verification)
+    mtls:
+      enabled: true
+
+    # Extra NATS accounts.
+    #
+    # Extra accounts are rendered as native accounts on every cluster where they
+    # are enabled. CSC owns extra-account JetStream. CPC clusters add a
+    # CPC-to-CSC leaf connection for the account and map plain $JS.API.>
+    # requests to the CSC JetStream domain.
+    #
+    # Every enabled extra account gets its own CPC-to-CSC leaf connection by
+    # default. The chart expects leaf secrets to follow the same per-leaf pattern
+    # used by the built-in CSC/CPC leaf:
+    # Extra account names must use letters and numbers only, start with a letter,
+    # and must not conflict with built-in accounts or the cpc prefix: SYS, AUTH,
+    # AUTHX, CSC, CPC, cpc*.
+    #
+    #   CPC/datahall cluster:
+    #     Secret name: nats-leaf-<account>-csc
+    #     Secret key:  seed
+    #
+    #   CSC cluster:
+    #     Secret name: nats-leaf-<account>-cpc-<id>
+    #     Secret key:  pubkey
+    #
+    # Account secret tokens are lower-case account names with invalid Kubernetes
+    # secret-name characters replaced by "-". Env vars use the upper-case token:
+    #   LaunchLayer -> nats-leaf-launchlayer-csc,
+    #                  LEAF_LAUNCHLAYER_USER_SEED
+    #
+    # The chart generates required secretKeyRef env vars for these leaf
+    # connections. Missing secrets fail pod startup.
+    extraAccounts: {}
+      # Example:
+      # LaunchLayer:
+      #   enabled: true
+      #   jetstream: true
+      # Kiwi:
+      #   enabled: true
+
+    # Required Kubernetes secrets and their keys:
+    #
+    # NATS Server Auth:
+    #   nats-auth-signing      pubkey              AUTH account signing key
+    #   nats-xkey              pubkey              Encryption XKey
+    #
+    # Auth-Callout Service:
+    #   nats-authx-user        pubkey              Auth-callout NATS connection user
+    #   auth-callout-keys      nkey-seed           Auth-callout NKey seed
+    #                          issuer-seed         Auth-callout issuer seed
+    #                          xkey-seed           Auth-callout XKey seed
+    #
+    # NACK Controller:
+    #   nats-nack-user         nack-user.nk        NACK NKey file (used by nack subchart)
+    #                          pubkey              NACK user pubkey (for auth-callout permissions)
+    #
+    # mTLS Server:
+    #   nats-mtls-server-tls   ca.crt              CA certificate
+    #                          tls.crt             Server certificate
+    #                          tls.key             Server private key
+    #
+    # mTLS Leaf Connections (nats-mtls to nats):
+    #   nats-mtls-leaf         seed                DC account leaf connection seed
+    #                          pubkey              DC account leaf pubkey (for auth-callout)
+    #   nats-mtls-authx-leaf   seed                AUTHX account leaf connection seed
+    #                          pubkey              AUTHX account leaf pubkey (for auth-callout)
+    #   nats-mtls-sys-leaf     seed                SYS account leaf connection seed
+    #                          pubkey              SYS account leaf pubkey (for auth-callout)
+    #
+    # Surveyor (monitoring):
+    #   nats-surveyor          seed                Surveyor NKey seed
+    #                          pubkey              Surveyor NKey pubkey (for auth-callout)
+    #
+    # Cross-Cluster Leaf Connections:
+    #   nats-leaf-csc          seed                CPC to CSC leaf (CPC clusters only)
+    #   nats-leaf-cpc-{id}     pubkey              CPC leaf users (CSC only, via generated auth-callout env)
+    #   nats-leaf-{account}-csc
+    #                          seed                Extra-account CPC leaf seeds
+    #   nats-leaf-{account}-cpc-{id}
+    #                          pubkey              Extra-account CSC leaf pubkeys
+    #
+    # Override chart-generated NKey secret refs by default secret name and key.
+    # Defaults are generated from the standard secret names documented above.
     # Example:
-    # handshake_first: true
-    # cert_file: /etc/nats-certs/leafnodes/tls.crt
-    # key_file: /etc/nats-certs/leafnodes/tls.key
-    # ca_file: /etc/nats-certs/leafnodes/ca.crt
-    # verify: true
+    # nkeySecretRefOverrides:
+    #   nats-leaf-launchlayer-cpc-1:
+    #     pubkey:
+    #       valueFrom:
+    #         secretKeyRef:
+    #           name: custom-launchlayer-leaf
+    #           key: cpc-1-pubkey
+    nkeySecretRefOverrides: {}
 
-  # List of CPC IDs that will connect to this CSC (CSC only).
-  # CPC IDs must use lower-case letters and numbers only because they are used
-  # in Kubernetes secret names and auth-callout env var names.
-  # Used to generate leaf node users for cross-cluster connections.
-  cpcIds: []  # e.g., ["1", "2"]
+    # Auth permissions (operator-defined per environment)
+    # Internal nkey entries are auto-generated and merged with these
+    auth:
+      permissions:
+        oauth2: {}
+          # Example:
+          # mqtt-client:
+          #   azp: "mqtt-client"
+          #   account: "CSC"  # Explicitly set by operator
+          #   permissions:
+          #     pub:
+          #       allow: ["test.>"]
+          #     sub:
+          #       allow: ["test.>"]
+        mtls: {}
+          # Example:
+          # mqtt-client:
+          #   identity: "CN=mqtt-client.csc"
+          #   account: "CSC"
+        noauth: null
+          # Example:
+          # account: "CSC"
 
-  # Cross-layer subject routing configuration
-  crossLayer:
-    # Subjects CSC exports to all CPCs (imported unmodified)
-    cscExports: []
-    # Subjects CSC exports with cpc.{id}. prefix (prefix stripped on import)
-    cscPrefixedExports: []
-    # Subjects CPC exports to CSC (prefixed with cpc.{id}. on CSC side)
-    cpcExports: []
+    # Gateway configuration for TCPRoute/TLSRoute resources
+    gateway:
+      routes:
+        mqtt:
+          enabled: true
+          kind: TCPRoute  # TCPRoute or TLSRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: mqtt
+          # hostnames: []  # Optional: only used when kind is TLSRoute
+        natsClient:
+          enabled: true
+          kind: TCPRoute  # TCPRoute or TLSRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: nats-client
+          # hostnames: []  # Optional: only used when kind is TLSRoute
+        natsLeafnode:
+          enabled: true
+          kind: TCPRoute  # TCPRoute or TLSRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: nats-leafnode
+          # hostnames: []  # Optional: only used when kind is TLSRoute
+        mqttMtls:
+          enabled: true
+          kind: TCPRoute  # TCPRoute or TLSRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: mqtt-mtls
+          # hostnames: []  # Optional: only used when kind is TLSRoute
 
-  # mTLS MQTT endpoint (separate NATS instance with client certificate verification)
-  mtls:
-    enabled: true
-
-  # Extra NATS accounts.
-  #
-  # On CSC clusters, extra accounts are local accounts and may enable
-  # JetStream. On CPC clusters, extra accounts keep local JetStream disabled and
-  # route JetStream API calls to the matching account in CSC.
-  #
-  # Every enabled extra account gets its own CPC-to-CSC leaf connection by
-  # default. The chart expects leaf secrets to follow the same per-leaf pattern
-  # used by the built-in CSC/CPC leaf:
-  # Extra account names must use letters and numbers only, start with a letter,
-  # and must not conflict with built-in accounts or the cpc prefix: SYS, AUTH,
-  # AUTHX, CSC, CPC, cpc*.
-  #
-  #   CPC/datahall cluster:
-  #     Secret name: nats-leaf-<account>-csc
-  #     Secret key:  seed
-  #
-  #   CSC cluster:
-  #     Secret name: nats-leaf-<account>-cpc-<id>
-  #     Secret key:  pubkey
-  #
-  # Account secret tokens are lower-case account names with invalid Kubernetes
-  # secret-name characters replaced by "-". Env vars use the upper-case token:
-  #   LaunchLayer -> nats-leaf-launchlayer-csc,
-  #                  LEAF_LAUNCHLAYER_USER_SEED
-  #
-  # The chart validates that explicit secretKeyRef entries point at the expected
-  # secret names and keys, and that they are not optional.
-  extraAccounts: {}
-    # Example:
-    # LaunchLayer:
-    #   enabled: true
-    #   jetstream: true  # CSC only; CPCs always use CSC's JetStream domain
-    # Kiwi:
-    #   enabled: true
-
-  # Required Kubernetes secrets and their keys:
-  #
-  # NATS Server Auth:
-  #   nats-auth-signing      pubkey              AUTH account signing key
-  #   nats-xkey              pubkey              Encryption XKey
-  #
-  # Auth-Callout Service:
-  #   nats-authx-user        pubkey              Auth-callout NATS connection user
-  #   auth-callout-keys      nkey-seed           Auth-callout NKey seed
-  #                          issuer-seed         Auth-callout issuer seed
-  #                          xkey-seed           Auth-callout XKey seed
-  #
-  # NACK Controller:
-  #   nats-nack-user         nack-user.nk        NACK NKey file (used by nack subchart)
-  #                          pubkey              NACK user pubkey (for auth-callout permissions)
-  #
-  # mTLS Server:
-  #   nats-mtls-server-tls   ca.crt              CA certificate
-  #                          tls.crt             Server certificate
-  #                          tls.key             Server private key
-  #
-  # mTLS Leaf Connections (nats-mtls to nats):
-  #   nats-mtls-leaf         seed                DC account leaf connection seed
-  #                          pubkey              DC account leaf pubkey (for auth-callout)
-  #   nats-mtls-authx-leaf   seed                AUTHX account leaf connection seed
-  #                          pubkey              AUTHX account leaf pubkey (for auth-callout)
-  #   nats-mtls-sys-leaf     seed                SYS account leaf connection seed
-  #                          pubkey              SYS account leaf pubkey (for auth-callout)
-  #
-  # Surveyor (monitoring):
-  #   nats-surveyor          seed                Surveyor NKey seed
-  #                          pubkey              Surveyor NKey pubkey (for auth-callout)
-  #
-  # Cross-Cluster Leaf Connections:
-  #   nats-leaf-csc          seed                CPC to CSC leaf (CPC clusters only)
-  #   nats-leaf-cpc-{id}     pubkey              CPC leaf users (CSC only, via auth-callout.extraEnvs)
-  #   nats-leaf-{account}-csc
-  #                          seed                Extra-account CPC leaf seeds
-  #   nats-leaf-{account}-cpc-{id}
-  #                          pubkey              Extra-account CSC leaf pubkeys
-  #
-  # YAML anchors for secretKeyRef values used by pod specs:
-  nkeyRefs:
-    # --- NATS Server Auth ---
-    # AUTH account signing key (signs auth-callout responses)
-    authSigningPubkey: &authSigningPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-auth-signing
-          key: pubkey
-    # Encryption key (encrypts auth-callout payloads)
-    xkeyPubkey: &xkeyPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-xkey
-          key: pubkey
-
-    # --- Auth-Callout Service ---
-    # NATS connection user for auth-callout (AUTHX account)
-    authxUserPubkey: &authxUserPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-authx-user
-          key: pubkey
-    # Auth-callout signing and encryption keys
-    authCalloutNkeySeed: &authCalloutNkeySeed
-      valueFrom:
-        secretKeyRef:
-          name: auth-callout-keys
-          key: nkey-seed
-    authCalloutIssuerSeed: &authCalloutIssuerSeed
-      valueFrom:
-        secretKeyRef:
-          name: auth-callout-keys
-          key: issuer-seed
-    authCalloutXkeySeed: &authCalloutXkeySeed
-      valueFrom:
-        secretKeyRef:
-          name: auth-callout-keys
-          key: xkey-seed
-
-    # --- NACK Controller ---
-    # Pubkey for auth-callout permissions (nack subchart uses nack-user.nk directly)
-    nackUserPubkey: &nackUserPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-nack-user
-          key: pubkey
-
-    # --- mTLS Leaf Connections (nats-mtls to nats) ---
-    # DC account leaf (message routing)
-    mtlsLeafSeed: &mtlsLeafSeed
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-leaf
-          key: seed
-          optional: true
-    mtlsLeafPubkey: &mtlsLeafPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-leaf
-          key: pubkey
-          optional: true
-    # AUTHX account leaf (auth forwarding)
-    mtlsAuthxLeafSeed: &mtlsAuthxLeafSeed
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-authx-leaf
-          key: seed
-          optional: true
-    mtlsAuthxLeafPubkey: &mtlsAuthxLeafPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-authx-leaf
-          key: pubkey
-          optional: true
-    # SYS account leaf (monitoring federation)
-    mtlsSysLeafSeed: &mtlsSysLeafSeed
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-sys-leaf
-          key: seed
-          optional: true
-    mtlsSysLeafPubkey: &mtlsSysLeafPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-mtls-sys-leaf
-          key: pubkey
-          optional: true
-
-    # --- Surveyor (SYS account monitoring) ---
-    surveyorNkeyPubkey: &surveyorNkeyPubkey
-      valueFrom:
-        secretKeyRef:
-          name: nats-surveyor
-          key: pubkey
-
-    # --- Cross-Cluster Leaf Connections ---
-    # CPC to CSC leaf (optional - only exists on CPC clusters)
-    leafCscSeed: &leafCscSeed
-      valueFrom:
-        secretKeyRef:
-          name: nats-leaf-csc
-          key: seed
-          optional: true
-    # CSC to CPC leaves: add NKEY_LEAF_CPC_{N}_PUBKEY via auth-callout.extraEnvs
-
-  # Auth permissions (operator-defined per environment)
-  # Internal nkey entries are auto-generated and merged with these
-  auth:
-    permissions:
-      oauth2: {}
-        # Example:
-        # mqtt-client:
-        #   azp: "mqtt-client"
-        #   account: "CSC"  # Explicitly set by operator
-        #   permissions:
-        #     pub:
-        #       allow: ["test.>"]
-        #     sub:
-        #       allow: ["test.>"]
-      mtls: {}
-        # Example:
-        # mqtt-client:
-        #   identity: "CN=mqtt-client.csc"
-        #   account: "CSC"
-      noauth: null
-        # Example:
-        # account: "CSC"
-
-  # Gateway configuration for TCPRoute/TLSRoute resources
-  gateway:
-    routes:
-      mqtt:
-        enabled: true
-        kind: TCPRoute  # TCPRoute or TLSRoute
-        gatewayName: shared-gateway
-        gatewayNamespace: envoy-gateway-system
-        sectionName: mqtt
-        # hostnames: []  # Optional: only used when kind is TLSRoute
-      natsClient:
-        enabled: true
-        kind: TCPRoute  # TCPRoute or TLSRoute
-        gatewayName: shared-gateway
-        gatewayNamespace: envoy-gateway-system
-        sectionName: nats-client
-        # hostnames: []  # Optional: only used when kind is TLSRoute
-      natsLeafnode:
-        enabled: true
-        kind: TCPRoute  # TCPRoute or TLSRoute
-        gatewayName: shared-gateway
-        gatewayNamespace: envoy-gateway-system
-        sectionName: nats-leafnode
-        # hostnames: []  # Optional: only used when kind is TLSRoute
-      mqttMtls:
-        enabled: true
-        kind: TCPRoute  # TCPRoute or TLSRoute
-        gatewayName: shared-gateway
-        gatewayNamespace: envoy-gateway-system
-        sectionName: mqtt-mtls
-        # hostnames: []  # Optional: only used when kind is TLSRoute
-
-  # MQTT JetStream stream configuration
-  mqttStreams:
-    maxBytes: 67108864  # 64MB
-    replicas: 3
-    storage: memory
-    # Maximum age for messages (Go duration format). Applied to all streams except sessions.
-    maxAge: "3h"
+    # MQTT JetStream stream configuration
+    mqttStreams:
+      maxBytes: 67108864  # 64MB
+      replicas: 3
+      storage: memory
+      # Maximum age for messages (Go duration format). Applied to all streams except sessions.
+      maxAge: "3h"
 
 # NATS subchart defaults (common configuration)
 nats:
@@ -395,10 +303,9 @@ nats:
         memory: 2Gi
     env:
       GOMEMLIMIT: 1638MiB
-      AUTHX_USER_NKEY: *authxUserPubkey
-      AUTH_SIGNING_KEY: *authSigningPubkey
-      XKEY_PUBKEY: *xkeyPubkey
-      LEAF_USER_SEED: *leafCscSeed
+      generatedEventBusEnv:
+        $tplYamlSpread: |
+          {{ include "nats-event-bus.natsEventBusEnv" (dict "root" . "includeCpcLeafSeeds" true) }}
       NATS_CLUSTER_NAME:
         valueFrom:
           configMapKeyRef:
@@ -528,12 +435,9 @@ nats-mtls:
         cpu: 500m
         memory: 1Gi
     env:
-      AUTHX_USER_NKEY: *authxUserPubkey
-      AUTH_SIGNING_KEY: *authSigningPubkey
-      XKEY_PUBKEY: *xkeyPubkey
-      MTLS_LEAF_USER_SEED: *mtlsLeafSeed
-      AUTHX_LEAF_USER_SEED: *mtlsAuthxLeafSeed
-      MTLS_SYS_LEAF_USER_SEED: *mtlsSysLeafSeed
+      generatedEventBusEnv:
+        $tplYamlSpread: |
+          {{ include "nats-event-bus.natsEventBusEnv" (dict "root" . "includeMtlsLeafSeeds" true) }}
       NATS_MTLS_SERVER_NAME:
         valueFrom:
           configMapKeyRef:
@@ -614,20 +518,16 @@ auth-callout:
   # Use external ConfigMap generated by nats-event-bus chart
   permissionsConfigMap: "auth-callout-permissions"
 
-  # Common auth-callout env vars. CSC clusters with eventBus.cpcIds must also
-  # provide NKEY_LEAF_CPC_{N}_PUBKEY, plus
-  # NKEY_LEAF_{ACCOUNT}_CPC_{N}_PUBKEY for each enabled extra account.
+  # Event-bus-specific auth-callout env vars are generated here from standard
+  # NKey secret refs and generated permissions.
+  extraEnvTemplates:
+    - |
+      {{ include "nats-event-bus.authCalloutEventBusEnv" . }}
+
+  # Operator-defined auth-callout env vars.
   # The generated permissions use nkey names leaf-cpc-{id} and
-  # leaf-{account}-cpc-{id}; use distinct names for operator-defined clients.
-  extraEnvs:
-    AUTH_CALLOUT_NATS_NKEY_SEED: *authCalloutNkeySeed
-    AUTH_CALLOUT_NATS_ISSUER_SEED: *authCalloutIssuerSeed
-    AUTH_CALLOUT_NATS_XKEY_SEED: *authCalloutXkeySeed
-    NKEY_NACK_USER_PUBKEY: *nackUserPubkey
-    NKEY_MTLS_LEAF_PUBKEY: *mtlsLeafPubkey
-    NKEY_MTLS_AUTHX_LEAF_PUBKEY: *mtlsAuthxLeafPubkey
-    NKEY_MTLS_SYS_LEAF_PUBKEY: *mtlsSysLeafPubkey
-    NKEY_SURVEYOR_PUBKEY: *surveyorNkeyPubkey
+  # leaf-{account}-cpc-{id}; use distinct names for operator-defined entries.
+  extraEnvs: {}
 
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
 # See https://github.com/nats-io/nats-surveyor for metrics reference

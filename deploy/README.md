@@ -72,7 +72,7 @@ Each deployment includes:
 ## Prerequisites
 
 - **Kubernetes**: 1.27+
-- **Helm**: 3.12+
+- **Helm**: 4.0+
 - Envoy Gateway operator (GatewayClass `eg`)
 - MetalLB or cloud LoadBalancer
 - cert-manager (for mTLS certificates)
@@ -123,13 +123,13 @@ Secret name and key are overridable, these are the defaults.
 | `nats-nack-user` | nack-user.nk | NACK NKey file (used by nack subchart) |
 |                  | pubkey | NACK user pubkey (for auth-callout permissions) |
 
-**mTLS Server** (only when `eventBus.mtls.enabled: true`)**:**
+**mTLS Server** (only when `global.eventBus.mtls.enabled: true`)**:**
 
 | Secret | Keys | Purpose |
 |--------|------|---------|
 | `nats-mtls-server-tls` | ca.crt, tls.crt, tls.key | mTLS server certificates |
 
-**mTLS Leaf Connections** (only when `eventBus.mtls.enabled: true`)**:**
+**mTLS Leaf Connections** (only when `global.eventBus.mtls.enabled: true`)**:**
 
 | Secret | Keys | Purpose |
 |--------|------|---------|
@@ -152,10 +152,31 @@ CSC-side secrets to authorize incoming CPC leaf connections.
 | Secret | Keys | Purpose |
 |--------|------|---------|
 | `nats-leaf-csc` | seed | CPC to CSC leaf (CPC only) |
-| `nats-leaf-cpc-{id}` | pubkey | CPC leaf user (CSC only, via auth-callout.extraEnvs) |
+| `nats-leaf-cpc-{id}` | pubkey | CPC leaf user (CSC only, via generated auth-callout env) |
 | `nats-leaf-{account}-csc` | seed | Extra-account CPC to CSC leaf (CPC only) |
-| `nats-leaf-{account}-cpc-{id}` | pubkey | Extra-account CPC leaf user (CSC only, via auth-callout.extraEnvs) |
-| `nats-{account}-client` | seed, pubkey | Generated extra-account NKey client credential; only active when added to permissions |
+| `nats-leaf-{account}-cpc-{id}` | pubkey | Extra-account CPC leaf user (CSC only, via generated auth-callout env) |
+
+Generated NKey environment references use the standard secret names above by
+default. Override a generated reference with
+`global.eventBus.nkeySecretRefOverrides`, keyed by the default secret name and
+key:
+
+```yaml
+global:
+  eventBus:
+    nkeySecretRefOverrides:
+      nats-leaf-launchlayer-cpc-1:
+        pubkey:
+          valueFrom:
+            secretKeyRef:
+              name: custom-launchlayer-leaf
+              key: cpc-1-pubkey
+```
+
+The NACK and Surveyor subcharts mount their own NKey credential files through
+their native values (`nack.jetstream.nats.nkey.secret` and
+`surveyor.config.nkey.secret`). If those credential secret names change, update
+the subchart value and the matching auth-callout pubkey override.
 
 ### Generating Secrets
 
@@ -170,7 +191,7 @@ An example script is provided to generate all required secrets to local files:
 
 # Options:
 #   -o, --output DIR         Output root directory (default: deploy/secrets)
-#       --extra-account NAME Generate client and CPC-to-CSC leaf keys for an extra account
+#       --extra-account NAME Generate CPC-to-CSC leaf keys for an extra account
 #   -h, --help               Show help message
 
 # Examples:
@@ -187,9 +208,7 @@ unused leaf credential keys from older layouts. For each requested CPC, the
 CPC-to-CSC leaf seed is stored in that CPC as `nats-leaf-csc`; CSC stores only
 the matching public key as `nats-leaf-cpc-{id}`. For each extra account, the
 same split is used with `nats-leaf-{account}-csc` on the CPC and
-`nats-leaf-{account}-cpc-{id}` on CSC. Each cluster also gets a
-`nats-{account}-client` NKey pair for explicit client permissions and local
-functional tests; leaf credentials should not be reused as client credentials.
+`nats-leaf-{account}-cpc-{id}` on CSC.
 
 Generated secret files are written with mode `0600`, and generated secret
 directories are written with mode `0700`. Treat the full output directory as
@@ -209,7 +228,6 @@ deploy/secrets/
 │       ├── nats-mtls-sys-leaf/{seed,pubkey}
 │       ├── nats-surveyor/{seed,pubkey}
 │       ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
-│       ├── nats-{account}-client/{seed,pubkey}
 │       ├── nats-leaf-cpc-{id}/pubkey
 │       └── nats-leaf-{account}-cpc-{id}/pubkey
 └── cpc-{id}/
@@ -223,7 +241,6 @@ deploy/secrets/
         ├── nats-mtls-sys-leaf/{seed,pubkey}
         ├── nats-surveyor/{seed,pubkey}
         ├── auth-callout-keys/{nkey-seed,issuer-seed,xkey-seed}
-        ├── nats-{account}-client/{seed,pubkey}
         ├── nats-leaf-csc/seed
         └── nats-leaf-{account}-csc/seed
 ```
@@ -235,7 +252,7 @@ This umbrella chart bundles the following subcharts:
 | Chart | Alias | Documentation |
 |-------|-------|---------------|
 | nats | `nats` | [nats-io/k8s](https://github.com/nats-io/k8s/tree/main/helm/charts/nats) |
-| nats | `nats-mtls` | [nats-io/k8s](https://github.com/nats-io/k8s/tree/main/helm/charts/nats) (condition: `eventBus.mtls.enabled`) |
+| nats | `nats-mtls` | [nats-io/k8s](https://github.com/nats-io/k8s/tree/main/helm/charts/nats) (condition: `global.eventBus.mtls.enabled`) |
 | nack | `nack` | [nats-io/nack](https://github.com/nats-io/nack) |
 | auth-callout | `auth-callout` | [auth-callout/deploy](../auth-callout/deploy/README.md) |
 | surveyor | `surveyor` | [nats-io/nats-surveyor](https://github.com/nats-io/nats-surveyor) |
@@ -258,39 +275,41 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace -f values-csc.yaml
 
 ## Umbrella Chart Configuration
 
-These values are specific to this umbrella chart (not passed to subcharts).
+These values live under `global.eventBus` so the umbrella chart and subcharts share one event bus configuration.
 
 ### Gateway Routes
 
 Configure TCPRoute/TLSRoute resources for Envoy Gateway:
 
 ```yaml
-gateway:
-  routes:
-    mqtt:
-      enabled: true
-      kind: TCPRoute              # TCPRoute or TLSRoute
-      gatewayName: shared-gateway
-      gatewayNamespace: envoy-gateway-system
-      sectionName: mqtt
-    natsClient:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: shared-gateway
-      gatewayNamespace: envoy-gateway-system
-      sectionName: nats-client
-    natsLeafnode:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: shared-gateway
-      gatewayNamespace: envoy-gateway-system
-      sectionName: nats-leafnode
-    mqttMtls:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: shared-gateway
-      gatewayNamespace: envoy-gateway-system
-      sectionName: mqtt-mtls
+global:
+  eventBus:
+    gateway:
+      routes:
+        mqtt:
+          enabled: true
+          kind: TCPRoute              # TCPRoute or TLSRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: mqtt
+        natsClient:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: nats-client
+        natsLeafnode:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: nats-leafnode
+        mqttMtls:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: shared-gateway
+          gatewayNamespace: envoy-gateway-system
+          sectionName: mqtt-mtls
 ```
 
 ### MQTT Streams
@@ -298,26 +317,29 @@ gateway:
 Configure JetStream streams for MQTT persistence (managed by NACK):
 
 ```yaml
-mqttStreams:
-  maxBytes: 67108864  # 64MB per stream
-  replicas: 3         # stream replicas (match NATS cluster size)
-  storage: memory     # memory or file
+global:
+  eventBus:
+    mqttStreams:
+      maxBytes: 67108864  # 64MB per stream
+      replicas: 3         # stream replicas (match NATS cluster size)
+      storage: memory     # memory or file
 ```
 
 ## Event Bus Configuration
 
-The `eventBus` section provides a high-level API for configuring the event bus. Internal NATS details (accounts, mappings, leaf nodes) are auto-generated based on `clusterType`.
+The `global.eventBus` section provides a high-level API for configuring the event bus. Internal NATS details (accounts, mappings, leaf nodes) are auto-generated based on `clusterType`.
 
 ### Cluster Type
 
-Set `eventBus.clusterType` to configure the cluster:
+Set `global.eventBus.clusterType` to configure the cluster:
 
 ```yaml
-eventBus:
-  clusterType: cpc        # "csc" or "cpc"
-  clusterId: "1"          # Required for CPC clusters
-  cscEndpoint: "nats://csc-gateway:7422"  # Required for CPC clusters
-  cpcIds: ["1", "2"]      # CSC only: which CPCs will connect as leaves
+global:
+  eventBus:
+    clusterType: cpc        # "csc" or "cpc"
+    clusterId: "1"          # Required for CPC clusters
+    cscEndpoint: "nats://csc-gateway:7422"  # Required for CPC clusters
+    cpcIds: ["1", "2"]      # CSC only: which CPCs will connect as leaves
 ```
 
 | Field | Default | Purpose |
@@ -340,11 +362,12 @@ Cross-layer configuration controls which topics are copied between the CPC local
 #### Configuration
 
 ```yaml
-eventBus:
-  crossLayer:
-    cscExports: ["events.>"]          # subjects exported from CSC
-    cscPrefixedExports: ["commands"]  # subjects with CPC prefix
-    cpcExports: ["telemetry.>"]       # subjects exported from CPC
+global:
+  eventBus:
+    crossLayer:
+      cscExports: ["events.>"]          # subjects exported from CSC
+      cscPrefixedExports: ["commands"]  # subjects with CPC prefix
+      cpcExports: ["telemetry.>"]       # subjects exported from CPC
 ```
 
 | Field | Purpose |
@@ -360,41 +383,41 @@ This generates NATS account import/export rules in `nats-accounts-config.yaml`.
 Add cluster-wide NATS accounts with automatic configuration:
 
 ```yaml
-eventBus:
-  extraAccounts:
-    LaunchLayer:
-      jetstream: true  # CSC only - CPCs always force JetStream off with domain mapping
-    Kiwi: {}  # Minimal account with defaults
+global:
+  eventBus:
+    extraAccounts:
+      LaunchLayer:
+        jetstream: true
+      Kiwi: {}  # Minimal account with defaults
 ```
 
 Extra account names must use letters and numbers only, start with a letter, and
 must not use built-in account names (`SYS`, `AUTH`, `AUTHX`, `CSC`, `CPC`) or
 start with `cpc` in any case.
-All properties are passed through to the NATS account configuration except
-`enabled`. On CPCs, `jetstream` is always forced to `false` and a JetStream
-domain mapping to CSC is automatically added. Every enabled extra account gets a
-CPC-to-CSC leaf connection by default. Provide the CPC seed env
-`LEAF_{ACCOUNT}_USER_SEED` from `nats-leaf-{account}-csc` and the CSC pubkey env
-`NKEY_LEAF_{ACCOUNT}_CPC_{id}_PUBKEY` from `nats-leaf-{account}-cpc-{id}`.
-The chart fails rendering if those explicit secret refs are missing, point at a
-different secret/key, or are marked optional.
+Extra account properties are passed through on CSC clusters except `enabled`.
+CSC owns extra-account JetStream. CPC clusters render the account as a
+CPC-to-CSC leaf proxy: plain `$JS.API.>` requests are mapped to the CSC
+JetStream domain and sent over the account leaf connection. The chart generates
+`secretKeyRef` env vars for `LEAF_{ACCOUNT}_USER_SEED` on CPC clusters and
+`NKEY_LEAF_{ACCOUNT}_CPC_{id}_PUBKEY` on CSC clusters. Missing secrets fail pod
+startup because the generated refs are not optional.
 
-The chart generates `eventBus.auth.permissions.nkey` entries named
+The chart generates `global.eventBus.auth.permissions.nkey` entries named
 `leaf-cpc-{id}` and `leaf-{account}-cpc-{id}` for leaf authorization. Do not
-define manual NKey permission entries with those names; use distinct names for
-operator-managed clients.
+define manual NKey permission entries with those names.
 
 ### mTLS MQTT Endpoint
 
 The chart can deploy a separate NATS instance (`nats-mtls`) that accepts MQTT connections authenticated with client certificates (mTLS). This instance has no JetStream of its own; it connects to the main NATS cluster via leaf nodes and forwards auth requests through the shared auth-callout service.
 
 ```yaml
-eventBus:
-  mtls:
-    enabled: true  # default
+global:
+  eventBus:
+    mtls:
+      enabled: true  # default
 ```
 
-Set `eventBus.mtls.enabled: false` to disable the mTLS NATS cluster. When disabled:
+Set `global.eventBus.mtls.enabled: false` to disable the mTLS NATS cluster. When disabled:
 
 - The `nats-mtls` subchart is not rendered (no pods, services, or config)
 - The `mqttMtls` gateway route is not created
@@ -436,7 +459,7 @@ auth-callout:
       issuer: "https://keycloak.example.com/realms/event-bus"
 ```
 
-Auth permissions are configured via `eventBus.auth.permissions`, not under `auth-callout`. See [auth-callout Helm chart documentation](../auth-callout/deploy/README.md).
+Auth permissions are configured via `global.eventBus.auth.permissions`, not under `auth-callout`. See [auth-callout Helm chart documentation](../auth-callout/deploy/README.md).
 
 ### NACK (`nack.*`)
 
@@ -603,25 +626,27 @@ spec:
 The name of the listeners has to match the name of the sections in the gateway route properties defined in this helm chart. The kind of route also has to be chosen according to the type of listener.
 
 ```
-gateway:
-  routes:
-    # TLS Termination will result in a TCP route down to the NATS server
-    mqtt:
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-    natsClient:
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-    natsLeafnode:
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-    mqttMtls:
-      kind: TLSRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
+global:
+  eventBus:
+    gateway:
+      routes:
+        # TLS Termination will result in a TCP route down to the NATS server
+        mqtt:
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+        natsClient:
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+        natsLeafnode:
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+        mqttMtls:
+          kind: TLSRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
 ```
 
 ### Vault & Vault Secrets Operator
@@ -681,9 +706,9 @@ You will need to create the following keys:
 |---- | ---- | ---- |
 | auth-signing | auth nkey | always |
 | authx-user | user nkey | always |
-| authx-leaf-user | user nkey | when `eventBus.mtls.enabled` |
-| mtls-leaf-user | user nkey | when `eventBus.mtls.enabled` |
-| mtls-sys-leaf-user | user nkey | when `eventBus.mtls.enabled` |
+| authx-leaf-user | user nkey | when `global.eventBus.mtls.enabled` |
+| mtls-leaf-user | user nkey | when `global.eventBus.mtls.enabled` |
+| mtls-sys-leaf-user | user nkey | when `global.eventBus.mtls.enabled` |
 | nack-user | user nkey | always |
 | surveyor | user nkey | always |
 | xkey | xkey | always |
@@ -808,74 +833,60 @@ auth-callout:
 
 ```yaml
 # csc/values.yaml
-eventBus:
-  clusterType: csc
-  cpcIds: ["1", "2"]
-  auth:
-    permissions:
-      oauth2:
-        mqtt-client:
-          azp: "mqtt-client"
+global:
+  eventBus:
+    clusterType: csc
+    cpcIds: ["1", "2"]
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CSC"
+            permissions:
+              pub:
+                allow: ["events.>"]
+              sub:
+                allow: ["events.>"]
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.csc"
+            account: "CSC"
+        noauth:
           account: "CSC"
-          permissions:
-            pub:
-              allow: ["events.>"]
-            sub:
-              allow: ["events.>"]
-      mtls:
-        mqtt-client:
-          identity: "CN=mqtt-client.csc"
-          account: "CSC"
-      noauth:
-        account: "CSC"
-
-# CSC needs CPC leaf user pubkeys to authorize incoming leaf connections.
-# This block is mandatory when eventBus.cpcIds is non-empty. Add one
-# entry per CPC cluster, matching the IDs in cpcIds.
-auth-callout:
-  extraEnvs:
-    NKEY_LEAF_CPC_1_PUBKEY:
-      valueFrom:
-        secretKeyRef:
-          name: nats-leaf-cpc-1
-          key: pubkey
-    NKEY_LEAF_CPC_2_PUBKEY:
-      valueFrom:
-        secretKeyRef:
-          name: nats-leaf-cpc-2
-          key: pubkey
 ```
 
-The chart validates that every `eventBus.cpcIds` entry has a matching
-`NKEY_LEAF_CPC_{N}_PUBKEY` entry under `auth-callout.extraEnvs`.
+The chart generates `NKEY_LEAF_CPC_{N}_PUBKEY` env refs for every
+`global.eventBus.cpcIds` entry on CSC clusters.
 
 ### CPC Cluster
 
 ```yaml
 # cpc/values.yaml
-eventBus:
-  clusterType: cpc
-  clusterId: "1"
-  cscEndpoint: "nats://csc.example.com:7422"
-  crossLayer:
-    cscExports: ["broadcast.>"]
-    cscPrefixedExports: ["command.>"]
-    cpcExports: ["sensor.>"]
-  auth:
-    permissions:
-      oauth2:
-        mqtt-client:
-          azp: "mqtt-client"
+global:
+  eventBus:
+    clusterType: cpc
+    clusterId: "1"
+    cscEndpoint: "nats://csc.example.com:7422"
+    crossLayer:
+      cscExports: ["broadcast.>"]
+      cscPrefixedExports: ["command.>"]
+      cpcExports: ["sensor.>"]
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CPC"
+            permissions:
+              pub:
+                allow: ["events.>"]
+              sub:
+                allow: ["events.>"]
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.cpc-1"
+            account: "CPC"
+        noauth:
           account: "CPC"
-          permissions:
-            pub:
-              allow: ["events.>"]
-            sub:
-              allow: ["events.>"]
-      mtls:
-        mqtt-client:
-          identity: "CN=mqtt-client.cpc-1"
-          account: "CPC"
-      noauth:
-        account: "CPC"
 ```

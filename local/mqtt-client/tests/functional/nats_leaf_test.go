@@ -8,14 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/pkg/auth"
+	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/pkg/config"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nkeys"
 )
 
 const launchLayerAccount = "LaunchLayer"
@@ -27,7 +27,6 @@ type natsCluster struct {
 
 type launchLayerEndpoint struct {
 	cluster natsCluster
-	seed    string
 	account string
 }
 
@@ -80,10 +79,44 @@ func TestLaunchLayerJetStreamStoresLeafMessages(t *testing.T) {
 		t.Fatal("CSC NATS cluster not found")
 	}
 
-	for _, cpcID := range []string{"1", "2"} {
-		cpcID := cpcID
-		t.Run("CPC-"+cpcID, func(t *testing.T) {
-			testLaunchLayerJetStream(t, launchLayerCPC(t, clusters, cpcID), launchLayerCSC(t, *csc))
+	tests := []struct {
+		name   string
+		source launchLayerEndpoint
+	}{
+		{
+			name:   "CSC local",
+			source: launchLayerCSC(t, *csc),
+		},
+		{
+			name:   "CPC-1 to CSC",
+			source: launchLayerCPC(t, clusters, "1"),
+		},
+		{
+			name:   "CPC-2 to CSC",
+			source: launchLayerCPC(t, clusters, "2"),
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			testLaunchLayerJetStream(t, tc.source, launchLayerCSC(t, *csc))
+		})
+	}
+}
+
+func TestLaunchLayerJetStreamAPIProxiesToCSC(t *testing.T) {
+	clusters := getNATSClusters()
+	csc := findNATSCluster(clusters, "CSC")
+	if csc == nil {
+		t.Fatal("CSC NATS cluster not found")
+	}
+
+	streamOwner := launchLayerCSC(t, *csc)
+	for _, cluster := range clusters {
+		cluster := cluster
+		t.Run(cluster.name, func(t *testing.T) {
+			testLaunchLayerJetStreamAPI(t, launchLayerCluster(t, cluster), streamOwner)
 		})
 	}
 }
@@ -100,11 +133,6 @@ func testLaunchLayerJetStream(t *testing.T, source launchLayerEndpoint, streamOw
 	ownerConn := connectLaunchLayer(t, streamOwner)
 	defer ownerConn.Close()
 
-	sourceJS, err := sourceConn.JetStream(nats.Context(ctx))
-	if err != nil {
-		t.Fatalf("failed to create JetStream context for %s: %v", source.cluster.name, err)
-	}
-
 	ownerJS, err := ownerConn.JetStream(nats.Context(ctx))
 	if err != nil {
 		t.Fatalf("failed to create JetStream context for %s: %v", streamOwner.cluster.name, err)
@@ -115,23 +143,80 @@ func testLaunchLayerJetStream(t *testing.T, source launchLayerEndpoint, streamOw
 	subject := "launchlayer.js." + token
 	payload := []byte(fmt.Sprintf("jetstream-%s-to-%s-%s", source.cluster.name, streamOwner.cluster.name, token))
 
-	if _, err := sourceJS.AddStream(&nats.StreamConfig{
+	if _, err := ownerJS.AddStream(&nats.StreamConfig{
 		Name:     streamName,
 		Subjects: []string{subject},
 		Storage:  nats.MemoryStorage,
 		Replicas: 1,
 	}, nats.Context(ctx)); err != nil {
-		t.Fatalf("failed to create LaunchLayer stream %s from %s: %v", streamName, source.cluster.name, err)
+		t.Fatalf("failed to create LaunchLayer stream %s on %s: %v", streamName, streamOwner.cluster.name, err)
 	}
 	defer func() {
-		if err := sourceJS.DeleteStream(streamName); err != nil && !errors.Is(err, nats.ErrStreamNotFound) {
+		if err := ownerJS.DeleteStream(streamName); err != nil && !errors.Is(err, nats.ErrStreamNotFound) {
 			t.Logf("failed to delete LaunchLayer stream %s: %v", streamName, err)
 		}
 	}()
 
-	ack, err := sourceJS.Publish(subject, payload, nats.Context(ctx))
+	if err := sourceConn.Publish(subject, payload); err != nil {
+		t.Fatalf("failed to publish LaunchLayer payload from %s: %v", source.cluster.name, err)
+	}
+	if err := sourceConn.FlushWithContext(ctx); err != nil {
+		t.Fatalf("failed to flush LaunchLayer publisher on %s: %v", source.cluster.name, err)
+	}
+
+	got := waitForStoredLaunchLayerMessage(t, ctx, ownerJS, streamName, subject)
+	if string(got.Data) != string(payload) {
+		t.Fatalf("stored payload %q, want %q", got.Data, payload)
+	}
+
+	t.Logf("JetStream stored LaunchLayer message in %s from %s at sequence %d",
+		streamName, source.cluster.name, got.Sequence)
+}
+
+func testLaunchLayerJetStreamAPI(t *testing.T, endpoint launchLayerEndpoint, streamOwner launchLayerEndpoint) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	ownerConn := connectLaunchLayer(t, streamOwner)
+	defer ownerConn.Close()
+
+	ownerJS, err := ownerConn.JetStream(nats.Context(ctx))
 	if err != nil {
-		t.Fatalf("failed to publish LaunchLayer JetStream payload from %s: %v", source.cluster.name, err)
+		t.Fatalf("failed to create JetStream context for %s: %v", streamOwner.cluster.name, err)
+	}
+
+	conn := connectLaunchLayer(t, endpoint)
+	defer conn.Close()
+
+	js, err := conn.JetStream(nats.Context(ctx))
+	if err != nil {
+		t.Fatalf("failed to create JetStream context for %s: %v", endpoint.cluster.name, err)
+	}
+
+	token := strings.ReplaceAll(uuid.NewString(), "-", "")
+	streamName := "LL_API_" + token[:12]
+	subject := "launchlayer.jsapi." + token
+	payload := []byte(fmt.Sprintf("jetstream-api-%s-%s", endpoint.cluster.name, token))
+
+	if _, err := ownerJS.AddStream(&nats.StreamConfig{
+		Name:     streamName,
+		Subjects: []string{subject},
+		Storage:  nats.MemoryStorage,
+		Replicas: 1,
+	}, nats.Context(ctx)); err != nil {
+		t.Fatalf("failed to create LaunchLayer stream %s on %s: %v", streamName, streamOwner.cluster.name, err)
+	}
+	defer func() {
+		if err := ownerJS.DeleteStream(streamName); err != nil && !errors.Is(err, nats.ErrStreamNotFound) {
+			t.Logf("failed to delete LaunchLayer stream %s: %v", streamName, err)
+		}
+	}()
+
+	ack, err := js.Publish(subject, payload, nats.Context(ctx))
+	if err != nil {
+		t.Fatalf("failed to publish LaunchLayer JetStream payload through %s: %v", endpoint.cluster.name, err)
 	}
 	if ack.Stream != streamName {
 		t.Fatalf("JetStream publish ack stream %q, want %q", ack.Stream, streamName)
@@ -142,8 +227,8 @@ func testLaunchLayerJetStream(t *testing.T, source launchLayerEndpoint, streamOw
 		t.Fatalf("stored payload %q, want %q", got.Data, payload)
 	}
 
-	t.Logf("JetStream stored LaunchLayer message in %s from %s at sequence %d",
-		streamName, source.cluster.name, got.Sequence)
+	t.Logf("JetStream API from LaunchLayer on %s stored in %s at sequence %d",
+		endpoint.cluster.name, streamOwner.cluster.name, got.Sequence)
 }
 
 func waitForStoredLaunchLayerMessage(
@@ -199,7 +284,7 @@ func testNATSMessageFlow(t *testing.T, source launchLayerEndpoint, target launch
 	}
 	defer sub.Unsubscribe()
 
-	if err := subConn.Flush(); err != nil {
+	if err := subConn.FlushWithContext(ctx); err != nil {
 		t.Fatalf("failed to flush subscription on %s: %v", target.cluster.name, err)
 	}
 
@@ -210,7 +295,7 @@ func testNATSMessageFlow(t *testing.T, source launchLayerEndpoint, target launch
 		if err := pubConn.Publish(subject, payload); err != nil {
 			t.Fatalf("failed to publish from %s: %v", source.cluster.name, err)
 		}
-		if err := pubConn.Flush(); err != nil {
+		if err := pubConn.FlushWithContext(ctx); err != nil {
 			t.Fatalf("failed to flush publisher on %s: %v", source.cluster.name, err)
 		}
 
@@ -233,25 +318,10 @@ func testNATSMessageFlow(t *testing.T, source launchLayerEndpoint, target launch
 func connectLaunchLayer(t *testing.T, endpoint launchLayerEndpoint) *nats.Conn {
 	t.Helper()
 
-	kp, err := nkeys.FromSeed([]byte(endpoint.seed))
-	if err != nil {
-		t.Fatalf("failed to parse %s seed for %s: %v", endpoint.account, endpoint.cluster.name, err)
-	}
-	t.Cleanup(func() {
-		kp.Wipe()
-	})
-
-	publicKey, err := kp.PublicKey()
-	if err != nil {
-		t.Fatalf("failed to get %s public key for %s: %v", endpoint.account, endpoint.cluster.name, err)
-	}
-
 	nc, err := nats.Connect(
 		endpoint.cluster.broker,
 		nats.Name(fmt.Sprintf("launchlayer-%s-%s", endpoint.cluster.name, uuid.NewString())),
-		nats.Nkey(publicKey, func(nonce []byte) ([]byte, error) {
-			return kp.Sign(nonce)
-		}),
+		nats.UserInfo("oauthtoken", launchLayerOAuthToken(t)),
 		nats.Timeout(5*time.Second),
 		nats.RetryOnFailedConnect(false),
 	)
@@ -301,11 +371,7 @@ func findNATSCluster(clusters []natsCluster, name string) *natsCluster {
 func launchLayerCSC(t *testing.T, cluster natsCluster) launchLayerEndpoint {
 	t.Helper()
 
-	return launchLayerEndpoint{
-		cluster: cluster,
-		seed:    readLaunchLayerSeed(t, "csc", "nats-launchlayer-client"),
-		account: launchLayerAccount,
-	}
+	return launchLayerCluster(t, cluster)
 }
 
 func launchLayerCPC(t *testing.T, clusters []natsCluster, cpcID string) launchLayerEndpoint {
@@ -317,32 +383,35 @@ func launchLayerCPC(t *testing.T, clusters []natsCluster, cpcID string) launchLa
 		t.Fatalf("%s NATS cluster not found", clusterName)
 	}
 
+	return launchLayerCluster(t, *cluster)
+}
+
+func launchLayerCluster(t *testing.T, cluster natsCluster) launchLayerEndpoint {
+	t.Helper()
+
 	return launchLayerEndpoint{
-		cluster: *cluster,
-		seed:    readLaunchLayerSeed(t, "cpc-"+cpcID, "nats-launchlayer-client"),
+		cluster: cluster,
 		account: launchLayerAccount,
 	}
 }
 
-func readLaunchLayerSeed(t *testing.T, cluster string, secret string) string {
+func launchLayerOAuthToken(t *testing.T) string {
 	t.Helper()
 
-	path := filepath.Join(launchLayerNKeyRoot(), cluster, "nkeys", secret, "seed")
-	seed, err := os.ReadFile(path)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	token, err := auth.GetKeycloakTokenContext(
+		ctx,
+		config.GetKeycloakURL(),
+		"launchlayer-client",
+		"launchlayer-client-secret",
+	)
 	if err != nil {
-		t.Fatalf("failed to read LaunchLayer seed %s: %v", path, err)
+		t.Fatalf("failed to get LaunchLayer OAuth2 token: %v", err)
 	}
-
-	trimmed := strings.TrimSpace(string(seed))
-	if trimmed == "" {
-		t.Fatalf("LaunchLayer seed %s is empty", path)
+	if strings.TrimSpace(token) == "" {
+		t.Fatal("LaunchLayer OAuth2 token is empty")
 	}
-	return trimmed
-}
-
-func launchLayerNKeyRoot() string {
-	if root := os.Getenv("LAUNCHLAYER_NKEY_ROOT"); root != "" {
-		return root
-	}
-	return "../../../nats/secrets"
+	return token
 }

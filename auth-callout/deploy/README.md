@@ -5,7 +5,7 @@ This Helm chart deploys the auth-callout service for NATS authentication.
 ## Prerequisites
 
 - **Kubernetes**: 1.27+
-- **Helm**: 3.12+
+- **Helm**: 4.0+
 - **NATS server** with auth callout enabled ([NATS Auth Callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout))
 - **NKey seeds** for authentication (see [Generating NKeys](../README.md#generating-nkeys))
 - **Vault** (optional) for secret injection
@@ -42,12 +42,41 @@ The auth callout connects to a NATS server and registers as an authorization ser
 serviceConfig:
   nats:
     url: "nats://nats:4222"    # NATS server URL
-    nkey-seed: ""              # User NKey seed (from Vault)
-    issuer-seed: ""            # Account signing key seed (from Vault)
-    xkey-seed: ""              # XKey seed for encryption (optional, from Vault)
+    nkey-seed: ""              # NKey seed; inject non-empty values as env or Vault secrets
+    issuer-seed: ""            # Account issuer seed; inject non-empty values as env or Vault secrets
+    xkey-seed: ""              # XKey seed; inject non-empty values as env or Vault secrets
 ```
 
-Seeds are injected via Vault. See [Vault Integration](#vault-integration).
+The chart renders these keys with empty defaults. Do not put real seed material
+directly in `serviceConfig`, which renders into a ConfigMap. Inject non-empty
+values with environment variables or Vault hot config. See
+[Vault Integration](#vault-integration).
+
+### Environment Injection
+
+Additional environment variables can be supplied directly with `extraEnvs`:
+
+```yaml
+extraEnvs:
+  EXAMPLE_STATIC_VALUE:
+    value: "example"
+  EXAMPLE_SECRET_VALUE:
+    valueFrom:
+      secretKeyRef:
+        name: example-secret
+        key: value
+```
+
+Parent charts can also inject templated env list fragments with
+`extraEnvTemplates`. Each entry is rendered with Helm `tpl` using the full chart
+context, then inserted into the container env list:
+
+```yaml
+extraEnvTemplates:
+  - |
+    - name: GENERATED_ENV
+      value: {{ .Release.Name | quote }}
+```
 
 ### OAuth2/JWKS Configuration
 

@@ -56,7 +56,7 @@ SECRETS_DIR="${SECRETS_ROOT}/${cluster}"
 SECRETS_NKEYS_DIR="${SECRETS_DIR}/nkeys"
 
 get_cpc_ids() {
-  yq -r '.eventBus.cpcIds[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true
+  yq -r '(.global.eventBus.cpcIds // [])[]' "${SCRIPT_DIR}/k8s/csc/values.yaml" 2>/dev/null || true
 }
 
 get_extra_accounts() {
@@ -68,7 +68,7 @@ get_extra_accounts() {
     "${SCRIPT_DIR}/k8s/cpc/values.yaml"
   do
     if [ -f "${values_file}" ]; then
-      yq -r '.eventBus.extraAccounts // {} | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
+      yq -r '(.global.eventBus.extraAccounts // {}) | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
     fi
   done | sort -u
 }
@@ -130,12 +130,7 @@ nkeys_complete() {
   )
 
   local account_name
-  for account_name in "${EXTRA_ACCOUNTS[@]}"; do
-    local account_token
-    account_token=$(extra_account_secret_token "${account_name}")
-    required_files+=("nats-${account_token}-client/pubkey")
-    required_files+=("nats-${account_token}-client/seed")
-  done
+  local account_token
 
   if [ "${cluster}" = "csc" ]; then
     local cpc_id
@@ -244,19 +239,17 @@ SURVEYOR_USER_SEED=$(cat "${SECRETS_NKEYS_DIR}/nats-surveyor/seed")
 XKEY_PUBKEY=$(cat "${SECRETS_NKEYS_DIR}/nats-xkey/pubkey")
 XKEY_SEED=$(cat "${SECRETS_NKEYS_DIR}/nats-xkey/seed")
 
-# Read secret names from eventBus.nkeyRefs (single source of truth)
-VALUES_FILE="${MONOREPO_ROOT}/deploy/nats-event-bus/values.yaml"
-SECRET_AUTHX_USER=$(yq -r '.eventBus.nkeyRefs.authxUserPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_AUTH_SIGNING=$(yq -r '.eventBus.nkeyRefs.authSigningPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_XKEY=$(yq -r '.eventBus.nkeyRefs.xkeyPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_NACK_USER=$(yq -r '.eventBus.nkeyRefs.nackUserPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_MTLS_LEAF=$(yq -r '.eventBus.nkeyRefs.mtlsLeafPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_MTLS_AUTHX_LEAF=$(yq -r '.eventBus.nkeyRefs.mtlsAuthxLeafPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_MTLS_SYS_LEAF=$(yq -r '.eventBus.nkeyRefs.mtlsSysLeafPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_SURVEYOR=$(yq -r '.eventBus.nkeyRefs.surveyorNkeyPubkey.valueFrom.secretKeyRef.name' "${VALUES_FILE}")
-SECRET_LEAF_CSC="nats-leaf-csc"  # Standard naming pattern for CPC->CSC leaf
+# Create secrets with the standard names used by the chart.
+SECRET_AUTHX_USER="nats-authx-user"
+SECRET_AUTH_SIGNING="nats-auth-signing"
+SECRET_XKEY="nats-xkey"
+SECRET_NACK_USER="nats-nack-user"
+SECRET_MTLS_LEAF="nats-mtls-leaf"
+SECRET_MTLS_AUTHX_LEAF="nats-mtls-authx-leaf"
+SECRET_MTLS_SYS_LEAF="nats-mtls-sys-leaf"
+SECRET_SURVEYOR="nats-surveyor"
+SECRET_LEAF_CSC="nats-leaf-csc"
 
-# Create secrets with names from eventBus.nkeyRefs
 kubectl create secret generic "${SECRET_AUTHX_USER}" \
   --namespace="${namespace}" \
   --context="${context}" \
@@ -314,20 +307,6 @@ kubectl create secret generic "${SECRET_SURVEYOR}" \
   --from-literal=seed="${SURVEYOR_USER_SEED}" \
   --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
 
-for account_name in "${EXTRA_ACCOUNTS[@]}"; do
-  account_token=$(extra_account_secret_token "${account_name}")
-  client_secret="nats-${account_token}-client"
-  client_pubkey=$(cat "${SECRETS_NKEYS_DIR}/${client_secret}/pubkey")
-  client_seed=$(cat "${SECRETS_NKEYS_DIR}/${client_secret}/seed")
-
-  kubectl create secret generic "${client_secret}" \
-    --namespace="${namespace}" \
-    --context="${context}" \
-    --from-literal=pubkey="${client_pubkey}" \
-    --from-literal=seed="${client_seed}" \
-    --dry-run=client -o yaml | kubectl apply --context="${context}" -f -
-done
-
 # For CPCs: create leaf credential secret from CSC's keys
 if [ "${cluster}" != "csc" ]; then
   echo "Creating leaf node credential secret for ${cluster}..."
@@ -357,7 +336,7 @@ fi
 # For CSC: create leaf user secrets for each CPC (read CPC IDs from values)
 if [ "${cluster}" = "csc" ]; then
   CSC_VALUES="${SCRIPT_DIR}/k8s/csc/values.yaml"
-  CPC_IDS=$(yq -r '.eventBus.cpcIds[]' "${CSC_VALUES}" 2>/dev/null | tr '\n' ' ')
+  CPC_IDS=$(yq -r '(.global.eventBus.cpcIds // [])[]' "${CSC_VALUES}" 2>/dev/null | tr '\n' ' ')
 
   for cpc_id in ${CPC_IDS}; do
     # Secret name follows standard pattern
@@ -418,14 +397,8 @@ fi
 # Install Helm chart
 echo "Installing NATS Event Bus Helm chart..."
 CHART_DIR="${MONOREPO_ROOT}/deploy/nats-event-bus"
-CHARTS_DIR="${CHART_DIR}/charts"
-CHART_LOCK="${CHART_DIR}/Chart.lock"
-if [ ! -d "${CHARTS_DIR}" ] || [ -z "$(ls -A "${CHARTS_DIR}" 2>/dev/null)" ] || [ "${CHART_LOCK}" -nt "${CHARTS_DIR}" ]; then
-  echo "Updating Helm dependencies..."
-  helm dependency update "${CHART_DIR}"
-else
-  echo "Helm dependencies already up to date"
-fi
+echo "Updating Helm dependencies..."
+helm dependency update "${CHART_DIR}"
 
 VALUES_FILES="-f ${SCRIPT_DIR}/k8s/local-dev-values.yaml"
 if [[ "${cluster}" == cpc-* ]]; then
@@ -458,6 +431,9 @@ kubectl rollout status statefulset/nats -n ${namespace} --context "${context}" -
 kubectl rollout status statefulset/nats-mtls -n ${namespace} --context "${context}" --timeout=2m
 kubectl rollout status deployment/nats-event-bus-surveyor -n ${namespace} --context "${context}" --timeout=2m
 kubectl rollout status deployment/nack -n ${namespace} --context "${context}" --timeout=2m
+
+echo "Waiting for JetStream streams to be ready..."
+kubectl wait --for=condition=Ready stream --all -n ${namespace} --context "${context}" --timeout=2m
 
 echo "Waiting for auth-callout pods to be ready..."
 kubectl rollout status deployment/auth-callout -n ${namespace} --context "${context}" --timeout=2m

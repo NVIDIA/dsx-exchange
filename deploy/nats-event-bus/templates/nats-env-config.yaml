@@ -6,8 +6,8 @@ Cluster-specific environment variables for NATS pods.
 Values are derived from clusterType/clusterId so operators don't need to
 manually configure cluster names, JetStream domains, or server names.
 */}}
-{{- $clusterType := .Values.eventBus.clusterType -}}
-{{- $clusterId := .Values.eventBus.clusterId -}}
+{{- $clusterType := .Values.global.eventBus.clusterType -}}
+{{- $clusterId := .Values.global.eventBus.clusterId -}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -20,7 +20,7 @@ metadata:
 data:
   NATS_CLUSTER_NAME: {{ if eq $clusterType "cpc" }}{{ printf "%s-%s" $clusterType $clusterId | quote }}{{ else }}{{ $clusterType | quote }}{{ end }}
   NATS_JS_DOMAIN: {{ $clusterType | upper | quote }}
-{{- if .Values.eventBus.mtls.enabled }}
+{{- if .Values.global.eventBus.mtls.enabled }}
   NATS_MTLS_SERVER_NAME: {{ if eq $clusterType "cpc" }}{{ printf "%s-%s-mtls" $clusterType $clusterId | quote }}{{ else }}{{ printf "%s-mtls" $clusterType | quote }}{{ end }}
   MTLS_LEAF_ACCOUNT: {{ include "nats-event-bus.dcAccount" . | quote }}
 {{- end }}

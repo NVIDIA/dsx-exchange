@@ -7,17 +7,12 @@
 # This file contains dev environment settings only.
 
 # Auth-callout service configuration
-eventBus:
-  extraAccounts:
-    LaunchLayer:
-      enabled: true
-      jetstream: true
-  auth:
-    permissions:
-      nkey:
-        launchlayer-client:
-          public_key: "${NKEY_LAUNCHLAYER_CLIENT_PUBKEY}"
-          account: "LaunchLayer"
+global:
+  eventBus:
+    extraAccounts:
+      LaunchLayer:
+        enabled: true
+        jetstream: true
 
 auth-callout:
   fullnameOverride: "auth-callout"
@@ -34,11 +29,6 @@ auth-callout:
     # CA certificate for mTLS client verification
     mtls:
       ca-path: "/etc/mtls-ca/ca.crt"
-    nats:
-      # Seeds injected via extraEnvs from secret
-      nkey-seed: ""
-      issuer-seed: ""
-      xkey-seed: ""
     observability:
       tracing:
         enabled: false
@@ -52,13 +42,3 @@ auth-callout:
     - name: mtls-ca
       mountPath: /etc/mtls-ca
       readOnly: true
-
-  extraEnvs:
-    NKEY_LAUNCHLAYER_CLIENT_PUBKEY:
-      valueFrom:
-        secretKeyRef:
-          name: nats-launchlayer-client
-          key: pubkey
-
-  # Leaf extraEnvs are defined in cluster-specific values (csc/values.yaml,
-  # cpc/values.yaml) to avoid Helm list replacement issues.

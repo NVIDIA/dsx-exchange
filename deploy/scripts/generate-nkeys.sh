@@ -24,12 +24,11 @@ Generate NATS Event Bus NKeys to local files.
 
 Without CPC IDs, only the CSC output is generated or left unchanged.
 With CPC IDs, CSC and the requested CPC outputs are generated or left unchanged.
-Extra accounts get one client key pair per cluster and one CPC-to-CSC leaf key
-pair per requested CPC.
+Extra accounts get one CPC-to-CSC leaf key pair per requested CPC.
 
 Options:
   -o, --output DIR         Output root directory (default: deploy/secrets)
-      --extra-account NAME Generate client and CPC-to-CSC leaf keys for an extra account
+      --extra-account NAME Generate CPC-to-CSC leaf keys for an extra account
   -h, --help               Show this help message
 
 Arguments:
@@ -392,14 +391,6 @@ secret_started() {
   [ -e "${output_dir}/nkeys/${secret_name}" ]
 }
 
-user_secret_exists() {
-  local output_dir="$1"
-  local secret_name="$2"
-
-  secret_key_exists "${output_dir}" "${secret_name}" "seed" \
-    && secret_key_exists "${output_dir}" "${secret_name}" "pubkey"
-}
-
 leaf_outputs_match() {
   local csc_output_dir="$1"
   local cpc_output_dir="$2"
@@ -493,45 +484,6 @@ generate_extra_account_leaf_outputs() {
     "${account_name} extra-account"
 }
 
-generate_user_secret() {
-  local output_dir="$1"
-  local secret_name="$2"
-  local label="$3"
-  local seed
-  local pubkey
-
-  if user_secret_exists "${output_dir}" "${secret_name}"; then
-    echo "${label} user secret already exists; leaving it unchanged."
-    return 0
-  fi
-
-  if secret_started "${output_dir}" "${secret_name}"; then
-    echo "ERROR: incomplete ${label} user secret output" >&2
-    exit 1
-  fi
-
-  echo "Generating ${label} user secret..."
-  read -r seed pubkey <<< "$(generate_nkey_pair user "${label}")"
-  write_key_pair_secret "${output_dir}" "${secret_name}" "${seed}" "${pubkey}"
-}
-
-generate_extra_account_client_output() {
-  local cluster="$1"
-  local account_name="$2"
-  local account_token
-  local output_dir
-
-  account_token=$(extra_account_secret_token "${account_name}")
-  output_dir=$(cluster_output_dir "${cluster}")
-
-  generate_user_secret \
-    "${output_dir}" \
-    "nats-${account_token}-client" \
-    "${cluster} ${account_name} client"
-
-  audit_secret_permissions "${output_dir}"
-}
-
 audit_secret_permissions() {
   local output_dir="$1"
   local bad
@@ -564,16 +516,10 @@ main() {
 
   prepare_output_root
   generate_cluster "csc"
-  for extra_account in "${EXTRA_ACCOUNTS[@]}"; do
-    generate_extra_account_client_output "csc" "${extra_account}"
-  done
 
   if [ ${#CPC_IDS[@]} -gt 0 ]; then
     for cpc_id in "${CPC_IDS[@]}"; do
       generate_cluster "cpc-${cpc_id}"
-      for extra_account in "${EXTRA_ACCOUNTS[@]}"; do
-        generate_extra_account_client_output "cpc-${cpc_id}" "${extra_account}"
-      done
       generate_cpc_leaf_outputs "${cpc_id}"
       for extra_account in "${EXTRA_ACCOUNTS[@]}"; do
         generate_extra_account_leaf_outputs "${extra_account}" "${cpc_id}"

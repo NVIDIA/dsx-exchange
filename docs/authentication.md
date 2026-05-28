@@ -71,37 +71,38 @@ Connections that don't match any other auth mode receive the noauth permissions.
 
 ## Configuring Permissions
 
-Permissions are configured under `eventBus.auth.permissions` in the Helm values. Each entry maps an authenticated identity to a NATS account and a set of pub/sub topic rules.
+Permissions are configured under `global.eventBus.auth.permissions` in the Helm values. Each entry maps an authenticated identity to a NATS account and a set of pub/sub topic rules.
 
 ```yaml
-eventBus:
-  auth:
-    permissions:
-      oauth2:
-        mqtt-client:
-          azp: "mqtt-client"
-          account: "CSC"
+global:
+  eventBus:
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CSC"
+            permissions:
+              pub:
+                allow: ["events.>"]
+              sub:
+                allow: ["events.>"]
+        mtls:
+          bms-gateway:
+            identity: "CN=bms.cpc-1"
+            account: "DEVICES"
+            permissions:
+              pub:
+                allow: ["sensors.>"]
+              sub:
+                allow: ["commands.>"]
+        noauth:
+          account: "ANONYMOUS"
           permissions:
             pub:
-              allow: ["events.>"]
+              allow: ["public.>"]
             sub:
-              allow: ["events.>"]
-      mtls:
-        bms-gateway:
-          identity: "CN=bms.cpc-1"
-          account: "DEVICES"
-          permissions:
-            pub:
-              allow: ["sensors.>"]
-            sub:
-              allow: ["commands.>"]
-      noauth:
-        account: "ANONYMOUS"
-        permissions:
-          pub:
-            allow: ["public.>"]
-          sub:
-            allow: ["public.>"]
+              allow: ["public.>"]
 ```
 
 The chart renders this into a ConfigMap that the auth-callout pod mounts.

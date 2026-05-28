@@ -3,12 +3,13 @@
 
 # CPC-1 specific overrides
 
-eventBus:
-  clusterId: "1"
-  # CPC-1 specific mTLS permissions
-  auth:
-    permissions:
-      mtls:
-        mqtt-client:
-          identity: "CN=mqtt-client.cpc-1"
-          account: "CPC"
+global:
+  eventBus:
+    clusterId: "1"
+    # CPC-1 specific mTLS permissions
+    auth:
+      permissions:
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.cpc-1"
+            account: "CPC"

@@ -11,16 +11,16 @@ Pubkeys use ${ENV_VAR} syntax for runtime expansion from secrets.
     "nack-controller" (dict "public_key" "${NKEY_NACK_USER_PUBKEY}" "account" $dcAccount)
     "surveyor" (dict "public_key" "${NKEY_SURVEYOR_PUBKEY}" "account" "SYS")
 -}}
-{{- if .Values.eventBus.mtls.enabled }}
+{{- if .Values.global.eventBus.mtls.enabled }}
 {{- $autoNkeys = set $autoNkeys "mtls-leaf" (dict "public_key" "${NKEY_MTLS_LEAF_PUBKEY}" "account" $dcAccount) }}
 {{- $autoNkeys = set $autoNkeys "mtls-authx-leaf" (dict "public_key" "${NKEY_MTLS_AUTHX_LEAF_PUBKEY}" "account" "AUTHX") }}
 {{- $autoNkeys = set $autoNkeys "mtls-sys-leaf" (dict "public_key" "${NKEY_MTLS_SYS_LEAF_PUBKEY}" "account" "SYS") }}
 {{- end }}
-{{- if eq .Values.eventBus.clusterType "csc" }}
-{{- range .Values.eventBus.cpcIds }}
+{{- if eq .Values.global.eventBus.clusterType "csc" }}
+{{- range .Values.global.eventBus.cpcIds }}
 {{- $autoNkeys = set $autoNkeys (printf "leaf-cpc-%s" .) (dict "public_key" (printf "${NKEY_LEAF_CPC_%s_PUBKEY}" .) "account" "CSC") }}
 {{- end }}
-{{- range $accountName, $config := .Values.eventBus.extraAccounts }}
+{{- range $accountName, $config := .Values.global.eventBus.extraAccounts }}
 {{- $enabled := true -}}
 {{- if hasKey $config "enabled" -}}
 {{- $enabled = $config.enabled -}}
@@ -29,7 +29,7 @@ Pubkeys use ${ENV_VAR} syntax for runtime expansion from secrets.
 {{- $accountEnvName := include "nats-event-bus.extraAccountEnvName" $accountName -}}
 {{- $accountSecretName := include "nats-event-bus.extraAccountSecretName" $accountName -}}
 {{- $pubkeyEnvPrefix := printf "NKEY_LEAF_%s_CPC" $accountEnvName -}}
-{{- range $.Values.eventBus.cpcIds }}
+{{- range $.Values.global.eventBus.cpcIds }}
 {{- $cpcId := toString . -}}
 {{- $pubkeyEnv := printf "%s_%s_PUBKEY" $pubkeyEnvPrefix $cpcId -}}
 {{- $autoNkeys = set $autoNkeys (printf "leaf-%s-cpc-%s" $accountSecretName $cpcId) (dict "public_key" (printf "${%s}" $pubkeyEnv) "account" $accountName) }}
@@ -37,9 +37,9 @@ Pubkeys use ${ENV_VAR} syntax for runtime expansion from secrets.
 {{- end }}
 {{- end }}
 {{- end }}
-{{- $userNkeys := .Values.eventBus.auth.permissions.nkey | default dict -}}
+{{- $userNkeys := .Values.global.eventBus.auth.permissions.nkey | default dict -}}
 {{- $mergedNkeys := merge $userNkeys $autoNkeys -}}
-{{- $permissions := .Values.eventBus.auth.permissions | deepCopy -}}
+{{- $permissions := .Values.global.eventBus.auth.permissions | deepCopy -}}
 {{- $_ := set $permissions "nkey" $mergedNkeys -}}
 apiVersion: v1
 kind: ConfigMap

@@ -58,11 +58,11 @@ Each CPC gets a `nats-leaf-csc` secret. The CSC gets the pubkey for each CPC.
 | Secret | Keys | Purpose |
 |--------|------|---------|
 | `nats-leaf-csc` | seed | CPC-to-CSC leaf connection (CPC only) |
-| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only, via auth-callout.extraEnvs) |
+| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only, via generated auth-callout env) |
 
 ### mTLS Secrets
 
-The generation script always produces mTLS keys (there is no flag to skip them). These secrets are only consumed when `eventBus.mtls.enabled: true`; they can be ignored for non-mTLS deployments.
+The generation script always produces mTLS keys (there is no flag to skip them). These secrets are only consumed when `global.eventBus.mtls.enabled: true`; they can be ignored for non-mTLS deployments.
 
 **Server:**
 
@@ -78,7 +78,7 @@ The generation script always produces mTLS keys (there is no flag to skip them).
 | `nats-mtls-authx-leaf` | seed, pubkey | AUTHX account leaf connection |
 | `nats-mtls-sys-leaf` | seed, pubkey | SYS account leaf connection (monitoring) |
 
-When `eventBus.mtls.enabled: false`, none of the mTLS secrets are required and the mTLS NATS cluster is not deployed.
+When `global.eventBus.mtls.enabled: false`, none of the mTLS secrets are required and the mTLS NATS cluster is not deployed.
 
 ## NKey Generation
 

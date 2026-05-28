@@ -6,12 +6,21 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"golang.org/x/oauth2/clientcredentials"
 )
 
 // GetKeycloakToken obtains an OAuth2 access token from Keycloak using the Client Credentials flow.
 func GetKeycloakToken(keycloakURL, clientID, clientSecret string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return GetKeycloakTokenContext(ctx, keycloakURL, clientID, clientSecret)
+}
+
+// GetKeycloakTokenContext obtains an OAuth2 access token using the supplied context.
+func GetKeycloakTokenContext(ctx context.Context, keycloakURL, clientID, clientSecret string) (string, error) {
 	// Construct the token endpoint
 	tokenURL := fmt.Sprintf("%s/realms/event-bus/protocol/openid-connect/token", keycloakURL)
 
@@ -24,7 +33,6 @@ func GetKeycloakToken(keycloakURL, clientID, clientSecret string) (string, error
 	}
 
 	// Obtain token using client credentials
-	ctx := context.Background()
 	token, err := config.Token(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to obtain token: %w", err)

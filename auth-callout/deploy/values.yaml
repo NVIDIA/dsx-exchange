@@ -32,6 +32,13 @@ extraEnvs: {}
   #       name: secret-name
   #       key: secret-key
 
+# Additional templated environment variable snippets.
+# Each entry must render to a Kubernetes env list fragment.
+extraEnvTemplates: []
+  # - |
+  #   - name: GENERATED_ENV
+  #     value: {{ .Release.Name | quote }}
+
 # Additional volumes to be added to the pod
 extraVolumes:
   []
@@ -180,13 +187,11 @@ serviceConfig:
     name: "0.0.0.0"
 
   # NATS connection configuration
-  # NOTE: Seeds are secrets and should come from Vault, not here!
   nats:
     url: "nats://nats:4222"
-    # Seeds injected via Vault template (see vault.template.content)
-    nkey-seed: ""      # From Vault
-    issuer-seed: ""    # From Vault
-    xkey-seed: ""      # From Vault (optional)
+    nkey-seed: ""
+    issuer-seed: ""
+    xkey-seed: ""
 
   # OAuth2/JWKS configuration (non-secrets)
   jwks:

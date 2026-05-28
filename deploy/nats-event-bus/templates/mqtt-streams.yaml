@@ -5,10 +5,10 @@
 JetStream streams for MQTT persistence. On CPC clusters, streams include
 sources from CSC for cross-layer message replication via subject transforms.
 */}}
-{{- $streams := .Values.eventBus.mqttStreams -}}
-{{- $isCPC := eq .Values.eventBus.clusterType "cpc" -}}
-{{- $clusterId := .Values.eventBus.clusterId -}}
-{{- $crossLayer := .Values.eventBus.crossLayer -}}
+{{- $streams := .Values.global.eventBus.mqttStreams -}}
+{{- $isCPC := eq .Values.global.eventBus.clusterType "cpc" -}}
+{{- $clusterId := .Values.global.eventBus.clusterId -}}
+{{- $crossLayer := .Values.global.eventBus.crossLayer -}}
 ---
 apiVersion: jetstream.nats.io/v1beta2
 kind: Stream

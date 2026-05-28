@@ -10,7 +10,6 @@ import (
 	"log"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/NVIDIA/dsx-exchange/auth-callout/src/internal/appconfig"
 	obslogging "github.com/NVIDIA/dsx-exchange/auth-callout/src/internal/observability/logging"
@@ -71,8 +70,6 @@ func runServer(_ *cobra.Command, _ []string) error {
 
 	logger, undoLogger := obslogging.SetupLoggingFromConfig(&svcConfig.Observability.Logging, &svcConfig.Observability.Telemetry)
 	defer undoLogger()
-
-	logger.Warn("config loaded", zap.Any("svcConfig", svcConfig))
 
 	undoTracingProvider := obstracing.ApplyTracing(
 		ctx,

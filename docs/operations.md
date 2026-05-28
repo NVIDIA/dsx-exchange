@@ -96,12 +96,13 @@ Kubernetes service names and ports within the `dsx` namespace:
 The mTLS NATS cluster is enabled by default. It deploys a separate NATS instance that accepts MQTT connections authenticated with client certificates. This instance has no local JetStream; it connects to the main NATS cluster via leaf nodes.
 
 ```yaml
-eventBus:
-  mtls:
-    enabled: true   # default
+global:
+  eventBus:
+    mtls:
+      enabled: true   # default
 ```
 
-When disabled (`eventBus.mtls.enabled: false`):
+When disabled (`global.eventBus.mtls.enabled: false`):
 
 - No `nats-mtls` pods, services, or config deployed
 - No `mqttMtls` gateway route created
@@ -114,10 +115,12 @@ When disabled (`eventBus.mtls.enabled: false`):
 JetStream streams for MQTT persistence are managed declaratively by the NACK controller:
 
 ```yaml
-mqttStreams:
-  maxBytes: 67108864   # 64MB per stream
-  replicas: 3          # match NATS cluster size
-  storage: memory      # memory or file
+global:
+  eventBus:
+    mqttStreams:
+      maxBytes: 67108864   # 64MB per stream
+      replicas: 3          # match NATS cluster size
+      storage: memory      # memory or file
 ```
 
 ### Extra Accounts
@@ -125,14 +128,15 @@ mqttStreams:
 Add cluster-wide NATS accounts beyond the defaults:
 
 ```yaml
-eventBus:
-  extraAccounts:
-    LaunchLayer:
-      jetstream: true    # CPCs have local JetStream for CPC topic space, domain mapping to CSC for cross-layer
-    Kiwi: {}             # minimal account with defaults
+global:
+  eventBus:
+    extraAccounts:
+      LaunchLayer:
+        jetstream: true
+      Kiwi: {}             # minimal account with defaults
 ```
 
-Properties are passed through to the NATS account configuration. CPCs have local JetStream for their own topic space and a JetStream domain mapping to the CSC for cross-layer persistence.
+Properties are passed through to the NATS account configuration on each cluster. CPC leaf nodes bridge enabled extra accounts to CSC, while each account keeps its own permissions and JetStream API surface.
 
 ### Subchart Configuration
 
@@ -173,7 +177,7 @@ The `nats-event-bus` umbrella chart bundles these subcharts:
 | Chart | Alias | Condition |
 |-------|-------|-----------|
 | nats | `nats` | Always |
-| nats | `nats-mtls` | `eventBus.mtls.enabled` |
+| nats | `nats-mtls` | `global.eventBus.mtls.enabled` |
 | nack | `nack` | Always |
 | auth-callout | `auth-callout` | Always |
 | surveyor | `surveyor` | Always |

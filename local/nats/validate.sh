@@ -27,7 +27,7 @@ get_extra_accounts() {
     "${SCRIPT_DIR}/k8s/cpc/values.yaml"
   do
     if [ -f "${values_file}" ]; then
-      yq -r '.eventBus.extraAccounts // {} | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
+      yq -r '(.global.eventBus.extraAccounts // {}) | to_entries[] | select(.value.enabled != false) | .key' "${values_file}" 2>/dev/null || true
     fi
   done | sort -u
 }

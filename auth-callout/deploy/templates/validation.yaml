@@ -4,6 +4,15 @@ This template will fail the deployment if required configurations are missing
 */}}
 
 {{/* This template doesn't produce any output - it's just for validation */}}
+{{- if .Values.vault.enabled -}}
+{{- $_ := required "vault.role is required when vault.enabled is true." .Values.vault.role -}}
+{{- $_ := required "vault.template.filename is required when vault.enabled is true." .Values.vault.template.filename -}}
+{{- $_ := required "vault.template.content is required when vault.enabled is true." .Values.vault.template.content -}}
+{{- $secretPaths := values (.Values.vault.secrets | default dict) | compact -}}
+{{- if eq (len $secretPaths) 0 -}}
+{{- fail "vault.secrets must include at least one non-empty secret path when vault.enabled is true." -}}
+{{- end -}}
+{{- end -}}
 {{- if false }}
 # This template is used only for validation and produces no output
 {{- end }}

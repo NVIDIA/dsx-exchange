@@ -17,28 +17,24 @@ metadata:
     app.kubernetes.io/part-of: nats-event-bus
 data:
   accounts.conf: |
-{{- if eq .Values.eventBus.clusterType "csc" }}
+{{- if eq .Values.global.eventBus.clusterType "csc" }}
     CSC {
       jetstream: true
     }
-  {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+  {{- range $name, $config := $.Values.global.eventBus.extraAccounts }}
     {{- $enabled := true -}}
     {{- if hasKey $config "enabled" -}}
     {{- $enabled = $config.enabled -}}
     {{- end -}}
     {{- if $enabled }}
     {{ $name }} {
-      {{- range $key, $value := $config }}
-      {{- if and (ne $key "enabled") (ne $key "leaf") }}
-      {{ $key }}: {{ $value }}
-      {{- end }}
-      {{- end }}
+{{ include "nats-event-bus.natsConfFields" (omit $config "enabled" "leaf") | indent 6 }}
     }
     {{- end }}
   {{- end }}
-{{ else if eq .Values.eventBus.clusterType "cpc" }}
-{{- $clusterId := .Values.eventBus.clusterId -}}
-{{- $crossLayer := .Values.eventBus.crossLayer }}
+{{ else if eq .Values.global.eventBus.clusterType "cpc" }}
+{{- $clusterId := .Values.global.eventBus.clusterId -}}
+{{- $crossLayer := .Values.global.eventBus.crossLayer }}
     CSC {
       jetstream: false
       exports: [
@@ -86,22 +82,18 @@ data:
         { stream: { account: CSC, subject: {{ printf "csc2cpc.%s.>" $clusterId | quote }} } }
       ]
     }
-  {{- range $name, $config := $.Values.eventBus.extraAccounts }}
+  {{- range $name, $config := $.Values.global.eventBus.extraAccounts }}
     {{- $enabled := true -}}
     {{- if hasKey $config "enabled" -}}
     {{- $enabled = $config.enabled -}}
     {{- end -}}
-    {{- if $enabled }}
+  {{- if $enabled }}
     {{ $name }} {
       jetstream: false
+{{ include "nats-event-bus.natsConfFields" (omit $config "enabled" "leaf" "jetstream" "mappings") | indent 6 }}
       mappings: {
         "$JS.API.>": "$JS.CSC.API.>"
       }
-      {{- range $key, $value := $config }}
-      {{- if and (ne $key "jetstream") (ne $key "enabled") (ne $key "leaf") }}
-      {{ $key }}: {{ $value }}
-      {{- end }}
-      {{- end }}
     }
     {{- end }}
   {{- end }}

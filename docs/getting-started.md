@@ -21,7 +21,7 @@ The rest of this page covers the production deployment path.
 ## Prerequisites
 
 - Kubernetes 1.27+
-- Helm 3.12+
+- Helm 4.0+
 - Kubernetes Gateway API controller (e.g., Envoy Gateway with GatewayClass `eg`)
 - MetalLB or cloud LoadBalancer
 - cert-manager (for TLS and mTLS certificates)
@@ -76,26 +76,27 @@ helm install dsx ./deploy/nats-event-bus \
 CSC values configure the cluster type, list of CPC IDs that will connect, and auth permissions:
 
 ```yaml
-eventBus:
-  clusterType: csc
-  cpcIds: ["1", "2"]
-  auth:
-    permissions:
-      oauth2:
-        mqtt-client:
-          azp: "mqtt-client"
+global:
+  eventBus:
+    clusterType: csc
+    cpcIds: ["1", "2"]
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CSC"
+            permissions:
+              pub:
+                allow: ["events.>"]
+              sub:
+                allow: ["events.>"]
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.csc"
+            account: "CSC"
+        noauth:
           account: "CSC"
-          permissions:
-            pub:
-              allow: ["events.>"]
-            sub:
-              allow: ["events.>"]
-      mtls:
-        mqtt-client:
-          identity: "CN=mqtt-client.csc"
-          account: "CSC"
-      noauth:
-        account: "CSC"
 ```
 
 If using OAuth2, configure the JWKS endpoint and issuer so the auth-callout can validate tokens. Without these, OAuth2 connections are silently rejected:
@@ -108,22 +109,7 @@ auth-callout:
       issuer: "https://keycloak.example.com/realms/event-bus"
 ```
 
-The CSC also needs CPC leaf user public keys to authorize incoming leaf connections:
-
-```yaml
-auth-callout:
-  extraEnvs:
-    NKEY_LEAF_CPC_1_PUBKEY:
-      valueFrom:
-        secretKeyRef:
-          name: nats-leaf-cpc-1
-          key: pubkey
-    NKEY_LEAF_CPC_2_PUBKEY:
-      valueFrom:
-        secretKeyRef:
-          name: nats-leaf-cpc-2
-          key: pubkey
-```
+The CSC also needs CPC leaf user public keys to authorize incoming leaf connections. The chart generates auth-callout env refs from `global.eventBus.cpcIds`; create matching `nats-leaf-cpc-{id}` secrets with a `pubkey` key.
 
 ### CPC Clusters
 
@@ -138,14 +124,15 @@ helm install dsx ./deploy/nats-event-bus \
 CPC values set the cluster type, cluster ID, CSC endpoint, and cross-layer routing:
 
 ```yaml
-eventBus:
-  clusterType: cpc
-  clusterId: "1"
-  cscEndpoint: "nats://csc-gateway:7422"
-  crossLayer:
-    cscExports: ["broadcast.>"]
-    cscPrefixedExports: ["command.>"]
-    cpcExports: ["sensor.>"]
+global:
+  eventBus:
+    clusterType: cpc
+    clusterId: "1"
+    cscEndpoint: "nats://csc-gateway:7422"
+    crossLayer:
+      cscExports: ["broadcast.>"]
+      cscPrefixedExports: ["command.>"]
+      cpcExports: ["sensor.>"]
 ```
 
 ## Cross-Layer Routing
@@ -163,32 +150,34 @@ Cross-layer settings control which topics are copied between the CPC local topic
 Configure Gateway API listeners and TCPRoute/TLSRoute resources for external access:
 
 ```yaml
-gateway:
-  routes:
-    mqtt:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-      sectionName: mqtt
-    natsClient:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-      sectionName: nats-client
-    natsLeafnode:
-      enabled: true
-      kind: TCPRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-      sectionName: nats-leafnode
-    mqttMtls:
-      enabled: true
-      kind: TLSRoute
-      gatewayName: event-bus-gateway
-      gatewayNamespace: event-bus
-      sectionName: mqtt-mtls
+global:
+  eventBus:
+    gateway:
+      routes:
+        mqtt:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+          sectionName: mqtt
+        natsClient:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+          sectionName: nats-client
+        natsLeafnode:
+          enabled: true
+          kind: TCPRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+          sectionName: nats-leafnode
+        mqttMtls:
+          enabled: true
+          kind: TLSRoute
+          gatewayName: event-bus-gateway
+          gatewayNamespace: event-bus
+          sectionName: mqtt-mtls
 ```
 
 ## Validation

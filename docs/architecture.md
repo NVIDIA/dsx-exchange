@@ -126,7 +126,7 @@ Cross-layer configuration controls which topics are copied between CPC local and
 | CSC -> all CPCs | `cscExports` | Broadcast to all CPC topic spaces |
 | CSC -> specific CPC | `cscPrefixedExports` | `cpc.{id}.` prefix stripped on delivery |
 
-Routing is enforced by NATS account import/export rules generated from `eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
+Routing is enforced by NATS account import/export rules generated from `global.eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
 
 ## Networking
 
@@ -149,7 +149,7 @@ Routing is enforced by NATS account import/export rules generated from `eventBus
 
 JetStream provides message persistence. MQTT QoS 1 messages and retained messages are stored in JetStream streams managed declaratively by the NACK controller.
 
-- CPCs have local JetStream for their own CPC topic space and use JetStream domain mapping to the CSC for cross-layer persistence
+- The built-in CPC account uses local JetStream for its own topic space and domain mapping to the CSC for cross-layer persistence; extra accounts keep their own account configuration on each cluster and are bridged by leaf nodes.
 - Stream configuration (storage type, replicas, max bytes) is set via `mqttStreams` Helm values
 
 ## Observability

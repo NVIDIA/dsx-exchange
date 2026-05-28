@@ -6,7 +6,7 @@ Primary account for nats-mtls leaf node, which proxies mTLS clients to the main
 NATS server. JetStream is disabled; mappings redirect
 JetStream and MQTT session subjects to the appropriate domain.
 */}}
-{{- if .Values.eventBus.mtls.enabled }}
+{{- if .Values.global.eventBus.mtls.enabled }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -18,7 +18,7 @@ metadata:
     app.kubernetes.io/part-of: nats-event-bus
 data:
   accounts.conf: |
-{{- if eq .Values.eventBus.clusterType "csc" }}
+{{- if eq .Values.global.eventBus.clusterType "csc" }}
     CSC {
       jetstream: false
       mappings: {
@@ -26,7 +26,7 @@ data:
         "$MQTT.sess.*.>": "$MQTT.sess.CSC.>"
       }
     }
-{{- else if eq .Values.eventBus.clusterType "cpc" }}
+{{- else if eq .Values.global.eventBus.clusterType "cpc" }}
     CPC {
       jetstream: false
       mappings: {

@@ -60,6 +60,23 @@
         "oauth2.device.authorization.grant.enabled": "false",
         "oidc.ciba.grant.enabled": "false"
       }
+    },
+    {
+      "clientId": "launchlayer-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "launchlayer-client-secret",
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["mqtt"],
+      "optionalClientScopes": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
     }
   ],
   "clientScopes": [
@@ -75,4 +92,3 @@
   ],
   "users": []
 }
-

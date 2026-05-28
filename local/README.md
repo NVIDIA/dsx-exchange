@@ -27,7 +27,7 @@ The evaluation environment simulates a multi-layer Kubernetes architecture:
 - Docker Desktop or equivalent
 - [Kind](https://kind.sigs.k8s.io/) v0.20+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.28+
-- [Helm](https://helm.sh/) v3.12+
+- [Helm](https://helm.sh/) v4.0+
 - Go 1.25+ (for MQTT client)
 - Make
 

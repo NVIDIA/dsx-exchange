@@ -95,6 +95,11 @@ spec:
               value: {{ .Values.vault.config.hotConfigInterval | default "5s" | quote }}
             {{- end }}
 
+            # Additional templated Environment Variables
+            {{- range $template := .Values.extraEnvTemplates }}
+{{ tpl $template $ | nindent 12 }}
+            {{- end }}
+
             # Additional Environment Variables
             {{- range $name, $value := .Values.extraEnvs }}
             - name: {{ $name }}
