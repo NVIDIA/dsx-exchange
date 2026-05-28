@@ -1,0 +1,42 @@
+# DSX Exchange
+
+> NVIDIA DSX Exchange — MQTT event bus for AI Factory operations
+
+DSX Exchange is the integration layer within DSX OS that connects AI factory subsystems (GPU clusters, BMS, power distribution, cooling, grid interfaces) through a NATS-based MQTT event bus with AsyncAPI schema contracts.
+
+## Components
+
+- `schema/`: AsyncAPI contracts for MQTT topics and payloads (BMS, power management, NICo, SPIFFE, etc.)
+- `auth-callout/`: Go service for NATS auth callout — OAuth2/JWKS, mTLS, NKey, and no-auth profiles
+- `deploy/`: Helm chart (`nats-event-bus`) for per-cluster NATS deployment with leaf-node federation
+- `local/`: Kind-based evaluation environment, MQTT functional/performance tests, benchmark tooling
+- `fern/`: Fern docs configuration — renders `docs/` as the hosted documentation site
+- `docs/`: Canonical documentation (architecture, pre-deployment, deployment, authentication, operations, testing, BMS integration, integrator quickstart)
+
+## Key Concepts
+
+- Each Kubernetes cluster (1 CSC, N CPCs) runs its own NATS event bus instance
+- CPC instances federate to CSC via NATS leaf nodes through Kubernetes Gateway API
+- MQTT 3.1.1 is the client protocol; NATS handles routing, JetStream persistence, and federation
+- Auth-callout handles all authentication; permissions are topic-level ACLs per client
+- The Helm chart is provider-agnostic for secrets — any pipeline that materializes Kubernetes Secrets works
+
+## Documentation
+
+- docs/architecture.md — topology, topic spaces, federation, component overview
+- docs/pre-deployment.md — infrastructure prerequisites, required secrets, NKey generation, certificate management, Gateway setup
+- docs/getting-started.md — evaluation install and production deployment steps
+- docs/authentication.md — auth model (OAuth2, mTLS, NKey, no-auth), permissions configuration
+- docs/operations.md — monitoring, metrics reference, operational runbooks
+- docs/testing.md — functional and performance test coverage
+- docs/integrator-quickstart.md — MQTT integration guide for application developers
+- docs/bms-integration.md — BMS-specific integration patterns
+
+## Tech Stack
+
+- Go 1.25+ (auth-callout, mqtt-client, mqttbs benchmark tool)
+- Helm 4.0+ (chart apiVersion v2)
+- Kubernetes 1.27+ with Gateway API (Envoy Gateway 1.5+)
+- NATS with MQTT 3.1.1, JetStream, leaf-node federation
+- AsyncAPI 3.0 schemas
+- Fern docs platform

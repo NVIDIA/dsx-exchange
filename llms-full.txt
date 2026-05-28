@@ -1,0 +1,523 @@
+# DSX Exchange
+
+> NVIDIA DSX Exchange — MQTT event bus for AI Factory operations
+
+DSX Exchange is the integration layer within DSX OS that connects AI factory subsystems (GPU clusters, BMS, power distribution, cooling, grid interfaces) through a NATS-based MQTT event bus with AsyncAPI schema contracts.
+
+## Repository Structure
+
+- `schema/`: AsyncAPI contracts for MQTT topics and payloads
+  - `schema/schema/bms/bms.yaml` — BMS telemetry and metadata
+  - `schema/schema/power-management/power-management.yaml` — power management events
+  - `schema/schema/nico/nico.yaml` — NICo host state changes
+  - `schema/schema/spiffe-exchange/pub-keysets.yaml` — SPIFFE key exchange
+  - `schema/schema/launch-layer/notifications.yaml` — launch layer notifications
+  - `schema/schema/mission-control/leak-response.yaml` — leak response events
+  - `schema/schema/monitoring/break-fix.yaml` — break/fix monitoring
+  - `schema/schema/nke/node-readiness.yaml` — node readiness events
+  - `schema/schema/tenant/scheduler-events.yaml` — scheduler events
+- `auth-callout/`: Go service for NATS auth callout
+  - `src/cmd/auth_callout/main.go` — entrypoint
+  - `src/internal/auth/` — authenticators (oauth2.go, mtls.go, nkey.go, noauth.go)
+  - `src/internal/config/permissions.go` — permissions loading
+  - `src/internal/service/` — service and health check
+  - `src/internal/observability/` — metrics, tracing, logging
+  - `deploy/` — Helm subchart and values reference
+- `deploy/nats-event-bus/` — umbrella Helm chart
+  - `templates/` — gateway routes, NATS config, accounts, leaf nodes, MQTT streams, validation
+  - `Chart.yaml` — apiVersion v2, bundles nats, nack, auth-callout, surveyor subcharts
+- `local/` — Kind-based evaluation environment
+  - `mqtt-client/` — Go MQTT functional/performance tests and dummy BMS publisher
+  - `mqttbs/` — MQTT benchmark tool (connection, fanout, fanin, p2p scenarios)
+  - `nats/` — per-cluster NATS deployment scripts and local value overrides
+  - `infra/` — Kind cluster, MetalLB, Envoy Gateway, cert-manager, Keycloak setup scripts
+- `fern/` — Fern docs configuration (renders docs/ as hosted site)
+- `docs/` — canonical documentation (see below)
+
+## Tech Stack
+
+- Go 1.25+ (auth-callout, mqtt-client, mqttbs)
+- Helm 4.0+ (chart apiVersion v2)
+- Kubernetes 1.27+ with Gateway API (Envoy Gateway 1.5+, TCPRoute/TLSRoute v1alpha2)
+- NATS with MQTT 3.1.1, JetStream, leaf-node federation
+- AsyncAPI 3.0 schemas
+- Fern docs platform
+
+---
+
+# Architecture
+
+A gigawatt-scale AI factory is fifty or more independent systems — GPU clusters, building management systems, power distribution units, cooling infrastructure, grid interfaces, network switches — each designed by a different vendor, none designed to talk to each other. AI workloads make this worse: a training job launch swings rack power from 20% to 95% in seconds, creating thermal and electrical transients that existing BMS controllers were not built to handle.
+
+DSX Exchange is the integration layer within DSX OS that connects these systems. It gives the factory four capabilities:
+
+- **Legible** — every signal (power, cooling, grid, compute, network) readable in one place through a common schema
+- **Coordinated** — control loops close in real time: DPS sees power headroom, NICo reacts to BMS leak events, the scheduler responds to grid curtailment via DSX Flex
+- **Agent-operable** — agents observe factory state through the MCP Gateway and act through constrained, audited control surfaces
+- **Auditable** — every publisher authenticated, every subscriber authorized, every action logged with caller identity
+
+DSX Exchange consists of four components:
+
+| Component | What It Is |
+|-----------|-----------|
+| DSX Event Bus | NATS with MQTT 3.1.1, HA clustering, leaf-node federation |
+| AsyncAPI Schema | Formal topic definitions and payload contracts per service team |
+| Auth-Callout Service | OAuth2/mTLS/NKey authentication with topic-level ACLs |
+| MCP Interface Layer | MCP Gateway aggregating read-only MCP servers |
+
+## DSX Event Bus
+
+The DSX Event Bus is a NATS-based messaging platform that provides MQTT 3.1.1 connectivity, JetStream persistence, and multi-cluster leaf node federation across the AI Factory topology.
+
+Concrete signal paths it enables today:
+
+- **BMS -> DPS**: real-time power telemetry so DPS can close the MaxLPS dynamic power allocation loop (recovering up to 40% stranded capacity)
+- **BMS -> NICo**: coolant leak events so NICo can cordon nodes and migrate workloads in seconds, not minutes
+- **Grid -> DSX Flex -> Scheduler**: demand-response curtailment signals so the factory can shed load within seconds
+- **GPU telemetry -> thermal optimization agents**: real-time thermal data so predictive agents can pre-adjust cooling setpoints before temperature spikes
+
+## Cluster Topology
+
+The AI Factory deploys one Common Services Cluster (CSC) and one or more Control Plane Clusters (CPCs). Each cluster runs an independent NATS event bus instance. CPCs federate to the CSC via NATS leaf node connections through a Kubernetes Gateway API-compatible controller.
+
+### Components Per Cluster (defaults)
+
+| Component | Default Replicas | Purpose |
+|-----------|-----------------|---------|
+| NATS (main) | 3 | MQTT/NATS clients, JetStream persistence |
+| NATS (mTLS) | 1 | mTLS-authenticated MQTT endpoint, optional |
+| Auth Callout | 1 | Authenticates connections for both NATS instances |
+| NACK | 1 | JetStream controller for declarative stream management |
+| Surveyor | 1 | Prometheus metrics exporter |
+
+## Topic Spaces
+
+**CSC Topic Space** is a unified namespace that spans all clusters. Messages published here are visible to subscribers in every cluster. Clients see full topic paths including CPC prefixes (e.g., `cpc.1.telemetry.temp`).
+
+**CPC Topic Spaces** are per-cluster local namespaces. Messages stay within that CPC unless the topic is configured for cross-layer routing. Clients use simple names without prefixes (e.g., `telemetry/temp`).
+
+### Cross-Layer Routing
+
+| Direction | Config Key | Behavior |
+|-----------|-----------|----------|
+| CPC -> CSC | `cpcExports` | Copied with `cpc.{id}.` prefix added |
+| CSC -> all CPCs | `cscExports` | Broadcast to all CPC topic spaces |
+| CSC -> specific CPC | `cscPrefixedExports` | `cpc.{id}.` prefix stripped on delivery |
+
+Routing is enforced by NATS account import/export rules generated from `global.eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
+
+## Networking
+
+### Exposed Ports
+
+| Port | Protocol | Service | Description |
+|------|----------|---------|-------------|
+| 1883 | MQTT | nats | Standard MQTT 3.1.1 (TLS terminated at Envoy) |
+| 4222 | NATS | nats | NATS client connections |
+| 7422 | NATS | nats | Leaf node connections (cross-cluster federation) |
+| 8883 | MQTT | nats-mtls | mTLS MQTT 3.1.1 (TCP passthrough, TLS at NATS pod) |
+
+## Persistence
+
+JetStream provides message persistence. MQTT QoS 1 messages and retained messages are stored in JetStream streams managed declaratively by the NACK controller. Stream configuration (storage type, replicas, max bytes) is set via `mqttStreams` Helm values.
+
+## Observability
+
+| Signal | Tool | Endpoint |
+|--------|------|----------|
+| Metrics (NATS) | Surveyor | `:7777/metrics` (Prometheus) |
+| Metrics (auth-callout) | Prometheus client | `:9090/metrics` |
+| Tracing | OpenTelemetry -> Tempo | OTLP gRPC `:4317` |
+| Dashboards | Grafana | Prometheus + Tempo data sources |
+
+---
+
+# Pre-Deployment
+
+Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, certificate management, and Gateway setup.
+
+**Estimated time**: The production path (secrets pipeline + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes.
+
+## Infrastructure Prerequisites
+
+Components are version-pinned where there is a known API or compatibility break; unpinned components work with any recent release.
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Kubernetes | 1.27+ | Gateway API CRDs require this minimum |
+| Helm | 4.0+ | Chart `apiVersion: v2` features; Helm 3 is not supported |
+| Gateway API controller | Envoy Gateway 1.5+ | TCPRoute/TLSRoute (`v1alpha2` APIs); older versions lack these CRDs |
+| MetalLB or cloud LB | MetalLB 0.13+ | CRD-based config (`IPAddressPool`, `L2Advertisement`); older versions use incompatible ConfigMap API |
+| cert-manager | — | TLS certificate lifecycle (server certs, mTLS certs) |
+| Prometheus Operator | — | ServiceMonitor CRD (required by Surveyor) |
+| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
+| `nsc` | — | NATS NKey generation (required by `generate-nkeys.sh`) |
+| `nk` | — | NATS NKey inspection (required by `generate-nkeys.sh`) |
+
+## Required Secrets
+
+All secrets must be provisioned before `helm install`. Secret names and keys are overridable in Helm values; these are the defaults.
+
+### NATS Server Auth
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-auth-signing` | pubkey | AUTH account signing key |
+| `nats-xkey` | pubkey | Encryption XKey |
+
+### Auth-Callout Service
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-authx-user` | pubkey | Auth-callout NATS connection user |
+| `auth-callout-keys` | nkey-seed, issuer-seed, xkey-seed | Auth-callout signing and encryption keys |
+
+### NACK Controller
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-nack-user` | nack-user.nk, pubkey | NACK NKey file and pubkey |
+
+### Surveyor
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-surveyor` | seed, pubkey | Surveyor NKey for SYS account access |
+
+### Cross-Cluster Leaf Connections
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-leaf-csc` | seed | CPC-to-CSC leaf connection (CPC only) |
+| `nats-leaf-cpc-{id}` | pubkey | CPC leaf users (CSC only) |
+
+### mTLS Secrets (when `global.eventBus.mtls.enabled: true`)
+
+| Secret | Keys | Purpose |
+|--------|------|---------|
+| `nats-mtls-server-tls` | ca.crt, tls.crt, tls.key | mTLS server certificates |
+| `nats-mtls-leaf` | seed, pubkey | DC account leaf connection |
+| `nats-mtls-authx-leaf` | seed, pubkey | AUTHX account leaf connection |
+| `nats-mtls-sys-leaf` | seed, pubkey | SYS account leaf connection |
+
+## NKey Generation
+
+NKeys are Ed25519 public-key pairs used for NATS authentication. The generation script requires `nsc` and `nk` on `PATH`.
+
+```bash
+./deploy/scripts/generate-nkeys.sh [cpc-ids...]
+# Example: ./deploy/scripts/generate-nkeys.sh 1 2 3
+```
+
+## Secrets Pipeline
+
+The event bus consumes Kubernetes Secrets — it does not interact with any secrets backend directly. Any pipeline that materializes the required secrets into the target namespace before `helm install` will work. The Helm chart does not assume Vault, sealed-secrets, external-secrets, or any other specific provider.
+
+The project's reference deployment uses HashiCorp Vault with the Vault Secrets Operator (VSO). OpenBao is an open-source fork of Vault with a compatible API and may be used as a drop-in alternative.
+
+## Certificate Management
+
+cert-manager handles TLS certificate lifecycle. The Issuer can be backed by any supported provider (Vault PKI, self-signed, ACME, etc.).
+
+## Gateway Setup
+
+A Gateway API controller must be installed before deploying the event bus. The Gateway resource defines external listeners (MQTT 1883, NATS 4222, leaf node 7422, mTLS 8883) that route traffic to the NATS pods. The mTLS listener uses Passthrough mode because TLS termination happens at the NATS pod.
+
+| Listener | Port | TLS Mode | Route Kind |
+|----------|------|----------|------------|
+| mqtt | 1883 | Terminate | TCPRoute |
+| nats-client | 4222 | Terminate | TCPRoute |
+| nats-leafnode | 7422 | Terminate | TCPRoute |
+| mqtt-mtls | 8883 | Passthrough | TLSRoute |
+
+---
+
+# Deployment
+
+Each Kubernetes cluster (one CSC, one or more CPCs) runs its own event bus instance. CPC instances federate to the CSC via NATS leaf node connections through a Kubernetes Gateway API controller.
+
+## Evaluation Install (~10 minutes)
+
+```bash
+make -C local setup-infra      # Kind clusters + MetalLB + Envoy Gateway + cert-manager + Keycloak
+make -C local deploy-nats       # Deploy NATS event bus to all clusters
+make -C local validate-nats     # Verify connectivity
+```
+
+## Install Order
+
+1. Infrastructure (Gateway API controller, MetalLB, cert-manager)
+2. Keycloak or OIDC provider (if using OAuth2)
+3. CSC cluster event bus
+4. CPC cluster event buses (connect to CSC via leaf nodes)
+
+## CSC Cluster
+
+```bash
+helm install dsx ./deploy/nats-event-bus \
+  -n dsx --create-namespace \
+  -f values-common.yaml \
+  -f values-csc.yaml
+```
+
+CSC values configure `clusterType: csc`, list of CPC IDs, and auth permissions. If using OAuth2, configure `auth-callout.serviceConfig.jwks.url` and `auth-callout.serviceConfig.jwks.issuer`.
+
+## CPC Clusters
+
+```bash
+helm install dsx ./deploy/nats-event-bus \
+  -n dsx --create-namespace \
+  -f values-common.yaml \
+  -f values-cpc.yaml \
+  -f values-cpc-1.yaml
+```
+
+CPC values set `clusterType: cpc`, `clusterId`, `cscEndpoint`, and `crossLayer` routing.
+
+## Cross-Layer Routing
+
+| Direction | Config Key | Behavior |
+|-----------|-----------|----------|
+| CPC to CSC | `cpcExports` | Copied with `cpc.{id}.` prefix added |
+| CSC to all CPCs | `cscExports` | Broadcast to all CPC topic spaces |
+| CSC to specific CPC | `cscPrefixedExports` | `cpc.{id}.` prefix stripped on delivery |
+
+---
+
+# Authentication
+
+Every signal on DSX Exchange has a verified origin. Every subscriber is authorized for the topics it reads. This is enforced by the auth-callout service — a NATS Auth Callout that authenticates all client connections and issues topic-level permissions at connect time.
+
+## Auth Modes
+
+### OAuth2 (JWT/JWKS)
+
+Clients connect with username `oauthtoken` and an access token as the password. The auth-callout validates the token against the OIDC provider's JWKS endpoint and matches `azp` or `subject` to a permissions entry.
+
+### mTLS (X.509 Client Certificates)
+
+BMS and OT devices connect to port 8883 with a client certificate. The auth-callout extracts the certificate's Common Name and matches it to a permissions entry.
+
+### NKey
+
+Internal system components authenticate with NATS NKey signatures.
+
+### NoAuth (Anonymous Fallback)
+
+Connections without credentials receive noauth permissions. Development and debugging only.
+
+## Configuring Permissions
+
+Permissions are configured under `global.eventBus.auth.permissions` in the Helm values. Each entry maps an authenticated identity to a NATS account and pub/sub topic rules.
+
+```yaml
+global:
+  eventBus:
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CSC"
+            permissions:
+              pub:
+                allow: ["events.>"]
+              sub:
+                allow: ["events.>"]
+        mtls:
+          bms-gateway:
+            identity: "CN=bms.cpc-1"
+            account: "DEVICES"
+        noauth:
+          account: "ANONYMOUS"
+```
+
+Subject wildcards: `*` matches one token, `>` matches one or more tokens.
+
+## Auth Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `auth_requests_total` | counter | Total auth callout requests |
+| `auth_errors_total` | counter | Total auth callout errors |
+| `auth_request_duration_seconds` | histogram | Auth request latency |
+| `auth_oauth2_attempts_total` | counter | OAuth2 attempts |
+| `auth_mtls_attempts_total` | counter | mTLS attempts |
+| `auth_nkey_attempts_total` | counter | NKey attempts |
+| `auth_noauth_attempts_total` | counter | NoAuth attempts |
+
+Each `*_attempts_total` metric has a corresponding `*_failures_total` counter.
+
+---
+
+# Operations
+
+Day-2 operational reference for the DSX Event Bus: monitoring, configuration tuning, service internals, and the chart structure.
+
+## Monitoring
+
+NATS Surveyor exports Prometheus metrics. The mTLS cluster's SYS account is federated to the main cluster via leaf node for centralized monitoring.
+
+### NATS Metrics
+
+Surveyor exposes on port 7777: `nats_core_*` (server), `nats_account_*` (per-account), `nats_jetstream_*` (streams/consumers).
+
+### Health Endpoints
+
+| Endpoint | Port | Purpose |
+|----------|------|---------|
+| `/healthz` | 8080 | Auth-callout liveness/readiness |
+| `/metrics` | 9090 | Auth-callout Prometheus metrics |
+| `/metrics` | 7777 | Surveyor Prometheus metrics |
+
+## Configuration Reference
+
+### mTLS Endpoint
+
+Enabled by default (`global.eventBus.mtls.enabled: true`). Deploys a separate NATS instance accepting mTLS MQTT connections, with no local JetStream — connects to main NATS via leaf nodes.
+
+### MQTT Stream Configuration
+
+```yaml
+global:
+  eventBus:
+    mqttStreams:
+      maxBytes: 67108864   # 64MB per stream
+      replicas: 3
+      storage: memory
+```
+
+### Extra Accounts
+
+```yaml
+global:
+  eventBus:
+    extraAccounts:
+      LaunchLayer:
+        jetstream: true
+      Kiwi: {}
+```
+
+## Chart Dependencies
+
+| Chart | Alias | Condition |
+|-------|-------|-----------|
+| nats | `nats` | Always |
+| nats | `nats-mtls` | `global.eventBus.mtls.enabled` |
+| nack | `nack` | Always |
+| auth-callout | `auth-callout` | Always |
+| surveyor | `surveyor` | Always |
+
+---
+
+# Validation
+
+## Functional Validation
+
+- MQTT 3.1.1 protocol compliance
+- QoS 0, 1, 2 message delivery
+- Retained messages and will messages
+- High availability and failover
+- Federation between layers (CPC <-> CSC)
+- Authentication and authorization (OAuth2, mTLS, NKey)
+- Topic-based access control
+
+## Local Benchmark Tooling
+
+The MQTT performance suite exercises combinations of QoS level, retention, and deployment topology (local and federated, both directions).
+
+### Reported Metrics
+
+| Metric | Description |
+|--------|-------------|
+| Messages published/received | Total message counts |
+| Publish latency | Time from publish call to broker acknowledgement |
+| End-to-end latency | Time from publish to subscriber receipt |
+| Throughput | Messages per second |
+| Active connections | Concurrent client count |
+
+---
+
+# Integrator Quickstart
+
+Use this guide to start writing an integration application that connects to an existing DSX Exchange MQTT broker. DSX Exchange uses standard MQTT 3.1.1.
+
+## Prerequisites
+
+- Broker host, port, and authentication details from the operator
+- Topic permissions for the messages your integration will publish or subscribe
+- An MQTT SDK for your language or platform
+- Network access to the broker's MQTT listener
+
+## Connection Settings
+
+```bash
+export DSX_MQTT_HOST=127.0.0.1
+export DSX_MQTT_PORT=11883
+export DSX_MQTT_TOPIC=test/hello
+```
+
+For OAuth2: username `oauthtoken`, access token as password.
+For mTLS: configure CA certificate, client certificate, and client key.
+
+## MQTT SDK Examples
+
+| Runtime | SDK |
+|---------|-----|
+| Go | Eclipse Paho Go |
+| Python | Eclipse Paho Python |
+| Node.js | MQTT.js |
+| Java | Eclipse Paho Java |
+| C/C++ | Eclipse Paho C/C++ |
+
+All SDKs follow: load config → create MQTT 3.1.1 client → connect with auth → subscribe/publish → handle reconnects.
+
+---
+
+# BMS Integration Companion Guide
+
+This guide is for System Integrators and BMS contractors who will configure a Building Management System to publish facility data to the DSX Event Bus.
+
+## Key Concepts
+
+- **Value messages** carry live readings — published on change and every 100 seconds
+- **Metadata messages** describe what the point is — published at startup, retained, republished every 100 seconds
+- Consumers must receive metadata before they can correctly interpret values
+
+## Topic Structure
+
+| Channel | Topic Pattern | Publisher |
+|---------|---------------|-----------|
+| BMS Value | `BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}` | BMS |
+| BMS Metadata | `BMS/v1/PUB/Metadata/{objectType}/{pointType}/{tagPath}` | BMS |
+| Integration Value | `BMS/v1/{integration}/Value/{objectType}/{pointType}/{tagPath}` | Integration |
+
+## Publisher Rules
+
+- BMS publishes all metadata (including for integration-owned points)
+- BMS publishes its own values on `BMS/v1/PUB/Value/...`
+- Integrations publish values on `BMS/v1/{integration}/Value/...` only for points whose metadata `integration` field matches their identifier
+
+## Object Types
+
+System, Rack, PowerMeter, ATS, Breaker, Generator, Shunt, UPS, AHU, CDU, Chiller, Cooling Tower, CRAC, CRAH, Damper, Fan, HX, Pump, Sensor, Tank, Valve, GenericObject.
+
+Rack is the most important for IT-side consumers. PowerMeter contains electrical power path metadata.
+
+## Equipment Identification
+
+**Named Object Mode**: `objectName`, `objectId`, optionally `servesId`. Use when equipment is identified directly.
+**Associate Mode**: `associateId` only. Use when equipment is referenced via association with another object.
+
+## System Heartbeat
+
+| Point Type | Publisher | Frequency |
+|------------|-----------|-----------|
+| `HeartbeatTimestampBms` | BMS | Every 10 seconds |
+| `HearbeatTimestampIntegration` | Integration | Every 10 seconds |
+| `HeartbeatEchoBms` | BMS | On receipt |
+| `HeartbeatEchoIntegration` | Integration | On receipt |
+
+## Authentication
+
+BMS devices connect using mTLS with X.509 client certificates. See Authentication docs for details.
