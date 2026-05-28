@@ -385,14 +385,10 @@ if [ ! -f "${AUTH_CALLOUT_DIR}/Makefile" ]; then
   echo "ERROR: Makefile not found at ${AUTH_CALLOUT_DIR}/Makefile" >&2
   exit 1
 fi
-OLD_IMAGE_ID=$(docker images -q auth-callout:latest 2>/dev/null)
 make -C "${AUTH_CALLOUT_DIR}" docker-build
-NEW_IMAGE_ID=$(docker images -q auth-callout:latest 2>/dev/null)
 
-if [ "${OLD_IMAGE_ID}" != "${NEW_IMAGE_ID}" ]; then
-  echo "Loading new auth-callout image to kind..."
-  kind load docker-image auth-callout:latest --name "${cluster}"
-fi
+echo "Loading auth-callout image to kind..."
+kind load docker-image auth-callout:latest --name "${cluster}"
 
 # Install Helm chart
 echo "Installing NATS Event Bus Helm chart..."
@@ -419,11 +415,9 @@ helm upgrade --install nats-event-bus "${CHART_DIR}" \
   --force-conflicts \
   --cleanup-on-fail
 
-# Restart auth-callout if image changed
-if [ "${OLD_IMAGE_ID}" != "${NEW_IMAGE_ID}" ]; then
-  echo "Restarting auth-callout pods..."
-  kubectl delete pods -l app.kubernetes.io/name=auth-callout -n ${namespace} --context="${context}" --ignore-not-found=true
-fi
+# Restart auth-callout so pods use the image just loaded into this Kind cluster.
+echo "Restarting auth-callout pods..."
+kubectl delete pods -l app.kubernetes.io/name=auth-callout -n ${namespace} --context="${context}" --ignore-not-found=true
 
 # Wait for readiness - use rollout status for deployments/statefulsets to avoid race conditions
 echo "Waiting for NATS pods to be ready..."
