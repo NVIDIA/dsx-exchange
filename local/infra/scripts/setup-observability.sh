@@ -18,7 +18,7 @@ CLUSTERS="csc cpc-1 cpc-2"
 
 # Add Prometheus Helm repository
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>/dev/null || true
-helm repo update >/dev/null
+helm repo update prometheus-community >/dev/null
 
 deploy_to_cluster() {
   local cluster="$1"
