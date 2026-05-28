@@ -26,7 +26,8 @@ func TestRunServerDoesNotLogConfiguredNATSSeeds(t *testing.T) {
 	t.Setenv("AUTH_CALLOUT_NATS_NKEY_SEED", natsKey)
 	t.Setenv("AUTH_CALLOUT_NATS_ISSUER_SEED", issuerKey)
 	t.Setenv("AUTH_CALLOUT_NATS_XKEY_SEED", xKey)
-	t.Setenv("AUTH_CALLOUT_NATS_URL", "nats://127.0.0.1:1")
+	// Use malformed syntax so startup fails synchronously; valid unavailable URLs now reconnect.
+	t.Setenv("AUTH_CALLOUT_NATS_URL", "nats://%zz")
 	t.Setenv("AUTH_CALLOUT_PERMISSIONS_FILE", permissionsFile)
 	t.Setenv("AUTH_CALLOUT_OBSERVABILITY_METRICS_ENABLED", "false")
 	t.Setenv("AUTH_CALLOUT_OBSERVABILITY_TRACING_ENABLED", "false")

@@ -29,7 +29,7 @@ For mTLS authentication:
 
 | Port | Purpose |
 |------|---------|
-| 8080 | Health checks (`/healthz`) |
+| 8080 | Health checks (`/livez`, `/healthz`) |
 | 9090 | Prometheus metrics (if enabled) |
 
 ## Service Configuration
@@ -277,7 +277,7 @@ healthChecks:
   livenessProbe:
     enabled: true
     httpGet:
-      path: "/healthz"
+      path: "/livez"
       port: "http"
       scheme: "HTTP"
     initialDelaySeconds: 10
@@ -315,7 +315,8 @@ healthChecks:
 
 **Available Health Endpoints:**
 
-- `/healthz` - Primary health check endpoint (recommended)
+- `/livez` - Process liveness check endpoint
+- `/healthz` - Health check endpoint, including NATS connectivity
 - `/v1/` - Basic connectivity test
 
 ## Installation Examples

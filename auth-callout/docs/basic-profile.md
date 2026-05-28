@@ -122,9 +122,10 @@ graph TB
 5. **Production Images**: Uses optimized production container images
 
 ### Available Endpoints
-1. **Health Check**: `GET /healthz` - Service health status
-2. **API Ping**: `GET /v1/` - API connectivity test
-3. **API Documentation**: `/swagger/index.html` - Interactive API documentation
+1. **Liveness Check**: `GET /livez` - Process liveness status
+2. **Health Check**: `GET /healthz` - Service health status, including NATS connectivity
+3. **API Ping**: `GET /v1/` - API connectivity test
+4. **API Documentation**: `/swagger/index.html` - Interactive API documentation
 
 ### Development Benefits
 1. **Minimal Overhead**: No observability components consuming resources
