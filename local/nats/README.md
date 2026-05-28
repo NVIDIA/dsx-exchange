@@ -78,8 +78,34 @@ See NATS documentation for performance tuning. Configuration is in `k8s/*/values
 
 ## Monitoring
 
-For monitoring configuration and metrics, see
+For monitoring configuration and metrics reference, see
 [docs/operations.md](../../docs/operations.md).
+
+### Accessing Metrics Locally
+
+```bash
+kubectl port-forward -n event-bus-nats svc/nats-metrics 7777:7777 --context kind-csc
+curl http://localhost:7777/metrics
+```
+
+Key NATS metrics:
+
+- `nats_server_in_msgs` / `nats_server_out_msgs` — message throughput
+- `nats_server_in_bytes` / `nats_server_out_bytes` — byte throughput
+- `nats_server_slow_consumers` — slow consumer count
+- `jetstream_stream_messages` / `jetstream_stream_bytes` — JetStream usage
+
+### Grafana Dashboard
+
+Import NATS dashboard ID 2279 in Grafana. See https://docs.nats.io/nats-server/configuration/monitoring for details.
+
+## References
+
+- https://docs.nats.io/
+- https://docs.nats.io/running-a-nats-service/configuration/mqtt
+- https://docs.nats.io/nats-concepts/jetstream
+- https://docs.nats.io/running-a-nats-service/configuration/leafnodes
+- https://github.com/nats-io/k8s/tree/main/helm/charts/nats
 
 ## Troubleshooting
 

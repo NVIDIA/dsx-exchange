@@ -128,6 +128,17 @@ Cross-layer configuration controls which topics are copied between CPC local and
 
 Routing is enforced by NATS account import/export rules generated from `global.eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
 
+## MQTT Support
+
+NATS provides native MQTT 3.1.1 support. MQTT topic separators (`/`) are mapped to NATS subject tokens (`.`) — for example, the MQTT topic `telemetry/temp` becomes the NATS subject `telemetry.temp`. This mapping is transparent to MQTT clients.
+
+Supported QoS levels:
+
+- **QoS 0** — at most once (fire and forget)
+- **QoS 1** — at least once (acknowledged delivery, backed by JetStream)
+
+QoS 2 (exactly once) is not supported by NATS.
+
 ## Networking
 
 ### Exposed Ports

@@ -69,6 +69,15 @@ Internal system components (leaf node connections, NACK controller, Surveyor) au
 
 Connections that don't match any other auth mode receive the noauth permissions. This mode is intended for development and debugging only — it should not be enabled in production deployments.
 
+### Auth Mode Identifier Reference
+
+| Type | Identifier Field | Matched Against |
+|------|------------------|-----------------|
+| `oauth2` | `azp` or `subject` | JWT token claims validated via JWKS |
+| `mtls` | `identity` | X.509 certificate Common Name |
+| `nkey` | `public_key` | NATS NKey public key |
+| `noauth` | (none) | Anonymous access fallback |
+
 ## Configuring Permissions
 
 Permissions are configured under `global.eventBus.auth.permissions` in the Helm values. Each entry maps an authenticated identity to a NATS account and a set of pub/sub topic rules.
@@ -122,11 +131,11 @@ Subject wildcards: `*` matches one token, `>` matches one or more tokens.
 
 The auth-callout service requires three NKey seeds, provided as Kubernetes Secrets (Vault with Vault Secrets Operator is one option for managing these, but any secrets pipeline that materializes Kubernetes Secrets works):
 
-| Key | Purpose |
-|-----|---------|
-| `nkey-seed` | Auth-callout connects to NATS |
-| `issuer-seed` | Signs user JWTs for authenticated clients |
-| `xkey-seed` | Encrypts auth callout responses (optional) |
+| Key | Seed Prefix | Public Key Prefix | Purpose |
+|-----|-------------|-------------------|---------|
+| `nkey-seed` | `SU` | `U` | Auth-callout connects to NATS |
+| `issuer-seed` | `SA` | `A` | Signs user JWTs for authenticated clients |
+| `xkey-seed` | `SX` | `X` | Encrypts auth callout responses (optional) |
 
 Seeds are secrets and must never be stored in plain text. Public keys derived from these seeds are configured in the NATS server config. See [Pre-Deployment](pre-deployment.md) for the full secrets inventory and generation script.
 

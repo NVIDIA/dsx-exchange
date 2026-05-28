@@ -1,6 +1,19 @@
 # DSX Event Bus - Deployment
 
-NATS-based event bus for AI Factory operations. This chart is deployed **independently in each Kubernetes cluster** (one CSC, multiple CPCs). The deployments connect via leaf node federation, providing a unified CSC topic space across all clusters and independent CPC topic spaces with controlled cross-layer routing.
+This directory contains the `nats-event-bus` **umbrella Helm chart**. It bundles
+the NATS server, NACK controller, Surveyor, and the auth-callout service chart
+(from `auth-callout/deploy/`) as subcharts. The umbrella chart is the standard
+deployment unit — install it once per Kubernetes cluster.
+
+Each subchart can also be developed and tested independently. The auth-callout
+service chart (`auth-callout/deploy/`) has its own README and values reference.
+When deploying through the umbrella chart, configure subchart values under the
+chart alias key (e.g., `auth-callout:` in the umbrella values).
+
+The chart is deployed **independently in each Kubernetes cluster** (one CSC,
+multiple CPCs). The deployments connect via leaf node federation, providing a
+unified CSC topic space across all clusters and independent CPC topic spaces
+with controlled cross-layer routing.
 
 For architecture details (topology, topic spaces, federation), see [docs/architecture.md](../docs/architecture.md).
 
