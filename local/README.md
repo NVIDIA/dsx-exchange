@@ -57,20 +57,22 @@ make deploy-nats
 
 ### Run Tests
 
+Performance and benchmark targets require MetalLB (installed by `make setup-infra`). Without it, `kubectl port-forward` is used as a fallback but cannot sustain benchmark throughput — tests fail silently with connectivity errors that do not indicate the root cause.
+
 ```bash
 # Run functional tests against all candidates
 make test-functional
 
-# Run performance e2e smoke tests
+# Run performance e2e smoke tests (requires MetalLB)
 make test-performance
 
-# Run full performance benchmarks
+# Run full performance benchmarks (requires MetalLB)
 make benchmark-performance
 
-# Run MQTT benchmark smoke suite
+# Run MQTT benchmark smoke suite (requires MetalLB)
 make benchmark-basic
 
-# Run full MQTT benchmark suite
+# Run full MQTT benchmark suite (requires MetalLB)
 make benchmark-basic-full
 
 # Publish looping dummy BMS data to the CSC MQTT broker

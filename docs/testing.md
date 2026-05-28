@@ -19,6 +19,8 @@ The local environment includes MQTT benchmark tooling for smoke runs and
 operator-driven benchmark runs. These tests report the observed behavior of the
 current deployment; they do not define product targets.
 
+**Prerequisite:** Performance and benchmark targets require MetalLB or an equivalent LoadBalancer (installed by `make setup-infra`). Without it, `kubectl port-forward` cannot sustain benchmark throughput and tests fail silently.
+
 The MQTT performance suite exercises combinations of QoS level, retention, and
 deployment topology:
 
