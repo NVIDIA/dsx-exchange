@@ -36,6 +36,7 @@ spec:
       subjectTransforms:
         {{- range $crossLayer.cscExports }}
         - source: {{ printf "$MQTT.msgs.%s" . | quote }}
+          dest: "" {{- /* NACK persists omitted destinations this way; keep SSA aligned. */}}
         {{- end }}
         {{- range $crossLayer.cscPrefixedExports }}
         - source: {{ printf "$MQTT.msgs.cpc.%s.%s" $clusterId . | quote }}
@@ -70,6 +71,7 @@ spec:
       subjectTransforms:
         {{- range $crossLayer.cscExports }}
         - source: {{ printf "$MQTT.rmsgs.%s" . | quote }}
+          dest: "" {{- /* NACK persists omitted destinations this way; keep SSA aligned. */}}
         {{- end }}
         {{- range $crossLayer.cscPrefixedExports }}
         - source: {{ printf "$MQTT.rmsgs.cpc.%s.%s" $clusterId . | quote }}

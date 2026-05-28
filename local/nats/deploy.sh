@@ -404,9 +404,8 @@ else
   VALUES_FILES="${VALUES_FILES} -f ${SCRIPT_DIR}/k8s/${cluster}/values.yaml"
 fi
 
-# TODO: Investigate nack jetstream-controller taking ownership of .spec.sources via Update
-# This causes server-side apply conflicts with Helm. Using --force-conflicts as workaround.
-# See: https://github.com/nats-io/nack
+# Keep force-conflicts for source/topology changes where NACK control-loop mode
+# owns existing Stream source fields.
 helm upgrade --install nats-event-bus "${CHART_DIR}" \
   --namespace ${namespace} \
   ${VALUES_FILES} \
