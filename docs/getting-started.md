@@ -189,7 +189,18 @@ global:
           gatewayName: event-bus-gateway
           gatewayNamespace: event-bus
           sectionName: mqtt-mtls
+          hostnames: ["event-bus.example.com"]
 ```
+
+### mTLS Hostname Agreement
+
+The `mqttMtls` route uses a TLSRoute (Passthrough mode). Three values must agree or clients get a silent connection reset:
+
+1. **Server certificate SANs** — the hostname or IP the cert is issued for
+2. **`mqttMtls.hostnames`** — the SNI values the TLSRoute accepts
+3. **Client broker URL** — MQTT clients derive SNI from the host portion of the URL
+
+If a client connects to `ssl://<LB-IP>:8883`, it sends SNI=`<LB-IP>`. If the TLSRoute hostname is a DNS name, Envoy drops the connection before the TLS handshake reaches the NATS pod. Either add the LB IP to both the cert SANs and the TLSRoute hostnames, or assign a DNS name to the LB IP and have clients use that name.
 
 ## Validation
 

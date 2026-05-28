@@ -286,6 +286,8 @@ spec:
 
 The `mqtt-mtls` listener uses Passthrough mode because TLS termination happens at the NATS pod to verify the client certificate.
 
+Because the mTLS route is a TLSRoute, the server certificate SANs, the TLSRoute `hostnames`, and the client broker URL must all agree on the same hostname (or IP). A mismatch causes a silent connection reset at the gateway layer. See [Deployment — mTLS Hostname Agreement](getting-started.md#mtls-hostname-agreement).
+
 ### Listener-to-Route Mapping
 
 Gateway listener names must match the `sectionName` in the Helm `gateway.routes` values. Route kind depends on the TLS mode:
