@@ -1,8 +1,21 @@
 # Pre-Deployment
 
-Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, Vault integration, certificate management, and Gateway setup.
+Everything that must be in place before deploying the DSX Event Bus. This covers infrastructure prerequisites, secrets provisioning, NKey generation, certificate management, and Gateway setup.
 
-**Estimated time**: The production path (Vault + VSO + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
+**Estimated time**: The production path (secrets pipeline + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes. See [Deployment — Evaluation Install](getting-started.md) for the quick-start option.
+
+## Host Prerequisites
+
+A multi-cluster deployment (CSC + CPCs) creates enough kubelets, containerd shims, gateway controllers, and fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
+
+Verify these sysctl parameters on each node before creating clusters:
+
+```bash
+sudo sysctl -w fs.inotify.max_user_instances=8192
+sudo sysctl -w fs.inotify.max_user_watches=524288
+```
+
+To persist across reboots, add to `/etc/sysctl.d/` or equivalent for your OS. For Kind-based local evaluation, see `local/README.md` for additional macOS-specific setup (MetalLB networking).
 
 ## Infrastructure Prerequisites
 
@@ -11,12 +24,12 @@ The following must be installed in each Kubernetes cluster before deploying the 
 | Component | Version | Purpose |
 |-----------|---------|---------|
 | Kubernetes | 1.27+ | Gateway API CRDs require this minimum |
-| Helm | 4.0+ | Chart `apiVersion: v2` features; Helm 3 is not supported |
+| Helm | 3.x or 4.x | Helm 4 required only for `local/` evaluation (uses `--force`); Helm 3 works for production |
 | Gateway API controller | Envoy Gateway 1.5+ | TCPRoute/TLSRoute (`v1alpha2` APIs); older versions lack these CRDs |
 | MetalLB or cloud LB | MetalLB 0.13+ | CRD-based config (`IPAddressPool`, `L2Advertisement`); older versions use incompatible ConfigMap API |
 | cert-manager | — | TLS certificate lifecycle (server certs, mTLS certs) |
 | Prometheus Operator | — | ServiceMonitor CRD (required by Surveyor) |
-| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
+| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., OpenBao/Vault + VSO, sealed-secrets, external-secrets) |
 | [`nsc`](https://github.com/nats-io/nsc/releases) | — | NATS NKey generation (required by `generate-nkeys.sh`) |
 | `nk` | — | NATS NKey inspection (required by `generate-nkeys.sh`) |
 
@@ -113,11 +126,14 @@ A script generates all required secrets for a cluster. Without CPC IDs, only the
 ./deploy/scripts/generate-nkeys.sh [OPTIONS] [cpc-ids...]
 
 # Options:
-#   cpc-ids                  Optional list of CPC IDs to generate with CSC
-#   -o, --output DIR         Output root directory (default: deploy/secrets)
+#   -o, --output DIR             Output root directory (default: deploy/secrets)
+#       --extra-account NAME     Generate CPC-to-CSC leaf keys for an extra account
+#   -h, --help                   Show help message
 
-# Example:
-./deploy/scripts/generate-nkeys.sh 1 2 3    # CSC with CPC IDs 1, 2, 3
+# Examples:
+./deploy/scripts/generate-nkeys.sh                             # CSC only
+./deploy/scripts/generate-nkeys.sh 1 2 3                       # CSC + CPC-1, CPC-2, CPC-3
+./deploy/scripts/generate-nkeys.sh --extra-account LaunchLayer 1 2
 ```
 
 Each key is written as a subdirectory containing `seed` and `pubkey` files:
@@ -149,75 +165,21 @@ secrets/{cluster}/
     xkey.nk
 ```
 
-## Vault Integration (Reference Example)
+## Secrets Pipeline
 
-The interface for secrets is Kubernetes Secrets — any pipeline that materializes them works. The reference deployment uses Vault:
+The event bus consumes Kubernetes Secrets — it does not interact with any secrets backend directly. Any pipeline that materializes the secrets listed in [Required Secrets](#required-secrets) into the target namespace before `helm install` will work. The Helm chart does not assume Vault, sealed-secrets, external-secrets, or any other specific provider.
 
-- **KV Secret Engine** — stores NKeys and seeds
-- **PKI Secret Engine** — Root CA and certificate issuance
-- **Vault Secrets Operator** — materializes Vault KV secrets into Kubernetes secrets
-- **Vault Agent Injector** — injects secrets directly into the auth-callout pod
+One common pattern is [OpenBao](https://openbao.org/) or [HashiCorp Vault](https://developer.hashicorp.com/vault) with the Vault Secrets Operator (VSO) to materialize secrets and the Vault Agent Injector for auth-callout seed injection. For installation, K8s auth methods, policies, and PKI setup, see the respective documentation:
 
-```mermaid
-flowchart TB
-    subgraph Vault[Vault]
-        PKI[PKI Engine — Root CA]
-        KV[KV Store — NKeys and Seeds]
-    end
-
-    subgraph K8s[Kubernetes Cluster]
-        CM[Cert-Manager]
-        VSO[Vault Secrets Operator]
-        VSS[VaultStaticSecret Resources]
-
-        subgraph Gateway[Gateway API Controller]
-            GW_Listeners[Listeners — MQTT: 1883, 8883 / NATS: 4222, 7422]
-        end
-
-        subgraph EventBus[DSX Event Bus]
-            NATS[NATS Pods — Main + mTLS]
-            AuthCallout[Auth Callout]
-            NACK[NACK Controller]
-        end
-    end
-
-    PKI -->|issues certificates| CM
-    CM -->|server certs| GW_Listeners
-    CM -->|mTLS server certs| NATS
-    CM -->|client certs| AuthCallout
-
-    KV -->|reads secrets| VSO
-    VSO -->|syncs via| VSS
-    VSS -.->|creates K8s secrets| NATS
-    KV -.->|secrets injected| AuthCallout
-    VSS -.->|creates K8s secrets| NACK
-
-    GW_Listeners -->|routes traffic| NATS
-    AuthCallout -->|authenticates| NATS
-    NACK -->|manages streams| NATS
-```
-
-### VaultStaticSecret Example
-
-```yaml
-apiVersion: secrets.hashicorp.com/v1beta1
-kind: VaultStaticSecret
-metadata:
-  name: nack-user
-spec:
-  type: kv-v2
-  vaultAuthRef: vault-secrets-operator-system/vault-auth
-  mount: kv/components
-  path: event-bus/nack-user
-  destination:
-    name: nack-user
-    create: true
-    type: "Opaque"
-```
+- [OpenBao](https://openbao.org/docs/)
+- [Vault on Kubernetes](https://developer.hashicorp.com/vault/docs/deploy/kubernetes)
+- [Vault Secrets Operator](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso)
+- [KV Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/kv)
+- [PKI Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/pki)
 
 ## Certificate Management
 
-cert-manager with a Vault Issuer handles TLS certificate lifecycle. Vault's PKI engine issues certificates signed by the event bus Root CA.
+cert-manager handles TLS certificate lifecycle. The Issuer can be backed by any supported provider (Vault/OpenBao PKI, self-signed, ACME, etc.).
 
 ### Server TLS Certificate
 
