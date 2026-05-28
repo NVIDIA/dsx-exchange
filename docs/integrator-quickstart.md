@@ -128,9 +128,7 @@ The subscriber should print the payload:
 ## Next Steps
 
 - Build your integration as an application using the MQTT SDK for your runtime.
-- Replace `test/hello` with a topic allowed by your integration's permissions.
-- Use the schema pages to choose the correct topic and payload for your domain.
+- Use the schema pages to choose the correct topics and payloads for your domain.
 - Use OAuth2 for software integrations or mTLS for BMS, OT, and device
   integrations before production use. Keep noauth limited to local evaluation
   and debug environments.
-- Keep standalone MQTT CLIs available for debugging broker connectivity and ACLs.
