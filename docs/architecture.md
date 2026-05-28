@@ -136,8 +136,7 @@ Supported QoS levels:
 
 - **QoS 0** — at most once (fire and forget)
 - **QoS 1** — at least once (acknowledged delivery, backed by JetStream)
-
-QoS 2 (exactly once) is not supported by NATS.
+- **QoS 2** — exactly once (backed by JetStream)
 
 ## Networking
 

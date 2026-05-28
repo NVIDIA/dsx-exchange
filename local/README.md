@@ -13,7 +13,7 @@ Version-pinned where there is a known compatibility break; unpinned tools work w
 - Docker Desktop or equivalent
 - [Kind](https://kind.sigs.k8s.io/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [Helm](https://helm.sh/) 4.0+ — Helm 3 is not supported
+- [Helm](https://helm.sh/) 4.0+ — local deploy uses `--force` which requires Helm 4
 - Go 1.25+ — required by `go.mod`
 - Make
 
