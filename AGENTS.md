@@ -25,6 +25,13 @@ permission errors and host-side Keycloak timeouts. Use the local Make targets
 with unsandboxed execution, for example `make -C local deploy-nats` and
 `make -C local test-functional`.
 
+For local deploy and infrastructure scripts, prefer direct validation over
+meta-level tests. Do not add shell tests whose main purpose is to inspect deploy
+script text or mock/assert exact command sequences such as Helm repo updates,
+Kind image loads, timeouts, or Gateway YAML fields. Validate these changes with
+syntax checks, Helm rendering/linting when applicable, and the real affected
+local Make target outside the sandbox.
+
 ## Commit conventions
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this via commitlint.
