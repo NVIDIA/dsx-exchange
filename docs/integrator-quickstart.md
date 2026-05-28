@@ -22,10 +22,24 @@ setup, see [Deployment](getting-started.md).
 - Optional debug tooling such as `mqttx`.
 - Network access to the broker's MQTT listener.
 
-For authentication and topic permission configuration, see
-[Authentication](authentication.md). Most software integrations should use
-OAuth2. BMS, OT, and device integrations commonly use mTLS with client
-certificates.
+## Authentication
+
+DSX Exchange supports three authentication modes. Choose based on your
+environment:
+
+| Mode | When to use | Credentials needed |
+|------|-------------|-------------------|
+| **noauth** | Local evaluation and debugging | None — connect without credentials |
+| **OAuth2** | Software integrations, agents, MCP | MQTT username `oauthtoken`, access token as password |
+| **mTLS** | BMS, OT, and device integrations | CA cert, client cert, client key |
+
+The local evaluation environment deploys with noauth enabled by default, so the
+CLI examples in this guide work without any credentials. For production, the
+operator configures OAuth2, mTLS, or both. Ask your operator which mode and
+credentials to use.
+
+For the full auth model and permission configuration, see
+[Authentication](authentication.md).
 
 ## Connection Settings
 
@@ -52,10 +66,20 @@ export DSX_MQTT_PORT=11883
 export DSX_MQTT_TOPIC=test/hello
 ```
 
-For OAuth2 clients, set the MQTT username to `oauthtoken` and pass the access
-token as the MQTT password.
+### Adding credentials for production
 
-For mTLS clients, configure the SDK's TLS options with the CA certificate, client
+For OAuth2, set the MQTT username to `oauthtoken` and pass the access token as
+the MQTT password. Obtain a token from the OIDC provider configured by your
+operator (e.g., Keycloak):
+
+```bash
+mqttx pub \
+  -h "${DSX_MQTT_HOST}" -p "${DSX_MQTT_PORT}" \
+  -t "${DSX_MQTT_TOPIC}" -m '{"temp":22.5}' \
+  -u oauthtoken -P "${ACCESS_TOKEN}" -V 3.1.1
+```
+
+For mTLS, configure the SDK's TLS options with the CA certificate, client
 certificate, and client key supplied by the operator.
 
 ## Choose an MQTT SDK
