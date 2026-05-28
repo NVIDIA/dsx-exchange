@@ -26,7 +26,7 @@ The DSX Event Bus is a [NATS](https://nats.io/)-based messaging platform that pr
 
 ### Why MQTT 3.1.1
 
-DSX Exchange targets MQTT 3.1.1 rather than MQTT 5 because the primary integration surface is building management systems. BMS vendors overwhelmingly ship MQTT 3.1.1 clients, BMS engineers are not typically in a position to adopt newer protocol versions, and the 3.1.1 protocol is simpler with fewer edge cases. This is a deliberate architectural decision — NATS implements MQTT 3.1.1 only, and 3.1.1 maximizes compatibility with the installed base of OT and BMS devices in a gigawatt-scale AI factory.
+DSX Exchange targets MQTT 3.1.1 rather than MQTT 5 because a major integration surface is building management systems and industrial OT infrastructure. The BMS and process-control industry overwhelmingly ships MQTT 3.1.1 clients, and the 3.1.1 protocol is simpler with fewer edge cases. This is a deliberate architectural decision — NATS implements MQTT 3.1.1 only, and 3.1.1 maximizes compatibility with the installed base of OT and BMS devices in a gigawatt-scale AI factory.
 
 Concrete signal paths it enables today:
 
