@@ -107,6 +107,17 @@ The generation script always produces mTLS keys (there is no flag to skip them).
 |--------|------|---------|
 | `nats-mtls-server-tls` | ca.crt, tls.crt, tls.key | mTLS server certificates |
 
+The chart does not create a cert-manager Certificate CR for `nats-mtls-server-tls`. Operators must provision this secret before deploying. Use cert-manager with your PKI Issuer, or create the secret manually:
+
+```bash
+kubectl -n dsx create secret generic nats-mtls-server-tls \
+  --from-file=ca.crt=ca.pem \
+  --from-file=tls.crt=server.pem \
+  --from-file=tls.key=server-key.pem
+```
+
+The server certificate SANs must include the hostname or IP that mTLS clients will connect to (see [Deployment — mTLS Hostname Agreement](getting-started.md#mtls-hostname-agreement)).
+
 **Leaf connections:**
 
 | Secret | Keys | Purpose |
