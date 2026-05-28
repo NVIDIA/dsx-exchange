@@ -13,9 +13,12 @@ github.com/cenkalti/backoff/v5
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/davecgh/go-spew v1.1.1
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/fatih/structs v1.1.0
+## explicit
+github.com/fatih/structs
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
@@ -80,13 +83,16 @@ github.com/knadh/koanf/providers/confmap
 # github.com/knadh/koanf/providers/env v1.1.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/env
-# github.com/knadh/koanf/providers/file v1.2.0
+# github.com/knadh/koanf/providers/file v1.2.1
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/file
 # github.com/knadh/koanf/providers/rawbytes v1.0.0
 ## explicit; go 1.23.0
 github.com/knadh/koanf/providers/rawbytes
-# github.com/knadh/koanf/v2 v2.3.0
+# github.com/knadh/koanf/providers/structs v1.0.0
+## explicit; go 1.23.0
+github.com/knadh/koanf/providers/structs
+# github.com/knadh/koanf/v2 v2.3.3
 ## explicit; go 1.23.0
 github.com/knadh/koanf/v2
 # github.com/minio/highwayhash v1.0.3
@@ -133,7 +139,7 @@ github.com/nats-io/nkeys
 # github.com/nats-io/nuid v1.0.1
 ## explicit
 github.com/nats-io/nuid
-# github.com/pmezard/go-difflib v1.0.0
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_golang v1.23.2
@@ -159,7 +165,7 @@ github.com/prometheus/otlptranslator
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/spf13/cobra v1.10.1
+# github.com/spf13/cobra v1.10.2
 ## explicit; go 1.15
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.10
@@ -179,11 +185,11 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.4
 ## explicit; go 1.21
 github.com/uptrace/opentelemetry-go-extra/otelzap
-# gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config v0.1.7
-## explicit; go 1.24.3
-gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config
-gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config/internal/providers
-gitlab-master.nvidia.com/ncp/vmaas/libs/golang/nv-config/internal/watcher
+# gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config v0.0.0-20260528035807-fa56d21c6ba5
+## explicit; go 1.25.4
+gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config
+gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config/internal/providers
+gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config/internal/watcher
 # go.opentelemetry.io/auto/sdk v1.2.1
 ## explicit; go 1.24.0
 go.opentelemetry.io/auto/sdk
@@ -309,8 +315,8 @@ golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/sys v0.37.0
-## explicit; go 1.24.0
+# golang.org/x/sys v0.44.0
+## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
