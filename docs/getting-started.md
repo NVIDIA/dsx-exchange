@@ -106,7 +106,7 @@ global:
           account: "CSC"
 ```
 
-If using OAuth2, configure the JWKS endpoint and issuer so the auth-callout can validate tokens. Without these, OAuth2 connections are silently rejected:
+If using OAuth2, configure the JWKS endpoint and issuer so the auth-callout can validate tokens. **This must be set on every cluster (CSC and each CPC)**, not just the CSC — without it, that cluster's auth-callout cannot validate JWTs and will silently reject all OAuth2 connections:
 
 ```yaml
 auth-callout:
@@ -141,6 +141,8 @@ global:
       cscPrefixedExports: ["command.>"]
       cpcExports: ["sensor.>"]
 ```
+
+If using OAuth2, each CPC also needs the `auth-callout.serviceConfig.jwks` block — see the CSC section above. Without it, OAuth2 connections to this CPC are silently rejected.
 
 ## Cross-Layer Routing
 
