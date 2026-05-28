@@ -8,7 +8,7 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 
 - `schema/`: AsyncAPI contracts for MQTT topics and payloads (BMS, power management, NICo, SPIFFE, etc.)
 - `auth-callout/`: Go service for NATS auth callout — OAuth2/JWKS, mTLS, NKey, and no-auth profiles
-- `deploy/`: Helm chart (`nats-event-bus`) for per-cluster NATS deployment with leaf-node federation
+- `deploy/`: Umbrella Helm chart (`nats-event-bus`) bundling NATS, NACK, auth-callout, and Surveyor as subcharts
 - `local/`: Kind-based evaluation environment, MQTT functional/performance tests, benchmark tooling
 - `fern/`: Fern docs configuration — renders `docs/` as the hosted documentation site
 - `docs/`: Canonical documentation (architecture, pre-deployment, deployment, authentication, operations, testing, BMS integration, integrator quickstart)
@@ -17,25 +17,28 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 
 - Each Kubernetes cluster (1 CSC, N CPCs) runs its own NATS event bus instance
 - CPC instances federate to CSC via NATS leaf nodes through Kubernetes Gateway API
-- MQTT 3.1.1 is the client protocol; NATS handles routing, JetStream persistence, and federation
+- MQTT 3.1.1 is the client protocol — a deliberate choice for BMS and OT device compatibility; NATS implements MQTT 3.1.1 only
+- MQTT topic separators (`/`) map to NATS subject tokens (`.`) transparently
+- QoS 0, 1, and 2 are supported (QoS 1 and 2 backed by JetStream)
 - Auth-callout handles all authentication; permissions are topic-level ACLs per client
-- The Helm chart is provider-agnostic for secrets — any pipeline that materializes Kubernetes Secrets works
+- The Helm chart is provider-agnostic for secrets — any pipeline that materializes Kubernetes Secrets works (OpenBao, Vault + VSO, sealed-secrets, external-secrets)
+- Auth-callout container image must be built from source (not published to a public registry)
 
 ## Documentation
 
-- docs/architecture.md — topology, topic spaces, federation, component overview
-- docs/pre-deployment.md — infrastructure prerequisites, required secrets, NKey generation, certificate management, Gateway setup
-- docs/getting-started.md — evaluation install and production deployment steps
-- docs/authentication.md — auth model (OAuth2, mTLS, NKey, no-auth), permissions configuration
-- docs/operations.md — monitoring, metrics reference, operational runbooks
-- docs/testing.md — functional and performance test coverage
+- docs/architecture.md — topology, topic spaces, cross-layer routing, MQTT support, federation, component overview
+- docs/pre-deployment.md — host prerequisites, infrastructure prerequisites, auth-callout image build, required secrets, NKey generation, secrets pipeline, certificate management, Gateway setup
+- docs/getting-started.md — evaluation install, production deployment steps, cross-layer routing, mTLS hostname agreement
+- docs/authentication.md — auth model (OAuth2, mTLS, NKey, no-auth), auth mode identifiers, permissions configuration, secrets management
+- docs/operations.md — monitoring, metrics reference, configuration tuning, teardown, chart dependencies
+- docs/testing.md — functional and performance test coverage, benchmark tooling
 - docs/integrator-quickstart.md — MQTT integration guide for application developers
 - docs/bms-integration.md — BMS-specific integration patterns
 
 ## Tech Stack
 
 - Go 1.25+ (auth-callout, mqtt-client, mqttbs benchmark tool)
-- Helm 4.0+ (chart apiVersion v2)
+- Helm 3.x or 4.x (Helm 4 required only for local evaluation; Helm 3 works for production)
 - Kubernetes 1.27+ with Gateway API (Envoy Gateway 1.5+)
 - NATS with MQTT 3.1.1, JetStream, leaf-node federation
 - AsyncAPI 3.0 schemas

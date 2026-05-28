@@ -23,7 +23,7 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
   - `src/internal/service/` — service and health check
   - `src/internal/observability/` — metrics, tracing, logging
   - `deploy/` — Helm subchart and values reference
-- `deploy/nats-event-bus/` — umbrella Helm chart
+- `deploy/nats-event-bus/` — umbrella Helm chart bundling NATS, NACK, auth-callout, and Surveyor
   - `templates/` — gateway routes, NATS config, accounts, leaf nodes, MQTT streams, validation
   - `Chart.yaml` — apiVersion v2, bundles nats, nack, auth-callout, surveyor subcharts
 - `local/` — Kind-based evaluation environment
@@ -37,7 +37,7 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 ## Tech Stack
 
 - Go 1.25+ (auth-callout, mqtt-client, mqttbs)
-- Helm 4.0+ (chart apiVersion v2)
+- Helm 3.x or 4.x (Helm 4 required only for `local/` evaluation which uses `--force`; Helm 3 works for production)
 - Kubernetes 1.27+ with Gateway API (Envoy Gateway 1.5+, TCPRoute/TLSRoute v1alpha2)
 - NATS with MQTT 3.1.1, JetStream, leaf-node federation
 - AsyncAPI 3.0 schemas
@@ -68,6 +68,10 @@ DSX Exchange consists of four components:
 ## DSX Event Bus
 
 The DSX Event Bus is a NATS-based messaging platform that provides MQTT 3.1.1 connectivity, JetStream persistence, and multi-cluster leaf node federation across the AI Factory topology.
+
+### Why MQTT 3.1.1
+
+DSX Exchange targets MQTT 3.1.1 rather than MQTT 5 because a major integration surface is building management systems and industrial OT infrastructure. The BMS and process-control industry overwhelmingly ships MQTT 3.1.1 clients, and the 3.1.1 protocol is simpler with fewer edge cases. This is a deliberate architectural decision — NATS implements MQTT 3.1.1 only, and 3.1.1 maximizes compatibility with the installed base of OT and BMS devices in a gigawatt-scale AI factory.
 
 Concrete signal paths it enables today:
 
@@ -106,6 +110,18 @@ The AI Factory deploys one Common Services Cluster (CSC) and one or more Control
 
 Routing is enforced by NATS account import/export rules generated from `global.eventBus.crossLayer` Helm values. The Gateway controller does no topic filtering — it passes TCP traffic transparently.
 
+**The three lists must not overlap.** A subject pattern that appears in more than one list creates cyclic NATS imports that crash the NATS pod (CrashLoopBackOff) with no user-facing error at install time.
+
+## MQTT Support
+
+NATS provides native MQTT 3.1.1 support. MQTT topic separators (`/`) are mapped to NATS subject tokens (`.`) — for example, the MQTT topic `telemetry/temp` becomes the NATS subject `telemetry.temp`. This mapping is transparent to MQTT clients.
+
+Supported QoS levels:
+
+- **QoS 0** — at most once (fire and forget)
+- **QoS 1** — at least once (acknowledged delivery, backed by JetStream)
+- **QoS 2** — exactly once (backed by JetStream)
+
 ## Networking
 
 ### Exposed Ports
@@ -119,7 +135,7 @@ Routing is enforced by NATS account import/export rules generated from `global.e
 
 ## Persistence
 
-JetStream provides message persistence. MQTT QoS 1 messages and retained messages are stored in JetStream streams managed declaratively by the NACK controller. Stream configuration (storage type, replicas, max bytes) is set via `mqttStreams` Helm values.
+JetStream provides message persistence. MQTT QoS 1 and QoS 2 messages and retained messages are stored in JetStream streams managed declaratively by the NACK controller. Stream configuration (storage type, replicas, max bytes) is set via `mqttStreams` Helm values.
 
 ## Observability
 
@@ -138,6 +154,17 @@ Everything that must be in place before deploying the DSX Event Bus. This covers
 
 **Estimated time**: The production path (secrets pipeline + certificates) takes 4–6 hours for a first-time deployment across 1 CSC + 2 CPCs. The evaluation path (`local/` Makefile) takes ~10 minutes.
 
+## Host Prerequisites
+
+A multi-cluster deployment (CSC + CPCs) creates enough kubelets, containerd shims, gateway controllers, and fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
+
+Verify these sysctl parameters on each node before creating clusters:
+
+```bash
+sudo sysctl -w fs.inotify.max_user_instances=8192
+sudo sysctl -w fs.inotify.max_user_watches=524288
+```
+
 ## Infrastructure Prerequisites
 
 Components are version-pinned where there is a known API or compatibility break; unpinned components work with any recent release.
@@ -145,14 +172,33 @@ Components are version-pinned where there is a known API or compatibility break;
 | Component | Version | Purpose |
 |-----------|---------|---------|
 | Kubernetes | 1.27+ | Gateway API CRDs require this minimum |
-| Helm | 4.0+ | Chart `apiVersion: v2` features; Helm 3 is not supported |
+| Helm | 3.x or 4.x | Helm 4 required only for `local/` evaluation (uses `--force`); Helm 3 works for production |
 | Gateway API controller | Envoy Gateway 1.5+ | TCPRoute/TLSRoute (`v1alpha2` APIs); older versions lack these CRDs |
 | MetalLB or cloud LB | MetalLB 0.13+ | CRD-based config (`IPAddressPool`, `L2Advertisement`); older versions use incompatible ConfigMap API |
 | cert-manager | — | TLS certificate lifecycle (server certs, mTLS certs) |
 | Prometheus Operator | — | ServiceMonitor CRD (required by Surveyor) |
-| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., Vault + Vault Secrets Operator) |
+| Secrets pipeline | — | Must materialize Kubernetes Secrets (e.g., OpenBao/Vault + VSO, sealed-secrets, external-secrets) |
 | `nsc` | — | NATS NKey generation (required by `generate-nkeys.sh`) |
 | `nk` | — | NATS NKey inspection (required by `generate-nkeys.sh`) |
+
+## Auth-Callout Container Image
+
+The auth-callout container image is not published to a public registry. Operators must build the image from source and push it to their own container registry before deploying the Helm chart.
+
+```bash
+make -C auth-callout docker-build
+docker tag auth-callout:latest registry.example.com/dsx-exchange/auth-callout:latest
+docker push registry.example.com/dsx-exchange/auth-callout:latest
+```
+
+Then set the image in your Helm values:
+
+```yaml
+auth-callout:
+  image:
+    repository: registry.example.com/dsx-exchange/auth-callout
+    tag: latest
+```
 
 ## Required Secrets
 
@@ -170,7 +216,7 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 | Secret | Keys | Purpose |
 |--------|------|---------|
 | `nats-authx-user` | pubkey | Auth-callout NATS connection user |
-| `auth-callout-keys` | nkey-seed, issuer-seed, xkey-seed | Auth-callout signing and encryption keys |
+| `auth-callout-keys` | nkey-seed, issuer-seed, xkey-seed | Auth-callout signing and encryption keys (seeds only — public keys are derived at runtime) |
 
 ### NACK Controller
 
@@ -195,7 +241,7 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 
 | Secret | Keys | Purpose |
 |--------|------|---------|
-| `nats-mtls-server-tls` | ca.crt, tls.crt, tls.key | mTLS server certificates |
+| `nats-mtls-server-tls` | ca.crt, tls.crt, tls.key | mTLS server certificates (must be provisioned manually, not managed by cert-manager) |
 | `nats-mtls-leaf` | seed, pubkey | DC account leaf connection |
 | `nats-mtls-authx-leaf` | seed, pubkey | AUTHX account leaf connection |
 | `nats-mtls-sys-leaf` | seed, pubkey | SYS account leaf connection |
@@ -205,23 +251,34 @@ All secrets must be provisioned before `helm install`. Secret names and keys are
 NKeys are Ed25519 public-key pairs used for NATS authentication. The generation script requires `nsc` and `nk` on `PATH`.
 
 ```bash
-./deploy/scripts/generate-nkeys.sh [cpc-ids...]
-# Example: ./deploy/scripts/generate-nkeys.sh 1 2 3
+./deploy/scripts/generate-nkeys.sh [OPTIONS] [cpc-ids...]
+
+# Options:
+#   -o, --output DIR             Output root directory (default: deploy/secrets)
+#       --extra-account NAME     Generate CPC-to-CSC leaf keys for an extra account
+#   -h, --help                   Show help message
+
+# Examples:
+./deploy/scripts/generate-nkeys.sh                             # CSC only
+./deploy/scripts/generate-nkeys.sh 1 2 3                       # CSC + CPC-1, CPC-2, CPC-3
+./deploy/scripts/generate-nkeys.sh --extra-account LaunchLayer 1 2
 ```
 
 ## Secrets Pipeline
 
 The event bus consumes Kubernetes Secrets — it does not interact with any secrets backend directly. Any pipeline that materializes the required secrets into the target namespace before `helm install` will work. The Helm chart does not assume Vault, sealed-secrets, external-secrets, or any other specific provider.
 
-The project's reference deployment uses HashiCorp Vault with the Vault Secrets Operator (VSO). OpenBao is an open-source fork of Vault with a compatible API and may be used as a drop-in alternative.
+One common pattern is OpenBao or HashiCorp Vault with the Vault Secrets Operator (VSO) to materialize secrets and the Vault Agent Injector for auth-callout seed injection.
 
 ## Certificate Management
 
-cert-manager handles TLS certificate lifecycle. The Issuer can be backed by any supported provider (Vault PKI, self-signed, ACME, etc.).
+cert-manager handles TLS certificate lifecycle. The Issuer can be backed by any supported provider (Vault/OpenBao PKI, self-signed, ACME, etc.).
 
 ## Gateway Setup
 
 A Gateway API controller must be installed before deploying the event bus. The Gateway resource defines external listeners (MQTT 1883, NATS 4222, leaf node 7422, mTLS 8883) that route traffic to the NATS pods. The mTLS listener uses Passthrough mode because TLS termination happens at the NATS pod.
+
+The mTLS TLSRoute hostname, server certificate SANs, and client broker URL must all agree on the same hostname or IP. A mismatch causes a silent connection reset at the gateway layer.
 
 | Listener | Port | TLS Mode | Route Kind |
 |----------|------|----------|------------|
@@ -248,8 +305,9 @@ make -C local validate-nats     # Verify connectivity
 
 1. Infrastructure (Gateway API controller, MetalLB, cert-manager)
 2. Keycloak or OIDC provider (if using OAuth2)
-3. CSC cluster event bus
-4. CPC cluster event buses (connect to CSC via leaf nodes)
+3. Build the auth-callout container image
+4. CSC cluster event bus
+5. CPC cluster event buses (connect to CSC via leaf nodes)
 
 ## CSC Cluster
 
@@ -260,7 +318,7 @@ helm install dsx ./deploy/nats-event-bus \
   -f values-csc.yaml
 ```
 
-CSC values configure `clusterType: csc`, list of CPC IDs, and auth permissions. If using OAuth2, configure `auth-callout.serviceConfig.jwks.url` and `auth-callout.serviceConfig.jwks.issuer`.
+CSC values configure `clusterType: csc`, list of CPC IDs, and auth permissions. If using OAuth2, configure `auth-callout.serviceConfig.jwks.url` and `auth-callout.serviceConfig.jwks.issuer` — this must be set on **every cluster** (CSC and each CPC), not just the CSC.
 
 ## CPC Clusters
 
@@ -282,6 +340,8 @@ CPC values set `clusterType: cpc`, `clusterId`, `cscEndpoint`, and `crossLayer` 
 | CSC to all CPCs | `cscExports` | Broadcast to all CPC topic spaces |
 | CSC to specific CPC | `cscPrefixedExports` | `cpc.{id}.` prefix stripped on delivery |
 
+**The three lists must not overlap.** A subject pattern that appears in more than one list creates cyclic NATS imports that crash the NATS pod (CrashLoopBackOff) with no user-facing error at install time.
+
 ---
 
 # Authentication
@@ -292,7 +352,7 @@ Every signal on DSX Exchange has a verified origin. Every subscriber is authoriz
 
 ### OAuth2 (JWT/JWKS)
 
-Clients connect with username `oauthtoken` and an access token as the password. The auth-callout validates the token against the OIDC provider's JWKS endpoint and matches `azp` or `subject` to a permissions entry.
+Clients connect with username `oauthtoken` and an access token as the password. The auth-callout validates the token against the OIDC provider's JWKS endpoint and matches `azp` or `subject` to a permissions entry. The JWKS endpoint must be configured on every cluster.
 
 ### mTLS (X.509 Client Certificates)
 
@@ -305,6 +365,15 @@ Internal system components authenticate with NATS NKey signatures.
 ### NoAuth (Anonymous Fallback)
 
 Connections without credentials receive noauth permissions. Development and debugging only.
+
+### Auth Mode Identifier Reference
+
+| Type | Identifier Field | Matched Against |
+|------|------------------|-----------------|
+| `oauth2` | `azp` or `subject` | JWT token claims validated via JWKS |
+| `mtls` | `identity` | X.509 certificate Common Name |
+| `nkey` | `public_key` | NATS NKey public key |
+| `noauth` | (none) | Anonymous access fallback |
 
 ## Configuring Permissions
 
@@ -334,6 +403,16 @@ global:
 
 Subject wildcards: `*` matches one token, `>` matches one or more tokens.
 
+## Secrets Management
+
+The auth-callout service requires three NKey seeds, provided as Kubernetes Secrets:
+
+| Key | Seed Prefix | Public Key Prefix | Purpose |
+|-----|-------------|-------------------|---------|
+| `nkey-seed` | `SU` | `U` | Auth-callout connects to NATS |
+| `issuer-seed` | `SA` | `A` | Signs user JWTs for authenticated clients |
+| `xkey-seed` | `SX` | `X` | Encrypts auth callout responses (optional) |
+
 ## Auth Metrics
 
 | Metric | Type | Description |
@@ -361,6 +440,22 @@ NATS Surveyor exports Prometheus metrics. The mTLS cluster's SYS account is fede
 ### NATS Metrics
 
 Surveyor exposes on port 7777: `nats_core_*` (server), `nats_account_*` (per-account), `nats_jetstream_*` (streams/consumers).
+
+### Auth-Callout Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `auth_requests_total` | counter | Total auth callout requests |
+| `auth_errors_total` | counter | Total auth callout errors |
+| `auth_request_duration_seconds` | histogram | Auth request latency |
+| `auth_oauth2_attempts_total` | counter | OAuth2 attempts |
+| `auth_oauth2_failures_total` | counter | OAuth2 failures |
+| `auth_mtls_attempts_total` | counter | mTLS attempts |
+| `auth_mtls_failures_total` | counter | mTLS failures |
+| `auth_nkey_attempts_total` | counter | NKey attempts |
+| `auth_nkey_failures_total` | counter | NKey failures |
+| `auth_noauth_attempts_total` | counter | NoAuth attempts |
+| `auth_noauth_failures_total` | counter | NoAuth failures |
 
 ### Health Endpoints
 
@@ -398,6 +493,37 @@ global:
       Kiwi: {}
 ```
 
+## Teardown
+
+`helm uninstall` removes chart-managed resources but leaves operator-provisioned secrets and service accounts in place. This is intentional — the chart does not own those resources.
+
+### Chart uninstall
+
+```bash
+helm uninstall dsx -n dsx
+```
+
+### Removing operator-provisioned resources
+
+```bash
+kubectl -n dsx delete secret \
+  auth-callout-keys event-bus-server-tls-certificate \
+  nats-auth-signing nats-authx-user nats-leaf-csc \
+  nats-nack-user nats-surveyor nats-xkey \
+  --ignore-not-found
+
+# mTLS secrets (if mTLS was enabled)
+kubectl -n dsx delete secret \
+  nats-mtls-server-tls nats-mtls-leaf nats-mtls-authx-leaf nats-mtls-sys-leaf \
+  --ignore-not-found
+```
+
+### Full namespace reset
+
+```bash
+kubectl delete ns dsx --ignore-not-found
+```
+
 ## Chart Dependencies
 
 | Chart | Alias | Condition |
@@ -424,6 +550,8 @@ global:
 
 ## Local Benchmark Tooling
 
+**Prerequisite:** Performance and benchmark targets require MetalLB or an equivalent LoadBalancer (installed by `make setup-infra`). Without it, `kubectl port-forward` cannot sustain benchmark throughput and tests fail silently.
+
 The MQTT performance suite exercises combinations of QoS level, retention, and deployment topology (local and federated, both directions).
 
 ### Reported Metrics
@@ -449,6 +577,8 @@ Use this guide to start writing an integration application that connects to an e
 - An MQTT SDK for your language or platform
 - Network access to the broker's MQTT listener
 
+Most software integrations should use OAuth2. BMS, OT, and device integrations commonly use mTLS with client certificates.
+
 ## Connection Settings
 
 ```bash
@@ -468,9 +598,10 @@ For mTLS: configure CA certificate, client certificate, and client key.
 | Python | Eclipse Paho Python |
 | Node.js | MQTT.js |
 | Java | Eclipse Paho Java |
-| C/C++ | Eclipse Paho C/C++ |
+| C | Eclipse Paho C |
+| C++ | Eclipse Paho C++ |
 
-All SDKs follow: load config → create MQTT 3.1.1 client → connect with auth → subscribe/publish → handle reconnects.
+All SDKs follow: load config -> create MQTT 3.1.1 client -> connect with auth -> subscribe/publish -> handle reconnects.
 
 ---
 
