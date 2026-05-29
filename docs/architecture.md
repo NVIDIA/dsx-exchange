@@ -2,7 +2,7 @@
 
 ## DSX Exchange
 
-DSX Exchange is an open source MQTT-based event broker for AI factories. It supports real-time operational signal exchange between power management systems, building management systems, cooling infrastructure, grid interfaces, and compute schedulers.
+DSX Exchange is an open source event bus for AI factory operations. It supports real-time operational signal exchange between power management systems, building management systems, cooling infrastructure, grid interfaces, and compute schedulers.
 
 DSX Exchange consists of three components:
 
