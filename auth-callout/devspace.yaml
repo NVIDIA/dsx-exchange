@@ -378,13 +378,17 @@ deployments:
         serviceConfig:
           nats:
             url: "nats://nats:4222"
-            nkey-seed: ${AUTH_USER_NKEY_SEED}
-            issuer-seed: ${AUTH_SIGNING_KEY_SEED}
-            xkey-seed: ${XKEY_SEED}
           jwks:
             url: "http://keycloak-service.keycloak:8080/realms/auth-callout/protocol/openid-connect/certs"
             issuer: "http://keycloak-service.keycloak:8080/realms/auth-callout"
             audience: "dsx-exchange"
+        extraEnvs:
+          AUTH_CALLOUT_NATS_NKEY_SEED:
+            value: ${AUTH_USER_NKEY_SEED}
+          AUTH_CALLOUT_NATS_ISSUER_SEED:
+            value: ${AUTH_SIGNING_KEY_SEED}
+          AUTH_CALLOUT_NATS_XKEY_SEED:
+            value: ${XKEY_SEED}
         permissions:
           oauth2:
             csc-admin:
