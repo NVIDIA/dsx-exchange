@@ -12,6 +12,16 @@ git commit -s -m "type(scope): short description"
 
 The sign-off certifies that you wrote the contribution or otherwise have the right to submit it under this repository's license. See [developercertificate.org](https://developercertificate.org/) for the full DCO text.
 
+## Pull Request Titles
+
+Use the same Conventional Commits format for pull request titles:
+
+```text
+type(scope): short description
+```
+
+Use an allowed type such as `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Keep the description concise, lowercase, and without a trailing period.
+
 ## Fork and Setup
 
 Fork and clone the repository:
