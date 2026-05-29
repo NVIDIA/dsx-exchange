@@ -53,9 +53,12 @@ configure_host_docker_mirror() {
   local daemon_config="/etc/docker/daemon.json"
   local current_config
   local merged_config
+  local tmp_dir
 
-  current_config="$(mktemp)"
-  merged_config="$(mktemp)"
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "${tmp_dir}"' RETURN
+  current_config="${tmp_dir}/daemon.json"
+  merged_config="${tmp_dir}/daemon.merged.json"
 
   if sudo test -f "${daemon_config}"; then
     sudo cat "${daemon_config}" > "${current_config}"

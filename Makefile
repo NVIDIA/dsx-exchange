@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms help install-e2e-tools test test-e2e test-helm third-party-licenses
+.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms e2e-kind help install-e2e-prereqs test test-e2e test-helm third-party-licenses
 
 COPYRIGHT_HOLDER := NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 COPYRIGHT_YEAR := 2026
@@ -30,8 +30,11 @@ clean-e2e: ## Delete local Kind clusters and generated e2e artifacts
 dummy-bms: ## Publish looping dummy BMS data to the local CSC MQTT broker
 	$(MAKE) -C local dummy-bms
 
-install-e2e-tools: ## Install tools required by local Kind e2e workflows
-	$(MAKE) -C local install-e2e-tools
+e2e-kind: ## Set up the local Kind e2e environment and run the full e2e suite
+	$(MAKE) -C local e2e-kind
+
+install-e2e-prereqs: ## Install tools required by local Kind e2e workflows
+	$(MAKE) -C local install-e2e-prereqs
 
 test: ## Run unit tests that do not require the local Kind environment
 	$(MAKE) -C auth-callout test
