@@ -1,0 +1,93 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Security note: No untrusted input is used in run commands. All ${{ ... }}
+# expressions reference repository metadata or env vars only.
+
+name: E2E Kind
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.25.5"
+  KIND_VERSION: "v0.31.0"
+  KUBECTL_VERSION: "v1.31.9"
+  HELM_VERSION: "v4.2.0"
+  DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
+
+jobs:
+  e2e-kind:
+    name: Run
+    runs-on: linux-amd64-cpu32
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        id: setup-go
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            auth-callout/go.sum
+            auth-callout/tests/go.sum
+            local/mqtt-client/go.sum
+            local/mqttbs/go.sum
+
+      - name: Cache e2e tools
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin
+          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh') }}
+
+      - name: Install e2e tools
+        run: |
+          set -euo pipefail
+
+          make install-e2e-prereqs
+          go_bin="$(go env GOBIN)"
+          if [ -z "${go_bin}" ]; then
+            go_bin="$(go env GOPATH)/bin"
+          fi
+          echo "${go_bin}" >> "${GITHUB_PATH}"
+
+      - name: Configure Docker Hub mirror
+        run: bash .github/workflows/e2e-kind/configure-dockerhub-mirror.sh
+
+      - name: Show e2e runner resources
+        run: bash .github/workflows/e2e-kind/show-runner-resources.sh
+
+      - name: Prepare e2e runner
+        run: bash .github/workflows/e2e-kind/prepare-runner.sh
+
+      - name: Run Kind e2e
+        run: make e2e-kind
+
+      - name: Collect e2e diagnostics
+        if: failure()
+        run: |
+          set +e
+          command -v kubectl >/dev/null 2>&1 || exit 0
+
+          for context in kind-csc kind-cpc-1 kind-cpc-2; do
+            echo "== ${context}: nodes =="
+            kubectl get nodes --context "${context}" -o wide
+
+            echo "== ${context}: pods =="
+            kubectl get pods -A --context "${context}" -o wide
+
+            echo "== ${context}: gateways =="
+            kubectl get gateways -A --context "${context}" -o wide
+
+            echo "== ${context}: recent events =="
+            kubectl get events -A --context "${context}" --sort-by=.lastTimestamp | tail -200
+          done
+
+          bash .github/workflows/e2e-kind/show-runner-resources.sh
+
+      - name: Cleanup Kind clusters
+        if: always()
+        run: make clean-e2e
