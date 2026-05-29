@@ -43,7 +43,7 @@ jobs:
           license: apache
           copyright-holder: "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
           year: "2026"
-          paths: "auth-callout/src/ deploy/ local/ schema/"
+          paths: "auth-callout/src/ deploy/ local/ schemas/"
           ignore: "**/vendor/**,**/tests/**,auth-callout/tests/**"
           go-version: "1.25.5"
 

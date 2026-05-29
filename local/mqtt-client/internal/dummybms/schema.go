@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	DefaultBMSSchemaPath = "../../schema/schema/bms/bms.yaml"
-	bmsSchemaResource    = "https://dsx.local/schema/bms.yaml"
+	DefaultBMSSchemaPath = "../../schemas/asyncapi/bms/bms.yaml"
+	bmsSchemaResource    = "https://dsx.local/schemas/asyncapi/bms.yaml"
 )
 
 type BMSSchema struct {

@@ -5,7 +5,7 @@
 
 COPYRIGHT_HOLDER := NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 COPYRIGHT_YEAR := 2026
-LICENSE_TARGETS := local schema
+LICENSE_TARGETS := local schemas
 LICENSE_IGNORES := \
 	-ignore "**/*.png" \
 	-ignore "**/go.sum" \

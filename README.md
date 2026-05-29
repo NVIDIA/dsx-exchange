@@ -6,7 +6,7 @@ DSX Exchange is a monorepo for DSX event bus schemas, authentication, deployment
 
 DSX Exchange provides the repository pieces needed to describe, deploy, and validate DSX MQTT event bus integrations:
 
-- `schema`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
+- `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
 - `deploy`: Helm chart for the NATS event bus deployment.
 - `local`: Kind-based local evaluation environment, NATS deployment scripts, MQTT tests, and benchmark tooling.

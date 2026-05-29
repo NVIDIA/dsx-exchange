@@ -396,7 +396,7 @@ func testBMSSchema(t *testing.T) *BMSSchema {
 func testBMSSchemaPath(t *testing.T) string {
 	t.Helper()
 
-	path, err := filepath.Abs("../../../../schema/schema/bms/bms.yaml")
+	path, err := filepath.Abs("../../../../schemas/asyncapi/bms/bms.yaml")
 	if err != nil {
 		t.Fatalf("failed to resolve BMS schema path: %v", err)
 	}

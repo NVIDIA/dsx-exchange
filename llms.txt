@@ -6,7 +6,7 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 
 ## Components
 
-- `schema/`: AsyncAPI contracts for MQTT topics and payloads (BMS, power management, NICo, SPIFFE, etc.)
+- `schemas/`: AsyncAPI contracts for MQTT topics and payloads (BMS, power management, NICo, SPIFFE, etc.)
 - `auth-callout/`: Go service for NATS auth callout — OAuth2/JWKS, mTLS, NKey, and no-auth profiles
 - `deploy/`: Umbrella Helm chart (`nats-event-bus`) bundling NATS, NACK, auth-callout, and Surveyor as subcharts
 - `local/`: Kind-based evaluation environment, MQTT functional/performance tests, benchmark tooling

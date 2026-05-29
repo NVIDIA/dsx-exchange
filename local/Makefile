@@ -103,7 +103,7 @@ test-performance: check-e2e-env ## Run performance e2e smoke tests
 	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m'
 
 dummy-bms: check-e2e-env ## Publish looping dummy BMS data to the CSC MQTT broker
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go run ./cmd/dummy-bms --broker "$$CSC_BROKER_URL" --csv examples/dsx_exemplar.csv --schema ../../schema/schema/bms/bms.yaml'
+	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go run ./cmd/dummy-bms --broker "$$CSC_BROKER_URL" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml'
 
 validate-nats: ## Validate NATS deployment on all clusters
 	@echo "Validating CSC..."

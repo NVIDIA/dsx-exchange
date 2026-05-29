@@ -153,7 +153,7 @@ export CPC1_BROKER_URL=tcp://127.0.0.1:11884
 go test -v ./tests/performance/
 
 # Publish looping BMS demo data directly against a reachable broker.
-go run ./cmd/dummy-bms --broker tcp://127.0.0.1:11883 --csv examples/dsx_exemplar.csv --schema ../../schema/schema/bms/bms.yaml
+go run ./cmd/dummy-bms --broker tcp://127.0.0.1:11883 --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
 
 # Run specific test
 go test -v ./tests/performance/ -run TestThroughputQoS0_Local
@@ -217,7 +217,7 @@ pass and exit:
 go run ./cmd/dummy-bms \
   --broker tcp://127.0.0.1:11883 \
   --csv examples/dsx_exemplar.csv \
-  --schema ../../schema/schema/bms/bms.yaml \
+  --schema ../../schemas/asyncapi/bms/bms.yaml \
   --once
 ```
 

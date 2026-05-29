@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Fern MDX pages from AsyncAPI 3.1.0 YAML specs.
 
-Reads the four AsyncAPI specs under schema/schema/ and writes native MDX
+Reads the four AsyncAPI specs under schemas/asyncapi/ and writes native MDX
 pages to docs/, replacing the previous iframe stubs.  Only stdlib is used
 (a minimal YAML parser is embedded so PyYAML is not required).
 
@@ -25,10 +25,10 @@ ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 
 SPECS = {
-    "bms": ROOT / "schema" / "schema" / "bms" / "bms.yaml",
-    "power-management": ROOT / "schema" / "schema" / "power-management" / "power-management.yaml",
-    "nico": ROOT / "schema" / "schema" / "nico" / "nico.yaml",
-    "spiffe-exchange": ROOT / "schema" / "schema" / "spiffe-exchange" / "pub-keysets.yaml",
+    "bms": ROOT / "schemas" / "asyncapi" / "bms" / "bms.yaml",
+    "power-management": ROOT / "schemas" / "asyncapi" / "power-management" / "power-management.yaml",
+    "nico": ROOT / "schemas" / "asyncapi" / "nico" / "nico.yaml",
+    "spiffe-exchange": ROOT / "schemas" / "asyncapi" / "spiffe-exchange" / "pub-keysets.yaml",
 }
 
 # ---------------------------------------------------------------------------
@@ -1042,7 +1042,7 @@ def gen_schemas(spec: dict, schema_doc: str | None = None) -> str:
 def _build_bms_op_map(spec: dict) -> dict[str, str]:
     """Map slug suffixes to BMS operation names.
 
-    The docs.yml slugs follow: schema/bms/{objectLower}-{type}
+    The docs.yml BMS operation slugs follow: {objectLower}-{type}
     Operations are named: receive{Object}{Type} or publish{Object}IntegrationValue
     """
     ops = spec.get("operations", {})

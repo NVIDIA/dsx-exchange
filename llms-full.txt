@@ -6,16 +6,16 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 
 ## Repository Structure
 
-- `schema/`: AsyncAPI contracts for MQTT topics and payloads
-  - `schema/schema/bms/bms.yaml` — BMS telemetry and metadata
-  - `schema/schema/power-management/power-management.yaml` — power management events
-  - `schema/schema/nico/nico.yaml` — NICo host state changes
-  - `schema/schema/spiffe-exchange/pub-keysets.yaml` — SPIFFE key exchange
-  - `schema/schema/launch-layer/notifications.yaml` — launch layer notifications
-  - `schema/schema/mission-control/leak-response.yaml` — leak response events
-  - `schema/schema/monitoring/break-fix.yaml` — break/fix monitoring
-  - `schema/schema/nke/node-readiness.yaml` — node readiness events
-  - `schema/schema/tenant/scheduler-events.yaml` — scheduler events
+- `schemas/`: AsyncAPI contracts for MQTT topics and payloads
+  - `schemas/asyncapi/bms/bms.yaml` — BMS telemetry and metadata
+  - `schemas/asyncapi/power-management/power-management.yaml` — power management events
+  - `schemas/asyncapi/nico/nico.yaml` — NICo host state changes
+  - `schemas/asyncapi/spiffe-exchange/pub-keysets.yaml` — SPIFFE key exchange
+  - `schemas/asyncapi/launch-layer/notifications.yaml` — launch layer notifications
+  - `schemas/asyncapi/mission-control/leak-response.yaml` — leak response events
+  - `schemas/asyncapi/monitoring/break-fix.yaml` — break/fix monitoring
+  - `schemas/asyncapi/nke/node-readiness.yaml` — node readiness events
+  - `schemas/asyncapi/tenant/scheduler-events.yaml` — scheduler events
 - `auth-callout/`: Go service for NATS auth callout
   - `src/cmd/auth_callout/main.go` — entrypoint
   - `src/internal/auth/` — authenticators (oauth2.go, mtls.go, nkey.go, noauth.go)

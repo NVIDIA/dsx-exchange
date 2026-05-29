@@ -1,4 +1,4 @@
-# DSX Exchange Schema
+# DSX Exchange Schemas
 
 The DSX Event Bus itself is schema agnostic. Brokers relay subjects, and enforce prefix rules, and enforce ACLs.
 Clients participating in the DSX Exchange program must publish a formal [AsyncAPI](https://asyncapi.com/) definition here covering every exposed subject and payload so downstream consumers can rely on consistent contracts and documentation.
@@ -17,7 +17,7 @@ Adopting CloudEvents remains optional. The binding is simply the formally suppor
 
 ## Repository Structure
 
-Each logical component is given a directory with a single YAML specification file in [/schema](/schema/). Each component's team is responsible for updating and reviewing their own schema through the standard GitHub pull request workflow.
+Each logical component is given a directory with a single YAML specification file in [/schemas/asyncapi](/schemas/asyncapi/). Each component's team is responsible for updating and reviewing their own schema through the standard GitHub pull request workflow.
 
 ## Running Checks Locally
 
