@@ -8,19 +8,19 @@ The DSX Exchange AsyncAPI specification is the authoritative contract defining e
 
 DSX Exchange is NVIDIA's IT/OT integration layer within the NVIDIA DSX Software Suite. It acts as a secure, standardized data hub that connects Building Management System (BMS) data to NVIDIA's software stack — including cluster manager, break-fix, power capping and optimization tools, digital twins, and agentic AI applications.
 
-In practical terms, DSX Exchange is an MQTT broker. The BMS publishes structured data to this broker. IT-side software systems subscribe to that data. The key principle is that DSX Exchange defines the data contract at the MQTT layer — not at the BMS layer. This means:
+In practical terms, DSX Exchange includes an event bus — which serves as an MQTT broker. The BMS publishes structured data to this broker. IT-side software systems subscribe to that data. The key principle is that DSX Exchange defines the data contract at the MQTT layer — not at the BMS layer. This means:
 
 * Your BMS can use any internal point naming convention you choose.
 
 * Your BMS can be any SCADA, PLC, DDC, or controls platform that is appropriate for a critical environment and meets your specific needs.
 
-* The only requirement is that when your BMS publishes to DSX Exchange, it follows the topic structure and payload format defined in the AsyncAPI spec.
+* The only requirement is that when your BMS publishes to the event bus, it follows the topic structure and payload format defined in the AsyncAPI spec.
 
 <Note>
 Key Point: DSX Exchange does not care what your BMS calls a point internally. It only cares what you publish to the MQTT broker. The mapping from your BMS tags to DSX Exchange topics is your responsibility. This mapping, and metadata management, might be done internally within your BMS application, or it could be done in middleware/external services.
 </Note>
 
-DSX Exchange, the MQTT broker, is deployed as part of the DSX software stack and is open source (OSS). The BMS is not required to deploy and manage the MQTT broker. You simply configure your BMS MQTT client to publish and subscribe to it while following the DSX Exchange MQTT topic and payload requirements.
+The DSX Exchange event bus is deployed as part of the DSX software stack and is open source (OSS). The BMS is not required to deploy and manage the MQTT broker. You simply configure your BMS MQTT client to publish and subscribe to it while following the DSX Exchange MQTT topic and payload requirements.
 
 ## MQTT Fundamentals for BMS System Integrators
 
@@ -30,7 +30,7 @@ If you are experienced with MQTT, you can skip this section. If your BMS backgro
 
 MQTT is a lightweight publish/subscribe messaging protocol. There is no polling — devices publish data when it changes, and subscribers receive it immediately. The key components are:
 
-* **Broker:** The central server (DSX Exchange) that receives all published messages and routes them to subscribers. Your BMS connects to the broker as a client.
+* **Broker:** The central server (DSX Exchange event bus) that receives all published messages and routes them to subscribers. Your BMS connects to the broker as a client.
 
 * **Publisher:** Any MQTT client that sends data. In this implementation, the BMS is the primary publisher.
 
@@ -42,7 +42,7 @@ MQTT is a lightweight publish/subscribe messaging protocol. There is no polling 
 
 ### Value vs. Metadata — A Critical Concept
 
-Every point in DSX Exchange has two distinct message types: a Value message and a Metadata message. This is one of the most important concepts to understand before you begin implementation.
+Every point in the BMS specification has two distinct message types: a Value message and a Metadata message. This is one of the most important concepts to understand before you begin implementation.
 
 * **Value message:** Contains the live reading for a point. Published whenever the value changes, and republished every 100 seconds if it has not changed. The payload is always the same simple structure: a numeric value, a Unix timestamp in milliseconds, and a quality flag. Due to added system overhead, value messages should not be retained. QoS 0 should be used as the default unless critical, time-sensitive data points require a higher QoS.
 
@@ -92,7 +92,7 @@ NVIDIA has no requirement on your tagPath format. Use whatever derives cleanly f
 
 ### The Three Channel Types
 
-DSX Exchange has three categories of MQTT channels, each with a distinct publisher and purpose:
+The DSX Exchange event bus has three categories of MQTT channels, each with a distinct publisher and purpose:
 
 | Channel Pattern | Publisher | Purpose |
 | :---- | :---- | :---- |
@@ -104,7 +104,7 @@ Note that the integration namespace (`BMS/v1/{integration}/...`) has only a Valu
 
 ### Publisher Rules — Who Publishes What
 
-These rules are intended to be strictly enforced through ACLs on the DSX Exchange broker:
+These rules are intended to be strictly enforced through ACLs on the DSX Exchange event bus:
 
 * The BMS publishes ALL metadata — including for points whose values are written by IT integrations.
 
@@ -120,7 +120,7 @@ ACL Implication: Your BMS MQTT client should be granted write access to `BMS/v1/
 
 ### Integration-Published Points — How They Work
 
-Some points in the DSX Exchange BMS namespace are written by IT integrations, not the BMS. An example is the CDU liquid temperature setpoint request — an AI agent (MEPAI) computes an optimal CDU supply temperature and writes a setpoint request back to the BMS.
+Some points in the event bus's BMS namespace are written by IT integrations, not the BMS. An example is the CDU liquid temperature setpoint request — an AI agent (MEPAI) computes an optimal CDU supply temperature and writes a setpoint request back to the BMS.
 
 For these points, the BMS still publishes the metadata. The metadata payload includes an integration field that identifies which IT system owns the value. The IT integration reads this metadata, derives the correct value topic, and publishes to that topic.
 
@@ -222,7 +222,7 @@ Point types fall into several categories:
 
 A common question from BMS contractors is: how do I know which specific points my deployment requires? The answer depends on two distinct categories of consumers.
 
-**Comprehensive baseline (the 99%).** Most points published to DSX Exchange feed *passive* consumers — digital twins, historians, dashboards, power analytics, and other "free data for all" use cases. These consumers don't tell the BMS in advance what they need; they subscribe to whatever is published and use it. For this category, the BMS contractor should follow the NVIDIA Controls and Monitoring Reference Design and publish nearly every applicable pointType supported by this guide for the equipment installed on the deployment. Together, the Reference Design and this guide get you 99% of the way to a properly instrumented AI Factory BMS publication.
+**Comprehensive baseline (the 99%).** Most points published to the event bus feed *passive* consumers — digital twins, historians, dashboards, power analytics, and other "free data for all" use cases. These consumers don't tell the BMS in advance what they need; they subscribe to whatever is published and use it. For this category, the BMS contractor should follow the NVIDIA Controls and Monitoring Reference Design and publish nearly every applicable pointType supported by this guide for the equipment installed on the deployment. Together, the Reference Design and this guide get you 99% of the way to a properly instrumented AI Factory BMS publication.
 
 **Integration-specific requirements (the remaining 1%).** *Active* IT integrations — those that write values back to the BMS or rely on specific handshake and sequencing — have unique requirements that cannot be inferred from the Reference Design alone. Examples include:
 
@@ -292,13 +292,13 @@ For all PowerMeter objectType points, use these fields:
 
 * **servesId** — Array of objectIds that this power meter serves (feeds power to). This is what allows IT systems to build the power distribution topology from meter to rack. Example: ["POD1-A3-01", "POD1-A3-02", "POD1-A3-03"].
 
-Every point published for a PowerMeter object should include servesId in its metadata to establish its place in the electrical distribution topology. Each metadata message is consumed independently by IT systems — a consumer subscribed to a specific pointType will only see that point's metadata, so servesId must be present on every point for that PowerMeter object, not just one. Without it, other systems connecting to DSX Exchange cannot build the power flow topology. [Associate Mode](#associate-mode) objects must NOT have servesId — topology runs through their parent object, not through them independently or in parallel. servesId on mechanical equipment for fluid flow topology is described in [Equipment Identifier Modes — Named Object vs Associate](#equipment-identifier-modes--named-object-vs-associate).
+Every point published for a PowerMeter object should include servesId in its metadata to establish its place in the electrical distribution topology. Each metadata message is consumed independently by IT systems — a consumer subscribed to a specific pointType will only see that point's metadata, so servesId must be present on every point for that PowerMeter object, not just one. Without it, other systems connecting to the event bus cannot build the power flow topology. [Associate Mode](#associate-mode) objects must NOT have servesId — topology runs through their parent object, not through them independently or in parallel. servesId on mechanical equipment for fluid flow topology is described in [Equipment Identifier Modes — Named Object vs Associate](#equipment-identifier-modes--named-object-vs-associate).
 
 Because the PowerMeter objectType carries the electrical distribution topology, any equipment that contains a power meter should be published as a PowerMeter object. Additional pointTypes that aren't valid for the PowerMeter objectType are then published under the equipment's own objectType in Associate Mode, with associateId linking them back to the PowerMeter's objectId.
 
 ### Equipment Identifier Modes — Named Object vs Associate
 
-For all mechanical, electrical, and System equipment objectTypes, you must choose one of two identifier modes for each point. Rack and PowerMeter use their own dedicated identifier patterns (see [Rack Identifier Fields](#rack-identifier-fields) and [PowerMeter Identifier Fields](#powermeter-identifier-fields)) and do not use the modes described here. This is one of the most nuanced aspects of DSX Exchange metadata.
+For all mechanical, electrical, and System equipment objectTypes, you must choose one of two identifier modes for each point. Rack and PowerMeter use their own dedicated identifier patterns (see [Rack Identifier Fields](#rack-identifier-fields) and [PowerMeter Identifier Fields](#powermeter-identifier-fields)) and do not use the modes described here. This is one of the most nuanced aspects of the BMS metadata.
 
 **Grouping principle.** objectName and objectId identify an *equipment object*, not a *point*. Points published for the same physical or logical piece of equipment should carry the same objectName and objectId across every metadata message. A CDU with 40 points publishes 40 metadata messages, all sharing one objectId. Differentiating points within the same object is the job of pointType and processArea — not a different objectId.
 
@@ -398,7 +398,7 @@ Different deployments may use different conventions. That is acceptable. What is
 
 ### scope
 
-Used for System/Heartbeat points when the BMS has multiple MQTT clients connected to DSX Exchange. Each MQTT client should have its own heartbeat points, and scope identifies which topics that heartbeat covers. If your BMS uses a single MQTT client, scope is not needed. Not having a scope implies that the heartbeat points are for all BMS data being published to DSX Exchange.
+Used for System/Heartbeat points when the BMS has multiple MQTT clients connected to the event bus. Each MQTT client should have its own heartbeat points, and scope identifies which topics that heartbeat covers. If your BMS uses a single MQTT client, scope is not needed. Not having a scope implies that the heartbeat points are for all BMS data being published to the event bus.
 
 ### integration
 
@@ -432,7 +432,7 @@ Because a BMS may coordinate with **multiple integrations simultaneously** (for 
 The echo points are optional — an integration and BMS may choose to implement them or not. The timestamp points are required for any active integration.
 
 <Note>
-Implementation Note: Implement at minimum the HeartbeatTimestampBms point in your BMS. This is an important health signal for IT systems monitoring your BMS connection. Without it, IT consumers have no way to distinguish "no data has changed" from "BMS offline". Each BMS MQTT Client that publishes to DSX Exchange should publish its own dedicated HeartbeatTimestampBms point with a distinct scope value.
+Implementation Note: Implement at minimum the HeartbeatTimestampBms point in your BMS. This is an important health signal for IT systems monitoring your BMS connection. Without it, IT consumers have no way to distinguish "no data has changed" from "BMS offline". Each BMS MQTT Client that publishes to the event bus should publish its own dedicated HeartbeatTimestampBms point with a distinct scope value.
 </Note>
 
 ## Implementation Checklist
@@ -441,7 +441,7 @@ Use this checklist to verify your BMS integration before go-live:
 
 ### Pre-Configuration
 
-* Obtain DSX Exchange broker connection details from the team standing up DSX Exchange (host, port, credentials, mTLS certificates).
+* Obtain broker connection details from the team standing up the DSX Exchange event bus (host, port, credentials, mTLS certificates).
 
 * Coordinate rackLocationId values with the IT team. Both BMS and IT systems must use the same rack identifiers.
 
@@ -559,15 +559,15 @@ Status describes the operating state of the equipment — is it running, stopped
 
 ### Q: My BMS polls equipment via Modbus every 2 seconds. How does that affect publish frequency?
 
-Your MQTT publish frequency should match your BMS poll frequency or your BMS internal update frequency — whichever reflects the most current data. Publishing at 1-2 second intervals is optimal for DSX Exchange consumers. The 100-second republish cadence is a floor, not a ceiling. If your data changes more frequently, publish more frequently. If your BMS is not able to publish changing values at least every 2 seconds, the DSX Exchange integrations should still work, however the value of the data could be diminished to downstream consumers.
+Your MQTT publish frequency should match your BMS poll frequency or your BMS internal update frequency — whichever reflects the most current data. Publishing at 1-2 second intervals is optimal for DSX Exchange event bus consumers. The 100-second republish cadence is a floor, not a ceiling. If your data changes more frequently, publish more frequently. If your BMS is not able to publish changing values at least every 2 seconds, the DSX Exchange integrations should still work. However, the value of the data could be diminished to downstream consumers.
 
 ### Q: Do I need to implement all objectTypes and pointTypes listed in the spec?
 
 No. You only publish what your BMS actually monitors. If you do not have a cooling tower, you do not publish CoolingTower data. The spec defines what is supported, not what is required. We highly recommend that you follow the NVIDIA Controls and Monitoring Reference Design for minimum points required when designing your BMS.
 
-### Q: Do I need to publish every BMS point to DSX Exchange?
+### Q: Do I need to publish every BMS point to the DSX Exchange event bus?
 
-No. Many BMS points and objects will not be sent to DSX Exchange. The BMS is still the tool Facility Operators use to manage and maintain MEP equipment. DSX Exchange is not meant to replace the BMS. Many configuration points and operator control points should not be accessible to DSX Exchange. Use the allowable pointTypes to help guide which BMS points should be sent to DSX Exchange.
+No. Many BMS points and objects will not be sent to the event bus. The BMS is still the tool Facility Operators use to manage and maintain MEP equipment. DSX Exchange is not meant to replace the BMS. Many configuration points and operator control points should not be accessible to DSX Exchange. Use the allowable pointTypes to help guide which BMS points should be sent to DSX Exchange.
 
 ## Appendix — Glossary
 
@@ -581,7 +581,7 @@ No. Many BMS points and objects will not be sent to DSX Exchange. The BMS is sti
 
 * **CDU (Cooling Distribution Unit):** Equipment that transfers heat from server liquid cooling loops to facility cooling water or air.
 
-* **DSX Exchange:** NVIDIA's IT/OT integration layer within the DSX software stack. Acts as the MQTT broker that connects BMS data to IT software systems.
+* **DSX Exchange:** NVIDIA's IT/OT integration layer within the DSX software stack. It includes the event bus, which serves as an MQTT broker that connects BMS data to IT software systems.
 
 * **engUnit:** Engineering unit metadata field. A string identifying the unit of measure for an analog point (e.g., "C", "kPa", "LPM", "kW", "%"). Mutually exclusive with stateText.
 
@@ -593,7 +593,7 @@ No. Many BMS points and objects will not be sent to DSX Exchange. The BMS is sti
 
 * **MQTT:** Message Queuing Telemetry Transport. Lightweight publish/subscribe messaging protocol used by DSX Exchange.
 
-* **objectId:** A stable unique identifier for an equipment object in DSX Exchange. Must be consistent between BMS and IT systems for the same physical device.
+* **objectId:** A stable unique identifier for an equipment object in the BMS AsyncAPI specification. Must be consistent between BMS and IT systems for the same physical device.
 
 * **objectName:** Human-readable equipment name metadata field used in Named Object Mode. Paired with objectId.
 
@@ -609,11 +609,11 @@ No. Many BMS points and objects will not be sent to DSX Exchange. The BMS is sti
 
 * **SI (System Integrator):** A company or contractor responsible for designing, configuring, and commissioning the BMS for an AI Factory. Synonymous with "BMS Contractor" in this document.
 
-* **scope:** Metadata field used on System/Heartbeat points when a BMS has multiple MQTT clients publishing to DSX Exchange. Identifies which topics that heartbeat covers. See [scope](#scope).
+* **scope:** Metadata field used on System/Heartbeat points when a BMS has multiple MQTT clients publishing to the event bus. Identifies which topics that heartbeat covers. See [scope](#scope).
 
 * **stateText:** Metadata field for binary or enumerated state points. A JSON array mapping each integer value to a human-readable label. Mutually exclusive with engUnit.
 
-* **tagPath:** The vendor-defined hierarchical path at the end of every DSX Exchange MQTT topic. Often derived from the BMS point name or tag path.
+* **tagPath:** The vendor-defined hierarchical path at the end of every BMS MQTT topic in DSX Exchange. Often derived from the BMS point name or tag path.
 
 ## Quick Reference — objectType / pointType Matrix
 
