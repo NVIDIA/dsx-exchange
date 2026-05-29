@@ -1,10 +1,12 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: check-e2e-env help setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-e2e clean-nats deploy-nats test-functional test-performance validate-nats status lint dummy-bms benchmark-basic benchmark-basic-full benchmark-performance
+.PHONY: check-e2e-env help install-e2e-tools setup-infra setup-clusters setup-metallb setup-envoy-gateway setup-cert-manager setup-metrics-server setup-observability verify-infra clean clean-e2e clean-nats deploy-nats test-functional test-performance validate-nats status lint dummy-bms benchmark-basic benchmark-basic-full benchmark-performance
 
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
+E2E_TOOLS_BIN ?= $(CURDIR)/tmp/bin
+export PATH := $(E2E_TOOLS_BIN):$(PATH)
 
 help: ## Show this help message
 	@echo "DSX Event Bus - Evaluation Framework"
@@ -15,6 +17,9 @@ help: ## Show this help message
 # ============================================================================
 # Infrastructure Setup
 # ============================================================================
+
+install-e2e-tools: ## Install local Kind e2e CLI tools into E2E_TOOLS_BIN
+	E2E_TOOLS_BIN="$(E2E_TOOLS_BIN)" bash ./infra/scripts/install-e2e-tools.sh
 
 setup-infra: setup-clusters ## Setup complete infrastructure (clusters + metallb + envoy-gateway + cert-manager + metrics-server + keycloak + prometheus)
 	$(MAKE) setup-metallb

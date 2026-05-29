@@ -37,44 +37,13 @@ jobs:
             local/mqttbs/go.sum
 
       - name: Install e2e tools
-        env:
-          CFSSL_VERSION: "v1.6.5"
-          NSC_VERSION: "v2.14.0"
-          NKEYS_VERSION: "v0.4.15"
-          YQ_VERSION: "v4.53.2"
         run: |
           set -euo pipefail
 
           mkdir -p "${RUNNER_TEMP}/bin"
           echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
           export PATH="${RUNNER_TEMP}/bin:${PATH}"
-
-          curl -fsSL -o "${RUNNER_TEMP}/bin/kind" \
-            "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          chmod +x "${RUNNER_TEMP}/bin/kind"
-
-          curl -fsSL -o "${RUNNER_TEMP}/bin/kubectl" \
-            "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-          chmod +x "${RUNNER_TEMP}/bin/kubectl"
-
-          curl -fsSL -o "${RUNNER_TEMP}/helm.tar.gz" \
-            "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          tar -xzf "${RUNNER_TEMP}/helm.tar.gz" -C "${RUNNER_TEMP}"
-          install -m 0755 "${RUNNER_TEMP}/linux-amd64/helm" "${RUNNER_TEMP}/bin/helm"
-
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/cloudflare/cfssl/cmd/cfssl@${CFSSL_VERSION}"
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/cloudflare/cfssl/cmd/cfssljson@${CFSSL_VERSION}"
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/nats-io/nsc/v2@${NSC_VERSION}"
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/nats-io/nkeys/nk@${NKEYS_VERSION}"
-          GOBIN="${RUNNER_TEMP}/bin" go install "github.com/mikefarah/yq/v4@${YQ_VERSION}"
-
-          kind version
-          kubectl version --client=true
-          helm version
-          cfssl version
-          nsc --version
-          nk -v
-          yq --version
+          E2E_TOOLS_BIN="${RUNNER_TEMP}/bin" make install-e2e-tools
 
       - name: Configure Docker Hub mirror
         run: bash .github/workflows/e2e-kind/configure-dockerhub-mirror.sh
