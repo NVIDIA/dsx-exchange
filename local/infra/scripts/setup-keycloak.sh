@@ -61,7 +61,7 @@ deploy_to_cluster() {
 echo "Deploying Keycloak Operator to CSC cluster..."
 
 if kind get clusters | grep -q "^csc$"; then
-    deploy_to_cluster "csc" "${PROJECT_ROOT}/infra/keycloak/realm-csc.json"
+    deploy_to_cluster "csc" "${PROJECT_ROOT}/infra/keycloak/realm-event-bus.json"
 else
     echo "ERROR: CSC cluster not found"
     exit 1
@@ -69,4 +69,3 @@ fi
 
 echo "Keycloak Operator deployment complete on CSC cluster"
 echo "All clusters will use Keycloak at http://172.18.200.1"
-

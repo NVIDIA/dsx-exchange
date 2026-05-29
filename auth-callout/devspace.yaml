@@ -189,7 +189,7 @@ deployments:
           name: keycloak-realm-import
           namespace: keycloak
         data:
-          realm-csc.json: |
+          realm-auth-callout.json: |
             {
               "id": "auth-callout",
               "realm": "auth-callout",
