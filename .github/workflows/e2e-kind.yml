@@ -82,10 +82,13 @@ jobs:
       - name: Show e2e runner resources
         run: bash .github/workflows/e2e-kind/show-runner-resources.sh
 
+      - name: Prepare e2e runner
+        run: bash .github/workflows/e2e-kind/prepare-runner.sh
+
       - name: Run Kind e2e
         run: |
           set -euo pipefail
-          bash .github/workflows/e2e-kind/setup-infra.sh
+          bash .github/workflows/e2e-kind/retry-local-setup-infra.sh
           make -C local deploy-nats
           make -C local validate-nats
           make test-e2e
