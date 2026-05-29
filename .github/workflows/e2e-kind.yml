@@ -22,7 +22,7 @@ env:
 jobs:
   e2e-kind:
     name: Run
-    runs-on: linux-amd64-cpu16
+    runs-on: linux-amd64-cpu32
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -79,6 +79,9 @@ jobs:
       - name: Configure Docker Hub mirror
         run: bash .github/workflows/e2e-kind/configure-dockerhub-mirror.sh
 
+      - name: Show e2e runner resources
+        run: bash .github/workflows/e2e-kind/show-runner-resources.sh
+
       - name: Run Kind e2e
         run: |
           set -euo pipefail
@@ -106,6 +109,8 @@ jobs:
             echo "== ${context}: recent events =="
             kubectl get events -A --context "${context}" --sort-by=.lastTimestamp | tail -200
           done
+
+          bash .github/workflows/e2e-kind/show-runner-resources.sh
 
       - name: Cleanup Kind clusters
         if: always()
