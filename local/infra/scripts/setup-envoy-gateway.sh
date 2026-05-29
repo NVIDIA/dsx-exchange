@@ -7,6 +7,10 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ENVOY_GATEWAY_OCI_REGISTRY="${ENVOY_GATEWAY_OCI_REGISTRY:-docker.io}"
+ENVOY_GATEWAY_OCI_REGISTRY="${ENVOY_GATEWAY_OCI_REGISTRY%/}"
+ENVOY_GATEWAY_CRDS_CHART="oci://${ENVOY_GATEWAY_OCI_REGISTRY}/envoyproxy/gateway-crds-helm"
+ENVOY_GATEWAY_CHART="oci://${ENVOY_GATEWAY_OCI_REGISTRY}/envoyproxy/gateway-helm"
 
 command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required" >&2; exit 1; }
 command -v helm >/dev/null 2>&1 || { echo "ERROR: helm is required" >&2; exit 1; }
@@ -19,7 +23,7 @@ deploy_to_cluster() {
 
   # Install CRDs separately using helm template and server-side apply
   echo "Installing Envoy Gateway CRDs..."
-  helm template eg oci://docker.io/envoyproxy/gateway-crds-helm \
+  helm template eg "${ENVOY_GATEWAY_CRDS_CHART}" \
     --version v1.5.4 \
     --set crds.gatewayAPI.enabled=true \
     --set crds.gatewayAPI.channel=experimental \
@@ -28,7 +32,7 @@ deploy_to_cluster() {
 
   # Install Envoy Gateway without CRDs
   echo "Installing Envoy Gateway..."
-  helm upgrade --install eg oci://docker.io/envoyproxy/gateway-helm \
+  helm upgrade --install eg "${ENVOY_GATEWAY_CHART}" \
     --version v1.5.4 \
     --namespace envoy-gateway-system \
     --create-namespace \

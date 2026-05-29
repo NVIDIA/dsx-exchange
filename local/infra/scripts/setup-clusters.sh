@@ -7,6 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+KIND_CONFIG_DIR="${KIND_CONFIG_DIR:-${PROJECT_ROOT}/infra/kind}"
 
 # Check prerequisites
 command -v kind >/dev/null 2>&1 || { echo "ERROR: kind is required but not installed" >&2; exit 1; }
@@ -53,6 +54,11 @@ create_cluster() {
   local cluster_name=$1
   local config_file=$2
 
+  if [ ! -f "${config_file}" ]; then
+    echo "ERROR: Kind config not found: ${config_file}" >&2
+    exit 1
+  fi
+
   if kind get clusters | grep -q "^${cluster_name}$"; then
     echo "${cluster_name} already exists, skipping"
   else
@@ -64,11 +70,11 @@ create_cluster() {
 pids=()
 
 # Create all clusters in parallel
-create_cluster "csc" "$PROJECT_ROOT/infra/kind/csc.yaml" &
+create_cluster "csc" "${KIND_CONFIG_DIR}/csc.yaml" &
 pids+=("$!")
-create_cluster "cpc-1" "$PROJECT_ROOT/infra/kind/cpc-1.yaml" &
+create_cluster "cpc-1" "${KIND_CONFIG_DIR}/cpc-1.yaml" &
 pids+=("$!")
-create_cluster "cpc-2" "$PROJECT_ROOT/infra/kind/cpc-2.yaml" &
+create_cluster "cpc-2" "${KIND_CONFIG_DIR}/cpc-2.yaml" &
 pids+=("$!")
 
 # Wait for all cluster creations to complete
