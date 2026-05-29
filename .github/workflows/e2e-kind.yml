@@ -90,7 +90,7 @@ jobs:
           set -euo pipefail
           bash .github/workflows/e2e-kind/retry-local-setup-infra.sh
           make -C local deploy-nats
-          make -C local validate-nats
+          bash .github/workflows/e2e-kind/retry-local-validate-nats.sh
           make test-e2e
 
       - name: Collect e2e diagnostics
