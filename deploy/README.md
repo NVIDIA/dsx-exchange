@@ -217,9 +217,15 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
 # Install
 helm install dsx ./nats-event-bus -n dsx --create-namespace
 
-# With custom values
-helm install dsx ./nats-event-bus -n dsx --create-namespace -f values-csc.yaml
+# Run the local setup from the repository root
+make -C local setup-infra
+make -C local deploy-nats
 ```
+
+The local setup deploys the same chart with values from `local/nats/k8s/`.
+Use `local/nats/k8s/local-dev-values.yaml`, `local/nats/k8s/csc/values.yaml`,
+`local/nats/k8s/cpc/values.yaml`, and the per-CPC files in
+`local/nats/k8s/cpc/` as the working reference for value layering.
 
 ## Umbrella Chart Configuration
 
