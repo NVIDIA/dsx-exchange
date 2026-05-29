@@ -17,6 +17,7 @@ env:
   KIND_VERSION: "v0.31.0"
   KUBECTL_VERSION: "v1.31.9"
   HELM_VERSION: "v4.2.0"
+  DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
 
 jobs:
   e2e-kind:
@@ -76,46 +77,7 @@ jobs:
           yq --version
 
       - name: Configure Docker Hub mirror
-        run: |
-          set -euo pipefail
-
-          mirror=""
-          if [ -f /etc/buildkit/buildkitd.toml ]; then
-            mirror="$(
-              awk -F"'" '/mirrors =/ { print $2; exit }' /etc/buildkit/buildkitd.toml || true
-            )"
-          fi
-
-          if [ -z "${mirror}" ]; then
-            echo "::error::Docker Hub mirror not found in /etc/buildkit/buildkitd.toml"
-            exit 1
-          fi
-
-          mirror="${mirror%/}"
-          mirror_host="${mirror#http://}"
-          mirror_host="${mirror_host#https://}"
-
-          echo "KIND_DOCKERHUB_MIRROR=${mirror}" >> "${GITHUB_ENV}"
-          echo "HELM_DOCKERHUB_OCI_HOST=${mirror_host}" >> "${GITHUB_ENV}"
-
-          mirror_image() {
-            local image="$1"
-            local mirror_path="${image}"
-            local mirrored_image
-
-            case "${mirror_path}" in
-              */*) ;;
-              *) mirror_path="library/${mirror_path}" ;;
-            esac
-
-            mirrored_image="${mirror_host}/${mirror_path}"
-            echo "Preloading ${image} from Docker Hub mirror ${mirror_host}..."
-            docker pull "${mirrored_image}"
-            docker tag "${mirrored_image}" "${image}"
-          }
-
-          mirror_image "kindest/node:${KUBECTL_VERSION}"
-          mirror_image "golang:${GO_VERSION}"
+        run: bash .github/workflows/e2e-kind/configure-dockerhub-mirror.sh
 
       - name: Run Kind e2e
         run: |
