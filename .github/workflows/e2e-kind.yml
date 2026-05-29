@@ -88,9 +88,8 @@ jobs:
       - name: Run Kind e2e
         run: |
           set -euo pipefail
-          bash .github/workflows/e2e-kind/retry-local-setup-infra.sh
+          make -C local setup-infra
           make -C local deploy-nats
-          bash .github/workflows/e2e-kind/retry-local-validate-nats.sh
           make test-e2e
 
       - name: Collect e2e diagnostics
