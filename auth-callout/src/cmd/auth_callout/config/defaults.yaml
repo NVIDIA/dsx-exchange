@@ -19,6 +19,7 @@ nats:
 jwks:
   url: ""            # JWKS endpoint URL
   issuer: ""         # Expected JWT issuer
+  audience: ""       # Expected JWT audience
 
 # mTLS configuration
 mtls:

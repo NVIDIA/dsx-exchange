@@ -87,6 +87,7 @@ serviceConfig:
   jwks:
     url: "https://keycloak/realms/master/protocol/openid-connect/certs"
     issuer: "https://keycloak/realms/master"
+    audience: "dsx-exchange"
 ```
 
 ### mTLS Configuration

@@ -26,6 +26,7 @@ type OAuth2Authenticator struct {
 	jwks        keyfunc.Keyfunc
 	pm          *config.PermissionsManager
 	issuer      string
+	audience    string
 	jwksURL     string
 	logger      *otelzap.Logger
 	serviceName string
@@ -33,7 +34,14 @@ type OAuth2Authenticator struct {
 }
 
 // NewOAuth2Authenticator creates a new OAuth2 authenticator
-func NewOAuth2Authenticator(jwksURL string, issuer string, pm *config.PermissionsManager, logger *otelzap.Logger, serviceName string) (*OAuth2Authenticator, error) {
+func NewOAuth2Authenticator(jwksURL string, issuer string, audience string, pm *config.PermissionsManager, logger *otelzap.Logger, serviceName string) (*OAuth2Authenticator, error) {
+	if issuer == "" {
+		return nil, fmt.Errorf("OAuth2 issuer is required")
+	}
+	if audience == "" {
+		return nil, fmt.Errorf("OAuth2 audience is required")
+	}
+
 	// Create JWKS client with automatic refresh - context controls lifecycle
 	ctx, cancel := context.WithCancel(context.Background())
 	k, err := keyfunc.NewDefaultCtx(ctx, []string{jwksURL})
@@ -48,6 +56,7 @@ func NewOAuth2Authenticator(jwksURL string, issuer string, pm *config.Permission
 		jwks:        k,
 		pm:          pm,
 		issuer:      issuer,
+		audience:    audience,
 		jwksURL:     jwksURL,
 		logger:      logger,
 		serviceName: serviceName,
@@ -78,7 +87,15 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, token string) (*
 	}
 
 	// Parse and validate the JWT token
-	parsed, err := jwt.ParseWithClaims(token, &Claims{}, o.jwks.Keyfunc)
+	parsed, err := jwt.ParseWithClaims(
+		token,
+		&Claims{},
+		o.jwks.Keyfunc,
+		jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuer(o.issuer),
+		jwt.WithAudience(o.audience),
+	)
 	if err != nil {
 		if counter, err := meter.Int64Counter("auth_oauth2_failures_total",
 			metric.WithDescription("Total OAuth2 authentication failures")); err == nil {
@@ -111,18 +128,6 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, token string) (*
 			))
 		}
 		return nil, fmt.Errorf("invalid claims type")
-	}
-
-	// Validate issuer if configured
-	if o.issuer != "" && claims.Issuer != o.issuer {
-		if counter, err := meter.Int64Counter("auth_oauth2_failures_total",
-			metric.WithDescription("Total OAuth2 authentication failures")); err == nil {
-			counter.Add(ctx, 1, metric.WithAttributes(
-				attribute.String("method", "oauth2"),
-				attribute.String("reason", "invalid_issuer"),
-			))
-		}
-		return nil, fmt.Errorf("invalid issuer: expected %s, got %s", o.issuer, claims.Issuer)
 	}
 
 	// Look up user profile in permissions config using both subject and azp

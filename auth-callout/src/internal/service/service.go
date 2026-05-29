@@ -77,8 +77,9 @@ type NATSConfig struct {
 
 // JWKSConfig contains OAuth2/JWKS configuration
 type JWKSConfig struct {
-	URL    string `koanf:"url"`
-	Issuer string `koanf:"issuer"`
+	URL      string `koanf:"url"`
+	Issuer   string `koanf:"issuer"`
+	Audience string `koanf:"audience"`
 }
 
 // MTLSConfig contains mTLS configuration
@@ -133,7 +134,7 @@ func New(config ServiceConfig, logger *otelzap.Logger) *Service {
 
 	// OAuth2 authenticator
 	if config.JWKS.URL != "" {
-		oauth2Auth, err := auth.NewOAuth2Authenticator(config.JWKS.URL, config.JWKS.Issuer, pm, logger, serviceName)
+		oauth2Auth, err := auth.NewOAuth2Authenticator(config.JWKS.URL, config.JWKS.Issuer, config.JWKS.Audience, pm, logger, serviceName)
 		if err != nil {
 			logger.Fatal("error initializing OAuth2 authenticator", zap.Error(err))
 		}
