@@ -10,6 +10,12 @@ nproc
 echo "== runner memory =="
 free -h
 
+echo "== runner limits =="
+ulimit -a
+
+echo "== runner inotify limits =="
+sysctl fs.inotify.max_user_instances fs.inotify.max_user_watches || true
+
 echo "== runner disk =="
 df -h /
 

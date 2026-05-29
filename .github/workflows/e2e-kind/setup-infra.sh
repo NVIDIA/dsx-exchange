@@ -47,17 +47,49 @@ setup_kind_network() {
 create_cluster() {
   local cluster_name=$1
   local config_file=$2
+  local attempt
   local context="kind-${cluster_name}"
+  local max_attempts=3
 
   if kind get clusters | grep -q "^${cluster_name}$"; then
     echo "${cluster_name} already exists, skipping"
   else
-    echo "Creating ${cluster_name}..."
-    kind create cluster --config "${config_file}"
+    for attempt in $(seq 1 "${max_attempts}"); do
+      echo "Creating ${cluster_name} (attempt ${attempt}/${max_attempts})..."
+      if kind create cluster --retain --config "${config_file}"; then
+        break
+      fi
+
+      echo "::warning::Kind failed to create ${cluster_name} on attempt ${attempt}"
+      collect_kind_logs "${cluster_name}" "${attempt}"
+      kind delete cluster --name "${cluster_name}" || true
+
+      if [ "${attempt}" -eq "${max_attempts}" ]; then
+        echo "ERROR: failed to create ${cluster_name} after ${max_attempts} attempts" >&2
+        exit 1
+      fi
+
+      sleep "$((attempt * 15))"
+    done
   fi
 
   echo "Waiting for ${cluster_name} nodes to be ready..."
   kubectl wait --for=condition=Ready nodes --all --timeout=4m --context "${context}"
+}
+
+collect_kind_logs() {
+  local cluster_name=$1
+  local attempt=$2
+  local log_dir="${RUNNER_TEMP:-/tmp}/kind-logs/${cluster_name}-attempt-${attempt}"
+
+  mkdir -p "${log_dir}"
+  kind export logs --name "${cluster_name}" "${log_dir}" || true
+
+  if [ -d "${log_dir}" ]; then
+    echo "Filtered Kind logs from ${log_dir}:"
+    grep -RniE 'error|failed|too many open|cgroup|multi-user|kubelet|containerd' "${log_dir}" |
+      head -200 || true
+  fi
 }
 
 setup_kind_network
