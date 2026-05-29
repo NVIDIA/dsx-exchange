@@ -44,6 +44,17 @@ setup_kind_network() {
     kind
 }
 
+configure_inotify_limits() {
+  local sysctl_cmd=(sysctl -w fs.inotify.max_user_instances=8192)
+
+  echo "Configuring inotify limits for multi-cluster Kind..."
+  if command -v sudo >/dev/null 2>&1; then
+    sudo "${sysctl_cmd[@]}"
+  else
+    "${sysctl_cmd[@]}"
+  fi
+}
+
 create_cluster() {
   local cluster_name=$1
   local config_file=$2
@@ -92,6 +103,7 @@ collect_kind_logs() {
   fi
 }
 
+configure_inotify_limits
 setup_kind_network
 
 echo "Creating clusters sequentially for CI runner stability..."
