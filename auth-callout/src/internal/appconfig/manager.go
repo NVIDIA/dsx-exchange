@@ -107,6 +107,7 @@ func applyAliases(k *koanf.Koanf) {
 	setString(k, "nats.xkey-seed", "NATS_XKEY_SEED", envPrefix+"NATS_XKEY_SEED")
 	setString(k, "jwks.url", "JWKS_URL", envPrefix+"JWKS_URL")
 	setString(k, "jwks.issuer", "JWKS_ISSUER", envPrefix+"JWKS_ISSUER")
+	setString(k, "jwks.audience", "JWKS_AUDIENCE", envPrefix+"JWKS_AUDIENCE")
 	setString(k, "mtls.ca-path", "MTLS_CA_PATH", envPrefix+"MTLS_CA_PATH")
 	setString(k, "permissions.file", "PERMISSIONS_FILE", envPrefix+"PERMISSIONS_FILE")
 	setString(k, "observability.telemetry.service-name", envPrefix+"SERVICE_NAME")

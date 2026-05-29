@@ -405,6 +405,7 @@ auth-callout:
     jwks:
       url: "https://keycloak.example.com/realms/event-bus/protocol/openid-connect/certs"
       issuer: "https://keycloak.example.com/realms/event-bus"
+      audience: "dsx-exchange"
 ```
 
 Auth permissions are configured via `global.eventBus.auth.permissions`, not under `auth-callout`. See [auth-callout Helm chart documentation](../auth-callout/deploy/README.md).
@@ -543,6 +544,7 @@ auth-callout:
     jwks:
       url: "https://keycloak.example.com/realms/event-bus/protocol/openid-connect/certs"
       issuer: "https://keycloak.example.com/realms/event-bus"
+      audience: "dsx-exchange"
     mtls:
       ca-path: "/etc/mtls-ca/ca.crt"
 ```

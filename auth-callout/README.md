@@ -35,6 +35,7 @@ nats:
 jwks:
   url: "https://keycloak/realms/master/protocol/openid-connect/certs"
   issuer: "https://keycloak/realms/master"
+  audience: "dsx-exchange"
 
 mtls:
   ca-path: "/etc/ssl/certs/ca.crt"

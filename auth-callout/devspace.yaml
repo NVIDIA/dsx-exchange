@@ -225,7 +225,20 @@ deployments:
                   "attributes": {
                     "include.in.token.scope": "true",
                     "display.on.consent.screen": "true"
-                  }
+                  },
+                  "protocolMappers": [
+                    {
+                      "name": "dsx-exchange-audience",
+                      "protocol": "openid-connect",
+                      "protocolMapper": "oidc-audience-mapper",
+                      "consentRequired": false,
+                      "config": {
+                        "included.custom.audience": "dsx-exchange",
+                        "id.token.claim": "false",
+                        "access.token.claim": "true"
+                      }
+                    }
+                  ]
                 }
               ],
               "users": []
@@ -371,6 +384,7 @@ deployments:
           jwks:
             url: "http://keycloak-service.keycloak:8080/realms/auth-callout/protocol/openid-connect/certs"
             issuer: "http://keycloak-service.keycloak:8080/realms/auth-callout"
+            audience: "dsx-exchange"
         permissions:
           oauth2:
             csc-admin:

@@ -201,6 +201,7 @@ serviceConfig:
   jwks:
     url: ""            # JWKS endpoint URL (e.g., "https://auth.example.com/.well-known/jwks.json")
     issuer: ""         # Expected JWT issuer
+    audience: ""       # Expected JWT audience
 
   # mTLS configuration
   mtls:

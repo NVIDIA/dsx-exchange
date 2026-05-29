@@ -83,6 +83,7 @@ func TestOAuth2Authentication(t *testing.T) {
 	oauth2Auth, err := NewOAuth2Authenticator(
 		jwksServer.URL,
 		"https://auth.example.com/",
+		"test-audience",
 		pm,
 		testLogger(),
 		testServiceName,
@@ -179,6 +180,44 @@ func TestOAuth2Authentication(t *testing.T) {
 			expectError:    true,
 			expectedErrMsg: "missing required scope: mqtt",
 		},
+		{
+			name: "missing expiration fails",
+			claims: gojwt.MapClaims{
+				"iss":   "https://auth.example.com/",
+				"sub":   "user@example.com",
+				"aud":   "test-audience",
+				"iat":   now.Unix(),
+				"scope": "mqtt",
+			},
+			expectError:    true,
+			expectedErrMsg: "token is missing required claim: exp claim is required",
+		},
+		{
+			name: "wrong issuer fails",
+			claims: gojwt.MapClaims{
+				"iss":   "https://other.example.com/",
+				"sub":   "user@example.com",
+				"aud":   "test-audience",
+				"exp":   now.Add(1 * time.Hour).Unix(),
+				"iat":   now.Unix(),
+				"scope": "mqtt",
+			},
+			expectError:    true,
+			expectedErrMsg: "token has invalid issuer",
+		},
+		{
+			name: "wrong audience fails",
+			claims: gojwt.MapClaims{
+				"iss":   "https://auth.example.com/",
+				"sub":   "user@example.com",
+				"aud":   "wrong-audience",
+				"exp":   now.Add(1 * time.Hour).Unix(),
+				"iat":   now.Unix(),
+				"scope": "mqtt",
+			},
+			expectError:    true,
+			expectedErrMsg: "token has invalid audience",
+		},
 	}
 
 	for _, tt := range tests {
@@ -205,6 +244,66 @@ func TestOAuth2Authentication(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOAuth2RejectsUnexpectedSigningMethod(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	jwkSet := jwkset.NewMemoryStorage()
+	jwk, err := jwkset.NewJWKFromKey(privateKey, jwkset.JWKOptions{
+		Metadata: jwkset.JWKMetadataOptions{
+			KID: "test-key-1",
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, jwkSet.KeyWrite(context.Background(), jwk))
+
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jwks, err := jwkSet.JSONPublic(context.Background())
+		if err != nil {
+			http.Error(w, "Failed to get JWKS", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write(jwks); err != nil {
+			http.Error(w, "Failed to write JWKS", http.StatusInternalServerError)
+		}
+	}))
+	defer jwksServer.Close()
+
+	permFile := createTestPermissionsFile(t)
+	defer os.Remove(permFile)
+
+	pm, err := config.NewPermissionsManager(permFile, testLogger())
+	require.NoError(t, err)
+	defer pm.Close()
+
+	oauth2Auth, err := NewOAuth2Authenticator(
+		jwksServer.URL,
+		"https://auth.example.com/",
+		"test-audience",
+		pm,
+		testLogger(),
+		testServiceName,
+	)
+	require.NoError(t, err)
+	defer oauth2Auth.Close()
+
+	token := gojwt.NewWithClaims(gojwt.SigningMethodHS256, gojwt.MapClaims{
+		"iss":   "https://auth.example.com/",
+		"sub":   "user@example.com",
+		"aud":   "test-audience",
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+		"scope": "mqtt",
+	})
+	token.Header["kid"] = "test-key-1"
+	tokenString, err := token.SignedString([]byte("secret"))
+	require.NoError(t, err)
+
+	_, err = oauth2Auth.Authenticate(context.Background(), tokenString)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "signing method HS256 is invalid")
 }
 
 // TestOAuth2RequiredScope tests per-client required scope validation
@@ -278,6 +377,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 	oauth2Auth, err := NewOAuth2Authenticator(
 		jwksServer.URL,
 		"https://auth.example.com/",
+		"test-audience",
 		pm,
 		testLogger(),
 		testServiceName,
@@ -299,6 +399,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 			claims: gojwt.MapClaims{
 				"iss":   "https://auth.example.com/",
 				"sub":   "default@example.com",
+				"aud":   "test-audience",
 				"exp":   now.Add(1 * time.Hour).Unix(),
 				"iat":   now.Unix(),
 				"scope": "mqtt openid",
@@ -311,6 +412,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 			claims: gojwt.MapClaims{
 				"iss":   "https://auth.example.com/",
 				"sub":   "default@example.com",
+				"aud":   "test-audience",
 				"exp":   now.Add(1 * time.Hour).Unix(),
 				"iat":   now.Unix(),
 				"scope": "openid profile",
@@ -324,6 +426,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 				"iss":   "https://auth.example.com/",
 				"sub":   "some-service",
 				"azp":   "custom-client-id",
+				"aud":   "test-audience",
 				"exp":   now.Add(1 * time.Hour).Unix(),
 				"iat":   now.Unix(),
 				"scope": "nats:events openid",
@@ -337,6 +440,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 				"iss":   "https://auth.example.com/",
 				"sub":   "some-service",
 				"azp":   "custom-client-id",
+				"aud":   "test-audience",
 				"exp":   now.Add(1 * time.Hour).Unix(),
 				"iat":   now.Unix(),
 				"scope": "mqtt openid",

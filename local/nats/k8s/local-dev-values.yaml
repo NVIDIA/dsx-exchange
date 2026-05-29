@@ -26,6 +26,7 @@ auth-callout:
     jwks:
       url: "http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs"
       issuer: "http://172.18.200.1/realms/event-bus"
+      audience: "dsx-exchange"
     # CA certificate for mTLS client verification
     mtls:
       ca-path: "/etc/mtls-ca/ca.crt"
