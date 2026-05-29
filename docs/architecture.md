@@ -14,7 +14,7 @@ DSX Exchange consists of three components:
 
 ## DSX Event Bus
 
-The DSX Event Bus is a [NATS](https://nats.io/)-based messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI factory topology.
+The DSX Event Bus is a [NATS](https://nats.io/) messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI factory topology.
 
 The event bus supports the following capabilities:
 
