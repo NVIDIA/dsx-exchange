@@ -2,27 +2,26 @@
 
 ## DSX Exchange
 
-A gigawatt-scale AI factory is fifty or more independent systems — GPU clusters, building management systems, power distribution units, cooling infrastructure, grid interfaces, network switches — each designed by a different vendor, none designed to talk to each other. AI workloads make this worse: a training job launch swings rack power from 20% to 95% in seconds, creating thermal and electrical transients that existing BMS controllers were not built to handle.
+DSX Exchange is an open source MQTT-based event broker for AI factories. It supports real-time operational signal exchange between power management systems, building management systems, cooling infrastructure, grid interfaces, and compute schedulers.
 
-DSX Exchange is the integration layer within DSX OS that connects these systems. It gives the factory four capabilities:
-
-- **Legible** — every signal (power, cooling, grid, compute, network) readable in one place through a common schema
-- **Coordinated** — control loops close in real time: DPS sees power headroom, NICo reacts to BMS leak events, the scheduler responds to grid curtailment via DSX Flex
-- **Agent-operable** — agents observe factory state through the MCP Gateway and act through constrained, audited control surfaces
-- **Auditable** — every publisher authenticated, every subscriber authorized, every action logged with caller identity
-
-DSX Exchange consists of four components:
+DSX Exchange consists of three components:
 
 | Component | What It Is |
-|-----------|-----------|
-| DSX Event Bus | NATS with MQTT 3.1.1, HA clustering, leaf-node federation |
+|-----------|------------|
+| DSX Event Bus | NATS with MQTT 3.1.1, HA clustering, and leaf-node federation |
 | AsyncAPI Schema | Formal topic definitions and payload contracts per service team |
 | Auth-Callout Service | OAuth2/mTLS/NKey authentication with topic-level ACLs |
-| MCP Interface Layer | MCP Gateway aggregating read-only MCP servers |
 
 ## DSX Event Bus
 
-The DSX Event Bus is a [NATS](https://nats.io/)-based messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI Factory topology. It is the transport that makes the rest of DSX Exchange possible.
+The DSX Event Bus is a [NATS](https://nats.io/)-based messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI factory topology.
+
+The event bus supports the following capabilities:
+
+- **High availability.** 3-node cluster with topology-aware anti-affinity and automatic failover.
+- **Persistent messaging.** JetStream-backed QoS 0/1 and retained message support with in-memory replication.
+- **Multi-cluster federation.** Leaf node connections between deployment layers with controlled topic filtering at each boundary.
+- **Declarative deployment.** Helm chart-based, ArgoCD-compatible, with no manual intervention required.
 
 ### Why MQTT 3.1.1
 
