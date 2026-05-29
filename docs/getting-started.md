@@ -58,11 +58,8 @@ Version-pinned where there is a known compatibility break; see [Pre-Deployment](
 All NKey secrets must be provisioned before deploying the event bus. Any secrets pipeline that materializes Kubernetes Secrets works (see [Pre-Deployment — Secrets Pipeline](pre-deployment.md#secrets-pipeline)). Generate keys locally with the provided script:
 
 ```bash
-# Generate secrets for CSC with CPC IDs 1 and 2
-./deploy/scripts/generate-nkeys.sh -c csc 1 2
-
-# Generate secrets for CPC-1
-./deploy/scripts/generate-nkeys.sh -c cpc-1
+# Generate secrets for CSC and CPC IDs 1 and 2
+./deploy/scripts/generate-nkeys.sh 1 2
 ```
 
 See [Authentication](authentication.md) for details on the auth model and required keys.
@@ -76,8 +73,8 @@ helm dependency update ./deploy/nats-event-bus
 
 helm install dsx ./deploy/nats-event-bus \
   -n dsx --create-namespace \
-  -f values-common.yaml \
-  -f values-csc.yaml
+  -f deploy/nats-event-bus/examples/values-common.yaml \
+  -f deploy/nats-event-bus/examples/values-csc.yaml
 ```
 
 CSC values configure the cluster type, list of CPC IDs that will connect, and auth permissions:
@@ -95,9 +92,9 @@ global:
             account: "CSC"
             permissions:
               pub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
               sub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
         mtls:
           mqtt-client:
             identity: "CN=mqtt-client.csc"
@@ -123,9 +120,9 @@ The CSC also needs CPC leaf user public keys to authorize incoming leaf connecti
 ```bash
 helm install dsx ./deploy/nats-event-bus \
   -n dsx --create-namespace \
-  -f values-common.yaml \
-  -f values-cpc.yaml \
-  -f values-cpc-1.yaml    # cluster-specific overrides
+  -f deploy/nats-event-bus/examples/values-common.yaml \
+  -f deploy/nats-event-bus/examples/values-cpc.yaml \
+  -f deploy/nats-event-bus/examples/values-cpc-1.yaml
 ```
 
 CPC values set the cluster type, cluster ID, CSC endpoint, and cross-layer routing:
@@ -139,7 +136,7 @@ global:
     crossLayer:
       cscExports: ["broadcast.>"]
       cscPrefixedExports: ["command.>"]
-      cpcExports: ["sensor.>"]
+      cpcExports: ["events.>"]
 ```
 
 If using OAuth2, each CPC also needs the `auth-callout.serviceConfig.jwks` block — see the CSC section above. Without it, OAuth2 connections to this CPC are silently rejected.

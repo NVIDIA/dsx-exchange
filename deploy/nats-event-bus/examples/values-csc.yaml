@@ -1,0 +1,33 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# CSC-specific values.
+# The CSC accepts CPC leaf connections and owns the unified CSC topic space.
+
+global:
+  eventBus:
+    clusterType: csc
+
+    # CPC IDs must match the clusterId values in values-cpc-*.yaml. The chart
+    # uses these IDs to generate leaf authorization env refs for nats-leaf-cpc-*.
+    cpcIds: ["1", "2"]
+
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CSC"
+            permissions:
+              pub:
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
+              sub:
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.csc"
+            account: "CSC"
+        # Remove noauth for production deployments that require authenticated
+        # clients only.
+        noauth:
+          account: "CSC"

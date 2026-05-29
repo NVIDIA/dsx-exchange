@@ -1,0 +1,52 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Common values shared by CSC and CPC chart installs.
+# Layer this file before cluster-specific values:
+#   -f values-common.yaml -f values-csc.yaml
+#   -f values-common.yaml -f values-cpc.yaml -f values-cpc-1.yaml
+
+global:
+  eventBus:
+    # Set false only when the deployment does not expose mTLS MQTT on port 8883.
+    mtls:
+      enabled: true
+
+auth-callout:
+  image:
+    # Build auth-callout from source and push it to an internal registry before
+    # deploying. See docs/pre-deployment.md#auth-callout-container-image.
+    repository: registry.example.com/dsx-exchange/auth-callout
+    tag: latest
+
+  serviceConfig:
+    # Required when OAuth2 permissions are configured in cluster-specific values.
+    jwks:
+      url: "https://keycloak.example.com/realms/event-bus/protocol/openid-connect/certs"
+      issuer: "https://keycloak.example.com/realms/event-bus"
+
+    # Required when global.eventBus.mtls.enabled is true. The chart's mTLS NATS
+    # server uses nats-mtls-server-tls; auth-callout needs the CA certificate
+    # from the same Secret to verify client certificate identities.
+    mtls:
+      ca-path: "/etc/mtls-ca/ca.crt"
+
+    observability:
+      tracing:
+        # Enable and set otlp.endpoint when an OTLP collector is available.
+        enabled: false
+
+  # Helm replaces list values when later -f files set the same key. If an
+  # environment-specific values file also sets extraVolumes or extraVolumeMounts,
+  # keep these mtls-ca entries in that later file.
+  extraVolumes:
+    - name: mtls-ca
+      secret:
+        secretName: nats-mtls-server-tls
+        items:
+          - key: ca.crt
+            path: ca.crt
+  extraVolumeMounts:
+    - name: mtls-ca
+      mountPath: /etc/mtls-ca
+      readOnly: true
