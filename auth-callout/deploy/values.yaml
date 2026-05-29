@@ -193,9 +193,6 @@ serviceConfig:
   # NATS connection configuration
   nats:
     url: "nats://nats:4222"
-    nkey-seed: ""
-    issuer-seed: ""
-    xkey-seed: ""
 
   # OAuth2/JWKS configuration (non-secrets)
   jwks:

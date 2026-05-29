@@ -28,9 +28,6 @@ host:
 
 nats:
   url: "nats://nats:4222"
-  nkey-seed: "SUAM..."      # connection NKey seed (from Vault)
-  issuer-seed: "SAAG..."    # account signing key seed (from Vault)
-  xkey-seed: "SXAE..."      # encryption XKey seed (optional, from Vault)
 
 jwks:
   url: "https://keycloak/realms/master/protocol/openid-connect/certs"
@@ -57,15 +54,18 @@ observability:
 
 ### NKey Seeds
 
-The service requires three NKey seeds for NATS authentication:
+The service requires NATS seed material from environment variables or a secret-backed config file:
 
-| Key | Seed Prefix | Public Key Prefix | Purpose |
-|-----|-------------|-------------------|---------|
-| `nkey-seed` | `SU` | `U` | Auth callout connects to NATS |
-| `issuer-seed` | `SA` | `A` | Signs user JWTs for authenticated clients |
-| `xkey-seed` | `SX` | `X` | Encrypts responses (optional) |
+| Environment variable | Seed Prefix | Public Key Prefix | Purpose |
+|----------------------|-------------|-------------------|---------|
+| `AUTH_CALLOUT_NATS_NKEY_SEED` | `SU` | `U` | Auth callout connects to NATS |
+| `AUTH_CALLOUT_NATS_ISSUER_SEED` | `SA` | `A` | Signs user JWTs for authenticated clients |
+| `AUTH_CALLOUT_NATS_XKEY_SEED` | `SX` | `X` | Encrypts responses (optional) |
 
-Seeds are secrets (store in Vault). Public keys are configured in NATS server.
+Secret files use the same config keys: `nats.nkey-seed`, `nats.issuer-seed`,
+and `nats.xkey-seed`.
+
+Seeds are secrets. Public keys are configured in NATS server.
 See [docs/pre-deployment.md](../docs/pre-deployment.md) for the full key
 inventory and generation script.
 
