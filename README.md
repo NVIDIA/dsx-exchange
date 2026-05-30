@@ -111,7 +111,7 @@ DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), auto
 
 ### Roadmap
 
-Upcoming work is tracked in [GitHub Issues](../../issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved.
+Upcoming work is tracked in [GitHub Issues](https://github.com/NVIDIA/dsx-exchange/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved.
 
 
 ## Contribution Guidelines
