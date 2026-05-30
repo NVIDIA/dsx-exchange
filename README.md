@@ -94,12 +94,13 @@ make -C local benchmark-basic-full
 
 ## Releases & Roadmap
 
-- Release notes: [CHANGELOG.md](CHANGELOG.md) will automatically updated on every release by semantic-release. Do not edit manually.
+- Release notes: [CHANGELOG.md](CHANGELOG.md)
 - Third-party license inventory: [THIRD_PARTY_LICENSES.csv](THIRD_PARTY_LICENSES.csv) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)
+
 
 ### Versioning
 
-DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), automated via semantic-release. A new version is published automatically on every merge to `main` with a semantic-release compliant commit message.
+DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), automated via semantic-release. A new version is published automatically when a semantic-release compliant commit is merged to `main`.
 
 | Commit prefix | Version bump | When to use |
 |---------------|-------------|-------------|
