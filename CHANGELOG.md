@@ -6,7 +6,7 @@ This project uses a human-readable changelog. Add entries under `Unreleased` bef
 
 ## Unreleased
 
-## [0.1.0] - 2026-05-29
+## [v2.5.11] - 2026-05-29
 
 ### Added
 
