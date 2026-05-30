@@ -35,6 +35,10 @@ const (
 	natsClientName         = "auth-callout-service"
 	natsStartupConnectWait = 2 * time.Second
 	natsMaxReconnects      = -1 // Keep retrying while readiness reports NATS unavailable.
+	httpReadHeaderTimeout  = 5 * time.Second
+	httpReadTimeout        = 10 * time.Second
+	httpWriteTimeout       = 10 * time.Second
+	httpIdleTimeout        = 120 * time.Second
 )
 
 // Service wraps HTTP server with graceful shutdown
@@ -174,11 +178,11 @@ func New(config ServiceConfig, logger *otelzap.Logger) *Service {
 		gorillaHandlers.RecoveryLogger(zapErrorLogger),
 	)(rootRouter)
 
-	srv := &http.Server{
-		Addr:     fmt.Sprintf(":%d", config.HostConfig.Port),
-		Handler:  recoveryHandler,
-		ErrorLog: zapErrorLogger,
-	}
+	srv := newHTTPServer(
+		fmt.Sprintf(":%d", config.HostConfig.Port),
+		recoveryHandler,
+		logger.Logger,
+	)
 
 	return &Service{
 		config:         config,
@@ -190,6 +194,18 @@ func New(config ServiceConfig, logger *otelzap.Logger) *Service {
 		issuerKeyPair:  issuerKeyPair,
 		issuerPubKey:   issuerPubKey,
 		curveKeyPair:   curveKeyPair,
+	}
+}
+
+func newHTTPServer(addr string, handler http.Handler, logger *zap.Logger) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ErrorLog:          obslogging.NewLoggerWithZapWriter(logger),
+		ReadHeaderTimeout: httpReadHeaderTimeout,
+		ReadTimeout:       httpReadTimeout,
+		WriteTimeout:      httpWriteTimeout,
+		IdleTimeout:       httpIdleTimeout,
 	}
 }
 

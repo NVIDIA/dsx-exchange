@@ -214,8 +214,8 @@ serviceConfig:
   # Observability configuration
   observability:
     logging:
-      level: debug
-      zap-configuration: development
+      level: info
+      zap-configuration: production
     telemetry:
       deployment-environment-name: local
       service-name: auth-callout

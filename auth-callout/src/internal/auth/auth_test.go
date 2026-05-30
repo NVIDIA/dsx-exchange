@@ -565,6 +565,49 @@ func TestNKeyAuthentication(t *testing.T) {
 	t.Logf("NKey authentication successful for key: %s", publicKey)
 }
 
+func TestNKeyTryAuthenticateDoesNotEchoMalformedPublicKey(t *testing.T) {
+	permFile := createTestPermissionsFile(t)
+	defer os.Remove(permFile)
+
+	pm, err := config.NewPermissionsManager(permFile, testLogger())
+	require.NoError(t, err)
+	defer pm.Close()
+
+	authenticator := NewNKeyAuthenticator(pm, testLogger(), testServiceName)
+	rc := &jwt.AuthorizationRequestClaims{}
+	rc.ConnectOptions.Nkey = "U_FORGE\n[INF] forged %s\u001b]0;pwned\u0007"
+	rc.ConnectOptions.SignedNonce = "AAAA"
+
+	_, err = authenticator.TryAuthenticate(context.Background(), rc)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NKey not found in permissions config")
+	assert.NotContains(t, err.Error(), "[INF] forged")
+	assert.NotContains(t, err.Error(), "%s")
+	assert.NotContains(t, err.Error(), "\u001b")
+	assert.NotContains(t, err.Error(), "\n")
+}
+
+func TestNKeyAuthenticateDoesNotEchoUnknownPublicKey(t *testing.T) {
+	permFile := createTestPermissionsFile(t)
+	defer os.Remove(permFile)
+
+	pm, err := config.NewPermissionsManager(permFile, testLogger())
+	require.NoError(t, err)
+	defer pm.Close()
+
+	kp, err := nkeys.CreateUser()
+	require.NoError(t, err)
+	publicKey, err := kp.PublicKey()
+	require.NoError(t, err)
+
+	authenticator := NewNKeyAuthenticator(pm, testLogger(), testServiceName)
+
+	_, err = authenticator.Authenticate(context.Background(), publicKey)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NKey not found in permissions config")
+	assert.NotContains(t, err.Error(), publicKey)
+}
+
 // TestNoAuthAuthentication tests NoAuth authentication
 func TestNoAuthAuthentication(t *testing.T) {
 	// Create test config with noauth enabled

@@ -73,7 +73,7 @@ func (n *NKeyAuthenticator) Authenticate(ctx context.Context, publicKey string) 
 				attribute.String("reason", "user_not_found"),
 			))
 		}
-		return nil, fmt.Errorf("NKey not found in permissions config: %s", publicKey)
+		return nil, fmt.Errorf("NKey not found in permissions config")
 	}
 
 	n.logger.Info("NKey authentication successful",
@@ -129,7 +129,7 @@ func (n *NKeyAuthenticator) TryAuthenticate(ctx context.Context, rc *natsjwt.Aut
 				attribute.String("reason", "user_not_found"),
 			))
 		}
-		return config.UserProfile{}, fmt.Errorf("NKey not found in permissions config: %s", userNKey)
+		return config.UserProfile{}, fmt.Errorf("NKey not found in permissions config")
 	}
 
 	// Verify the signature
