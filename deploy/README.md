@@ -217,8 +217,10 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
 # Install
 helm install dsx ./nats-event-bus -n dsx --create-namespace
 
-# With custom values
-helm install dsx ./nats-event-bus -n dsx --create-namespace -f values-csc.yaml
+# With example CSC values
+helm install dsx ./nats-event-bus -n dsx --create-namespace \
+  -f ./nats-event-bus/examples/values-common.yaml \
+  -f ./nats-event-bus/examples/values-csc.yaml
 ```
 
 ## Umbrella Chart Configuration
@@ -565,9 +567,9 @@ global:
             account: "CSC"
             permissions:
               pub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
               sub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "cpc.*.command.>", "cpc.*.events.>"]
         mtls:
           mqtt-client:
             identity: "CN=mqtt-client.csc"
@@ -591,7 +593,7 @@ global:
     crossLayer:
       cscExports: ["broadcast.>"]
       cscPrefixedExports: ["command.>"]
-      cpcExports: ["sensor.>"]
+      cpcExports: ["events.>"]
     auth:
       permissions:
         oauth2:
@@ -600,9 +602,9 @@ global:
             account: "CPC"
             permissions:
               pub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "command.>"]
               sub:
-                allow: ["events.>"]
+                allow: ["events.>", "broadcast.>", "command.>"]
         mtls:
           mqtt-client:
             identity: "CN=mqtt-client.cpc-1"

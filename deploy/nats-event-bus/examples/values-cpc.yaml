@@ -1,0 +1,40 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Common CPC values shared by every CPC cluster.
+# Layer a per-cluster file such as values-cpc-1.yaml after this file.
+
+global:
+  eventBus:
+    clusterType: cpc
+
+    # External CSC leafnode endpoint reachable from this CPC cluster.
+    cscEndpoint: "nats://event-bus-csc.example.com:7422"
+
+    crossLayer:
+      # Subjects the CSC exports to all CPCs and CPCs import without rewriting.
+      cscExports:
+        - "broadcast.>"
+      # Subjects the CSC exports as cpc.{id}.<subject>; CPCs import with the
+      # prefix stripped so local clients use plain subject names.
+      cscPrefixedExports:
+        - "command.>"
+      # Subjects each CPC exports to the CSC with cpc.{id}. added on the CSC.
+      cpcExports:
+        - "events.>"
+
+    auth:
+      permissions:
+        oauth2:
+          mqtt-client:
+            azp: "mqtt-client"
+            account: "CPC"
+            permissions:
+              pub:
+                allow: ["events.>", "broadcast.>", "command.>"]
+              sub:
+                allow: ["events.>", "broadcast.>", "command.>"]
+        # Remove noauth for production deployments that require authenticated
+        # clients only.
+        noauth:
+          account: "CPC"
