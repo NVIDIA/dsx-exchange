@@ -525,6 +525,30 @@ auth-callout:
   extraEnvTemplates:
     - |
       {{ include "nats-event-bus.authCalloutEventBusEnv" . }}
+      {{- if .Values.global.eventBus.mtls.enabled }}
+      - name: AUTH_CALLOUT_MTLS_CA_PATH
+        value: "/etc/mtls-ca/ca.crt"
+      {{- end }}
+
+  # Umbrella-owned mTLS endpoint: wire auth-callout CA only when enabled.
+  extraVolumeMountTemplates:
+    - |
+      {{- if .Values.global.eventBus.mtls.enabled }}
+      - name: mtls-ca
+        mountPath: /etc/mtls-ca
+        readOnly: true
+      {{- end }}
+
+  extraVolumeTemplates:
+    - |
+      {{- if .Values.global.eventBus.mtls.enabled }}
+      - name: mtls-ca
+        secret:
+          secretName: nats-mtls-server-tls
+          items:
+            - key: ca.crt
+              path: ca.crt
+      {{- end }}
 
   # Operator-defined auth-callout env vars.
   # The generated permissions use nkey names leaf-cpc-{id} and

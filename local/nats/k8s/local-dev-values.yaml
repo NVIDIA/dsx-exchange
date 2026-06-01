@@ -27,19 +27,6 @@ auth-callout:
       url: "http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs"
       issuer: "http://172.18.200.1/realms/event-bus"
       audience: "dsx-exchange"
-    # CA certificate for mTLS client verification
-    mtls:
-      ca-path: "/etc/mtls-ca/ca.crt"
     observability:
       tracing:
         enabled: false
-
-  # Mount CA certificate from TLS secret for mTLS client verification
-  extraVolumes:
-    - name: mtls-ca
-      secret:
-        secretName: nats-mtls-server-tls
-  extraVolumeMounts:
-    - name: mtls-ca
-      mountPath: /etc/mtls-ca
-      readOnly: true
