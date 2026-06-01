@@ -400,7 +400,7 @@ components:
     FeedState:
       type: object
       description: Current power state for a single feed.
-      required: [metadata, targets, calculated_load, in_flight, compliant]
+      required: [metadata, targets, calculated_load, in_flight, event, compliant]
       properties:
         metadata:
           $ref: '#/components/schemas/FeedMetadata'
@@ -513,7 +513,7 @@ components:
     PowerStateStatusData:
       type: object
       description: Payload for grid.powerstate.status.v1.
-      required: [snapshot_time, event, feeds]
+      required: [snapshot_time, feeds]
       properties:
         snapshot_time:
           type: string
