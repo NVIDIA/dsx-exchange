@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 ruleset_overrides:                                                        # Enables override of specific rule severity (per ruleset). Naming must match one to one.
   standard-owasp:
     owasp:api8:2023-no-scheme-http: "warn"

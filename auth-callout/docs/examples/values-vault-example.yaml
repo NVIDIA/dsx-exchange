@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Example values file showing how to configure Vault integration
 # Copy the relevant sections to your values.yaml and customize as needed
 

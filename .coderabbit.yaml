@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 reviews:
   auto_review:
@@ -7,3 +10,23 @@ reviews:
       - ".*"
     auto_incremental_review: true
     auto_pause_after_reviewed_commits: 0
+  pre_merge_checks:
+    docstrings:
+      mode: warning
+      threshold: 80
+  finishing_touches:
+    docstrings:
+      enabled: true
+  tools:
+    golangci-lint:
+      enabled: true
+      config_file: "auth-callout/.golangci.yml"
+
+code_generation:
+  docstrings:
+    path_instructions:
+      - path: "**/*"
+        instructions: |
+          Keep docstrings selective and short. Document non-obvious what or why;
+          do not restate signatures, parameters, returns, or control flow that
+          are clear from skimming the code.

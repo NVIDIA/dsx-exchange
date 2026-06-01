@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Load a Docker image into a kind cluster.
 # Usage: kind-load-image.sh <image> [cluster-name]
 

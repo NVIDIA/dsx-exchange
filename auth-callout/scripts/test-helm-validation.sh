@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 
 # Test script for Helm chart validation
 # This script tests both valid and invalid configurations to ensure validation works correctly

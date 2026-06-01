@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Gateway API Profile
 # Enables Gateway API routing instead of traditional Ingress
 # Gateway infrastructure is deployed by devspace-pipelines when this profile is active

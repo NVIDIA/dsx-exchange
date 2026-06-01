@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Auth-callout Service Makefile
 
 .PHONY: add-license-headers build check-license-headers clean clean-modcache deps-update dev dev-build dev-debug dev-debug-suspend dev-debug-suspend-with-delve-logs dev-debug-with-delve-logs dev-lint devspace-all devspace-macos docker-build docker-run fmt godoc help init-hooks init-project install-tools lint pre-commit-run release run run-service test test-helm test-integration test-integration-devspace third-party-licenses version
@@ -11,8 +14,6 @@ TEST_FLAGS=-race -v -count 1
 GOCMD=go
 GO_LICENSES_VERSION=v1.6.0
 ADDLICENSE_VERSION=v1.2.0
-COPYRIGHT_HOLDER=NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-COPYRIGHT_YEAR=2026
 GIT_HOOKS_DIR=$(shell git rev-parse --git-path hooks 2>/dev/null || echo .git/hooks)
 TOOLS_BIN=$(CURDIR)/tmp/bin
 GO_LICENSES=$(TOOLS_BIN)/go-licenses
@@ -215,10 +216,10 @@ test-integration-devspace:  ## Run integration tests against devspace cluster
 	cd tests && go mod tidy && AUTH_CALLOUT_SERVICE_URL=http://auth-callout.127-0-0-1.nip.io:8080 go test $(TEST_FLAGS) ./...
 
 add-license-headers: ## Add SPDX license headers to source files
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y $(COPYRIGHT_YEAR) -ignore "vendor/**" -ignore "tests/**" -v src/
+	bash ../scripts/license.sh fix
 
 check-license-headers: ## Verify SPDX license headers are present
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y $(COPYRIGHT_YEAR) -ignore "vendor/**" -ignore "tests/**" -check src/
+	bash ../scripts/license.sh check
 
 $(GO_LICENSES):
 	@mkdir -p "$(TOOLS_BIN)"

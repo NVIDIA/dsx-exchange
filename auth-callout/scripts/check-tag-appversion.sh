@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Script to validate that a tag matches appVersion in Chart.yaml
 
 set -e

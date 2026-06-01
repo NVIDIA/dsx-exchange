@@ -3,24 +3,11 @@
 
 .PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms e2e-kind help install-e2e-prereqs test test-e2e test-helm third-party-licenses
 
-COPYRIGHT_HOLDER := NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-COPYRIGHT_YEAR := 2026
-LICENSE_TARGETS := local schemas
-LICENSE_IGNORES := \
-	-ignore "**/*.png" \
-	-ignore "**/go.sum" \
-	-ignore "**/tests/performance/reports/**" \
-	-ignore "**/vendor/**"
-
 add-license-headers: ## Add SPDX license headers across repository sources
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y "$(COPYRIGHT_YEAR)" $(LICENSE_IGNORES) -v $(LICENSE_TARGETS)
-	$(MAKE) -C auth-callout add-license-headers
-	$(MAKE) -C deploy add-license-headers
+	bash scripts/license.sh fix
 
 check-license-headers: ## Verify SPDX license headers across repository sources
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y "$(COPYRIGHT_YEAR)" $(LICENSE_IGNORES) -check $(LICENSE_TARGETS)
-	$(MAKE) -C auth-callout check-license-headers
-	$(MAKE) -C deploy check-license-headers
+	bash scripts/license.sh check
 
 check: check-license-headers test test-helm ## Run all local validation checks
 

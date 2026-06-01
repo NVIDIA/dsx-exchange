@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 """Generate Fern MDX pages from AsyncAPI 3.1.0 YAML specs.
 
 Reads the four AsyncAPI specs under schemas/asyncapi/ and writes native MDX

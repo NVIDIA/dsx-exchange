@@ -1,19 +1,13 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# NATS Event Bus Deploy Makefile
-
 .PHONY: add-license-headers check-license-headers help
 
-ADDLICENSE_VERSION=v1.2.0
-COPYRIGHT_HOLDER=NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-COPYRIGHT_YEAR=2026
-
 add-license-headers: ## Add SPDX license headers to source files
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y $(COPYRIGHT_YEAR) -v .
+	bash ../scripts/license.sh fix
 
 check-license-headers: ## Verify SPDX license headers are present
-	addlicense -l apache -c "$(COPYRIGHT_HOLDER)" -s=only -y $(COPYRIGHT_YEAR) -check .
+	bash ../scripts/license.sh check
 
 help: ## Show this help message
 	@echo "Available commands:"

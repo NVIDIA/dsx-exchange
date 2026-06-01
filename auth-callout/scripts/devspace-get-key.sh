@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Helper script to get NATS keys for devspace variables
 # Generates keys on first access if devspace.env doesn't exist
 

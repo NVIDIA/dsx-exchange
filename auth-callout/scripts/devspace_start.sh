@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 set +e  # Continue on errors
 export LANG=en_US.UTF-8
 export TERM=xterm-256color
