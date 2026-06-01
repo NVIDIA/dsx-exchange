@@ -2,6 +2,8 @@
 
 DSX Exchange is a monorepo for DSX event bus schemas, authentication, deployment, and local evaluation tooling.
 
+Documentation for DSX Exchange is available at [https://docs.nvidia.com/dsx-exchange](https://docs.nvidia.com/dsx-exchange).
+
 ## Overview
 
 DSX Exchange provides the repository pieces needed to describe, deploy, and validate DSX MQTT event bus integrations:
@@ -25,7 +27,7 @@ make check
 
 If you already have a DSX Exchange broker and need to build or test an MQTT
 integration application, start with the
-[Integrator Quickstart](docs/integrator-quickstart.md).
+[Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
 
 For local end-to-end validation, create the Kind environment and deploy NATS:
 
@@ -97,7 +99,6 @@ make -C local benchmark-basic-full
 - Release notes: [CHANGELOG.md](CHANGELOG.md)
 - Third-party license inventory: [THIRD_PARTY_LICENSES.csv](THIRD_PARTY_LICENSES.csv) and [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)
 
-
 ### Versioning
 
 DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), automated via semantic-release. A new version is published automatically when a semantic-release compliant commit is merged to `main`.
@@ -108,11 +109,9 @@ DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), auto
 | `feat:` | Minor (Y) | New features, backward-compatible changes |
 | `feat!:` or `BREAKING CHANGE:` | Major (X) | Breaking API, schema, or chart changes |
 
-
 ### Roadmap
 
 Upcoming work is tracked in [GitHub Issues](https://github.com/NVIDIA/dsx-exchange/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get involved.
-
 
 ## Contribution Guidelines
 

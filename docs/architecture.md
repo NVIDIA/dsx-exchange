@@ -12,6 +12,10 @@ DSX Exchange consists of three components:
 | AsyncAPI Schema | Formal topic definitions and payload contracts per service team |
 | Auth-Callout Service | OAuth2/mTLS/NKey authentication with topic-level ACLs |
 
+<Info title="GitHub Repository">
+  The DSX Exchange GitHub repository is available at [https://github.com/NVIDIA/dsx-exchange](https://github.com/NVIDIA/dsx-exchange).
+</Info>
+
 ## DSX Event Bus
 
 The DSX Event Bus is a [NATS](https://nats.io/) messaging platform that provides MQTT 3.1.1 connectivity, [JetStream](https://docs.nats.io/nats-concepts/jetstream) persistence, and multi-cluster [leaf node federation](https://docs.nats.io/running-a-nats-service/configuration/leafnodes) across the AI factory topology.
