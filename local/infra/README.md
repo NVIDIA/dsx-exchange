@@ -486,7 +486,8 @@ kubectl get pods -n keycloak --context kind-csc
 # Check logs
 kubectl logs -n keycloak -l app.kubernetes.io/name=keycloak --context kind-csc
 
-# Check realm import ConfigMap
+# Check realm import ConfigMap. The import key is realm-event-bus.json and the
+# Keycloak realm inside that file is event-bus.
 kubectl get configmap keycloak-realm-import -n keycloak --context kind-csc -o yaml
 
 # Test token endpoint via external IP using client credentials
