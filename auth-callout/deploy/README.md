@@ -42,15 +42,11 @@ The auth callout connects to a NATS server and registers as an authorization ser
 serviceConfig:
   nats:
     url: "nats://nats:4222"    # NATS server URL
-    nkey-seed: ""              # NKey seed; inject non-empty values as env or Vault secrets
-    issuer-seed: ""            # Account issuer seed; inject non-empty values as env or Vault secrets
-    xkey-seed: ""              # XKey seed; inject non-empty values as env or Vault secrets
 ```
 
-The chart renders these keys with empty defaults. Do not put real seed material
-directly in `serviceConfig`, which renders into a ConfigMap. Inject non-empty
-values with environment variables or Vault hot config. See
-[Vault Integration](#vault-integration).
+NATS credentials are supplied with environment variables or a mounted secret
+file. For a secret file, mount the Secret and set `AUTH_CALLOUT_HOT_CONFIG` to
+the mounted path.
 
 ### Environment Injection
 
