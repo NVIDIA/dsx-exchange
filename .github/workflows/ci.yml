@@ -69,6 +69,9 @@ jobs:
           go-flags: "-mod=vendor"
           test-flags: "-v -count=1 -timeout=10m"
           working-directory: auth-callout
+      - name: Run integration client tests
+        working-directory: auth-callout/tests
+        run: go test -short ./...
 
   unit-test-local-mqtt:
     name: Unit Test (local/mqtt-client)
@@ -81,7 +84,7 @@ jobs:
           cache-dependency-path: local/mqtt-client/go.sum
       - name: Run tests
         working-directory: local/mqtt-client
-        run: go test ./pkg/...
+        run: go test ./pkg/... ./internal/... ./cmd/...
 
   unit-test-local-mqttbs:
     name: Unit Test (local/mqttbs)
