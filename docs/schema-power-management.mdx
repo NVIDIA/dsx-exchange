@@ -489,7 +489,7 @@ components:
     FeedState:
       type: object
       description: Current power state for a single feed.
-      required: [metadata, targets, calculated_load, in_flight, compliant]
+      required: [metadata, targets, calculated_load, in_flight, event, compliant]
       properties:
         metadata:
           $ref: '#/components/schemas/FeedMetadata'
@@ -507,6 +507,23 @@ components:
         in_flight:
           type: boolean
           description: true if the agent is actively transitioning between power levels.
+        event:
+          type: string
+          enum:
+            - target_set
+            - start_ramp_down
+            - end_ramp_down
+            - start_ramp_up
+            - end_ramp_up
+            - periodic
+          description: |
+            The trigger that caused this status to be published:
+            - target_set — a grid.loadtarget.set.v1 was received and schedule updated
+            - start_ramp_down — constraint applied or tightened, redistribution begins
+            - end_ramp_down — redistribution complete, load converged to target
+            - start_ramp_up — constraint relaxed or removed, redistribution begins
+            - end_ramp_up — redistribution complete
+            - periodic — regular heartbeat, no state change
         power_event_start_time:
           type: string
           format: date-time
@@ -585,29 +602,12 @@ components:
     PowerStateStatusData:
       type: object
       description: Payload for grid.powerstate.status.v1.
-      required: [snapshot_time, event, feeds]
+      required: [snapshot_time, feeds]
       properties:
         snapshot_time:
           type: string
           format: date-time
           description: ISO 8601 UTC timestamp of this snapshot.
-        event:
-          type: string
-          enum:
-            - target_set
-            - start_ramp_down
-            - end_ramp_down
-            - start_ramp_up
-            - end_ramp_up
-            - periodic
-          description: |
-            The trigger that caused this status to be published:
-            - target_set — a grid.loadtarget.set.v1 was received and schedule updated
-            - start_ramp_down — constraint applied or tightened, redistribution begins
-            - end_ramp_down — redistribution complete, load converged to target
-            - start_ramp_up — constraint relaxed or removed, redistribution begins
-            - end_ramp_up — redistribution complete
-            - periodic — regular heartbeat, no state change
         feeds:
           type: object
           description: Map of feed_tag to power state.
