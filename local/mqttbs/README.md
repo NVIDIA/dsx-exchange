@@ -11,8 +11,8 @@ go build -o mqttbs ./cmd/mqttbs
 ## Usage
 
 For the DSX local Kind environment, run benchmarks from `local/` with
-`make benchmark-basic` or `make benchmark-basic-full`. Those targets pass the
-CSC Envoy Gateway LoadBalancer endpoint, `tcp://172.18.200.1:1883`, by default.
+`make benchmark-basic` or `make benchmark-basic-full`. Those targets use the CSC
+Envoy Gateway LoadBalancer endpoint, `tcp://172.18.200.1:1883`, by default.
 The full 10k/1k suite is host-sensitive; use `make benchmark-basic` for a
 smoke-sized run, and check host CPU plus pod metrics when full runs report EOFs
 or low success rates.

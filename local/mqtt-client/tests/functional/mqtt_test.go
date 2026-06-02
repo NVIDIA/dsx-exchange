@@ -46,12 +46,11 @@ func getClusters() []Cluster {
 		}
 	}
 
-	// Default: standalone local broker. Local e2e Make targets pass
-	// MQTT_BROKERS explicitly for the Envoy Gateway endpoints.
+	// Default: all clusters via Envoy Gateway
 	return []Cluster{
-		{name: "CSC", broker: "tcp://localhost:1883"},
-		{name: "CPC-1", broker: "tcp://localhost:1883"},
-		{name: "CPC-2", broker: "tcp://localhost:1883"},
+		{name: "CSC", broker: "tcp://172.18.200.1:1883"},
+		{name: "CPC-1", broker: "tcp://172.18.201.1:1883"},
+		{name: "CPC-2", broker: "tcp://172.18.202.1:1883"},
 	}
 }
 

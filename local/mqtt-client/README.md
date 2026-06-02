@@ -249,7 +249,7 @@ docker run -d -p 1883:1883 eclipse-mosquitto:latest
 
 # Run tests against that standalone broker
 MQTT_BROKER=tcp://127.0.0.1:1883 go test -v ./tests/functional/
-CSC_BROKER_URL=tcp://127.0.0.1:1883 CPC1_BROKER_URL=tcp://127.0.0.1:1883 CPC2_BROKER_URL=tcp://127.0.0.1:1883 go test -v ./tests/performance/
+CSC_BROKER_URL=tcp://127.0.0.1:1883 CPC1_BROKER_URL=tcp://127.0.0.1:1883 go test -v ./tests/performance/
 ```
 
 ## Troubleshooting

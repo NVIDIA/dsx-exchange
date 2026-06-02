@@ -373,9 +373,9 @@ func getNATSClusters() []natsCluster {
 	}
 
 	return []natsCluster{
-		{name: "CSC", broker: "nats://localhost:4222"},
-		{name: "CPC-1", broker: "nats://localhost:4222"},
-		{name: "CPC-2", broker: "nats://localhost:4222"},
+		{name: "CSC", broker: "nats://172.18.200.1:4222"},
+		{name: "CPC-1", broker: "nats://172.18.201.1:4222"},
+		{name: "CPC-2", broker: "nats://172.18.202.1:4222"},
 	}
 }
 

@@ -6,15 +6,6 @@
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
 CSC_BROKER_URL ?= tcp://172.18.200.1:1883
-CPC1_BROKER_URL ?= tcp://172.18.201.1:1883
-CPC2_BROKER_URL ?= tcp://172.18.202.1:1883
-MQTT_BROKERS ?= CSC=$(CSC_BROKER_URL),CPC-1=$(CPC1_BROKER_URL),CPC-2=$(CPC2_BROKER_URL)
-NATS_BROKERS ?= CSC=nats://172.18.200.1:4222,CPC-1=nats://172.18.201.1:4222,CPC-2=nats://172.18.202.1:4222
-MQTT_MTLS_BROKER ?= ssl://172.18.200.1:8883
-MQTT_TCP_BROKER ?= $(CSC_BROKER_URL)
-KEYCLOAK_URL ?= http://172.18.200.1
-LOCAL_FUNCTIONAL_ENV ?= MQTT_BROKERS=$(MQTT_BROKERS) NATS_BROKERS=$(NATS_BROKERS) MQTT_MTLS_BROKER=$(MQTT_MTLS_BROKER) MQTT_TCP_BROKER=$(MQTT_TCP_BROKER) KEYCLOAK_URL=$(KEYCLOAK_URL)
-LOCAL_PERFORMANCE_ENV ?= CSC_BROKER_URL=$(CSC_BROKER_URL) CPC1_BROKER_URL=$(CPC1_BROKER_URL) CPC2_BROKER_URL=$(CPC2_BROKER_URL)
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
 E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
@@ -120,10 +111,10 @@ check-e2e-env: ## Check local Kind/NATS prerequisites for e2e tests
 	done
 
 test-functional: check-e2e-env ## Run functional tests (MQTT + federation)
-	cd mqtt-client && $(LOCAL_FUNCTIONAL_ENV) go test -count=1 -v ./tests/functional/ -timeout 60s
+	cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout 60s
 
 test-performance: check-e2e-env ## Run performance e2e smoke tests
-	cd mqtt-client && $(LOCAL_PERFORMANCE_ENV) $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
+	cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
 
 dummy-bms: check-e2e-env ## Publish looping dummy BMS data to the CSC MQTT broker
 	cd mqtt-client && go run ./cmd/dummy-bms --broker "$(CSC_BROKER_URL)" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
@@ -172,4 +163,4 @@ benchmark-basic-full: check-e2e-env ## Run full MQTT benchmark basic suite
 	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)"
 
 benchmark-performance: check-e2e-env ## Run full performance benchmarks
-	cd mqtt-client && $(LOCAL_PERFORMANCE_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
+	cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m

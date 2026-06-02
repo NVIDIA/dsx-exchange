@@ -62,9 +62,8 @@ Performance and benchmark targets require MetalLB, installed by
 LoadBalancer IPs. On macOS, keep `docker-mac-net-connect` running so the host can
 reach those IPs. Linux hosts normally reach the Docker bridge IPs directly.
 
-The local Make targets pass the CSC broker endpoint
-`tcp://172.18.200.1:1883`. Override `CSC_BROKER_URL` only when testing a
-different reachable broker.
+The default CSC broker endpoint is `tcp://172.18.200.1:1883`. Override
+`CSC_BROKER_URL` only when testing a different reachable broker.
 
 Full benchmark targets can saturate local hosts because they drive thousands of
 MQTT clients through Kind, Envoy Gateway, NATS, and auth-callout. If a full run
@@ -165,16 +164,8 @@ See [mqttbs/README.md](mqttbs/README.md) for details.
 
 ```bash
 cd mqtt-client
-MQTT_BROKERS=CSC=tcp://172.18.200.1:1883,CPC-1=tcp://172.18.201.1:1883,CPC-2=tcp://172.18.202.1:1883 \
-  NATS_BROKERS=CSC=nats://172.18.200.1:4222,CPC-1=nats://172.18.201.1:4222,CPC-2=nats://172.18.202.1:4222 \
-  MQTT_MTLS_BROKER=ssl://172.18.200.1:8883 \
-  MQTT_TCP_BROKER=tcp://172.18.200.1:1883 \
-  KEYCLOAK_URL=http://172.18.200.1 \
-  go test -v -count=1 ./tests/functional/...
-CSC_BROKER_URL=tcp://172.18.200.1:1883 \
-  CPC1_BROKER_URL=tcp://172.18.201.1:1883 \
-  CPC2_BROKER_URL=tcp://172.18.202.1:1883 \
-  go test -v -count=1 ./tests/performance/...
+go test -v -count=1 ./tests/functional/...
+go test -v -count=1 ./tests/performance/...
 ```
 
 ### Dummy BMS Data

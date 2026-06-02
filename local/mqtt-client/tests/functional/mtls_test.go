@@ -21,14 +21,15 @@ func getMTLSBrokerURL() string {
 	if url := os.Getenv("MQTT_MTLS_BROKER"); url != "" {
 		return url
 	}
-	return "ssl://localhost:8883"
+	// Default: use CSC's mTLS port via Envoy Gateway
+	return "ssl://172.18.200.1:8883"
 }
 
 func getTCPBrokerURL() string {
 	if url := os.Getenv("MQTT_TCP_BROKER"); url != "" {
 		return url
 	}
-	return "tcp://localhost:1883"
+	return "tcp://172.18.200.1:1883"
 }
 
 // getMTLSCertPaths returns paths to mTLS certificates
