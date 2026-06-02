@@ -42,7 +42,7 @@ type Config struct {
 // NewConfig creates a default configuration
 func NewConfig() *Config {
 	return &Config{
-		BrokerURL:         "tcp://localhost:1883",
+		BrokerURL:         "tcp://172.18.200.1:1883",
 		ReportDir:         "./results",
 		KeepAlive:         300,
 		CleanSession:      true,

@@ -15,6 +15,10 @@ The infrastructure consists of:
 
 ## Quick Start
 
+On macOS, install and start `docker-mac-net-connect` before running local tests
+from the host. Linux hosts normally reach the Docker bridge IPs directly. See
+[local/README.md](../README.md#macos-tweaks).
+
 ```bash
 # Setup complete infrastructure (clusters, MetalLB, Envoy Gateway, cert-manager, metrics-server, Keycloak)
 # All operations are parallelized across clusters for maximum speed:
@@ -28,6 +32,9 @@ make setup-infra
 
 # Verify everything is running
 make verify-infra
+
+# Verify the host can reach the CSC Keycloak HTTPRoute through Envoy Gateway
+curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 
 # Optional: Deploy full observability stack (Prometheus + Grafana)
 make setup-observability
@@ -171,12 +178,12 @@ Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and p
 kubectl top nodes --context kind-csc
 
 # View pod metrics
-kubectl top pods -n event-bus-nats --context kind-csc
+kubectl top pods -n event-bus --context kind-csc
 ```
 
 ## Keycloak (OAuth2 Authentication)
 
-Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side tests use localhost port-forwarding because Docker-network LoadBalancer IPs are not reachable from every workstation environment.
+Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side local tests use the same Envoy Gateway path.
 
 **Deployment:**
 
@@ -199,18 +206,11 @@ make setup-keycloak
 
 **Access:**
 
-Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. All clusters access Keycloak at this address. From the host, prefer `make test-functional` or `make test-performance`; those targets port-forward Keycloak to `http://127.0.0.1:18080` automatically.
+Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. On macOS, keep `docker-mac-net-connect` running so the host can reach this address. Linux hosts normally reach the Docker bridge IPs directly.
 
 ```bash
-# Verify Keycloak from inside the Docker network
-curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
-
 # Verify Keycloak from the host
-kubectl port-forward -n envoy-gateway-system svc/$(kubectl get svc \
-  --context kind-csc -n envoy-gateway-system \
-  -l gateway.envoyproxy.io/owning-gateway-name=shared-gateway \
-  -o jsonpath='{.items[0].metadata.name}') 18080:80 --context kind-csc
-curl http://127.0.0.1:18080/realms/event-bus/.well-known/openid-configuration
+curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 ```
 
 **Token Endpoint (all clusters):**
@@ -512,7 +512,7 @@ kubectl get servicemonitor -A --context kind-csc
 # Access Prometheus UI and check Status -> Targets
 
 # Verify service labels match ServiceMonitor selector
-kubectl get svc -n event-bus-nats -o yaml --context kind-csc
+kubectl get svc -n event-bus -o yaml --context kind-csc
 ```
 
 ## Cleanup

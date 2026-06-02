@@ -5,6 +5,7 @@
 
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
+CSC_BROKER_URL ?= tcp://172.18.200.1:1883
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
 E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
@@ -110,13 +111,13 @@ check-e2e-env: ## Check local Kind/NATS prerequisites for e2e tests
 	done
 
 test-functional: check-e2e-env ## Run functional tests (MQTT + federation)
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout 60s'
+	cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout 60s
 
 test-performance: check-e2e-env ## Run performance e2e smoke tests
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m'
+	cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
 
 dummy-bms: check-e2e-env ## Publish looping dummy BMS data to the CSC MQTT broker
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go run ./cmd/dummy-bms --broker "$$CSC_BROKER_URL" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml'
+	cd mqtt-client && go run ./cmd/dummy-bms --broker "$(CSC_BROKER_URL)" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
 
 validate-nats: ## Validate NATS deployment on all clusters
 	@echo "Validating CSC..."
@@ -156,10 +157,10 @@ lint: ## Run linters
 # ============================================================================
 
 benchmark-basic: check-e2e-env ## Run MQTT benchmark basic suite
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$$CSC_BROKER_URL" $(BENCHMARK_BASIC_FLAGS)'
+	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)" $(BENCHMARK_BASIC_FLAGS)
 
 benchmark-basic-full: check-e2e-env ## Run full MQTT benchmark basic suite
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$$CSC_BROKER_URL"'
+	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)"
 
 benchmark-performance: check-e2e-env ## Run full performance benchmarks
-	./infra/scripts/with-gateway-port-forwards.sh sh -c 'cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m'
+	cd mqtt-client && go test -count=1 -v ./tests/performance/ -timeout 10m

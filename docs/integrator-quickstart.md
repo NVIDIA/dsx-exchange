@@ -47,22 +47,21 @@ Set the broker endpoint, authentication material, and topic configuration you
 received from the operator in your application configuration.
 
 If you are using the local evaluation environment and it is already deployed,
-start the broker port forwards in one terminal and leave that terminal open
-while you test. The script starts `kubectl port-forward` processes, then opens a
-shell. The port forwards stop when you exit that shell. To create the local
-broker first, use the [Deployment](getting-started.md) evaluation install.
+connect to the CSC Envoy Gateway at its MetalLB address. To create the local
+broker first, use the [Deployment](getting-started.md) evaluation install. On
+macOS, install and start `docker-mac-net-connect` from the local quick start so
+the host can reach the MetalLB IPs.
 
 ```bash
 cd local
-./infra/scripts/with-gateway-port-forwards.sh sh
+make setup-infra deploy-nats
 ```
 
-In the shell opened by that script, or in another terminal while that shell stays
-open, use the local CSC broker endpoint:
+Use the local CSC broker endpoint:
 
 ```bash
-export DSX_MQTT_HOST=127.0.0.1
-export DSX_MQTT_PORT=11883
+export DSX_MQTT_HOST=172.18.200.1
+export DSX_MQTT_PORT=1883
 export DSX_MQTT_TOPIC=test/hello
 ```
 

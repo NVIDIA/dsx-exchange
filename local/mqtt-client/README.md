@@ -139,7 +139,7 @@ The performance tests expose Prometheus metrics:
 ## Quick Start
 
 ```bash
-# From local/, use the Makefile targets to create localhost port-forwards.
+# From local/, use the Makefile targets against the MetalLB Envoy Gateway IPs.
 make test-functional
 make test-performance
 make dummy-bms
@@ -147,13 +147,14 @@ make dummy-bms
 # Run full performance benchmarks instead of the e2e smoke profile.
 make benchmark-performance
 
-# Direct test runs require reachable broker URLs.
-export CSC_BROKER_URL=tcp://127.0.0.1:11883
-export CPC1_BROKER_URL=tcp://127.0.0.1:11884
+# Direct test runs use the MetalLB Envoy Gateway IPs.
+export CSC_BROKER_URL=tcp://172.18.200.1:1883
+export CPC1_BROKER_URL=tcp://172.18.201.1:1883
+export CPC2_BROKER_URL=tcp://172.18.202.1:1883
 go test -v ./tests/performance/
 
 # Publish looping BMS demo data directly against a reachable broker.
-go run ./cmd/dummy-bms --broker tcp://127.0.0.1:11883 --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
+go run ./cmd/dummy-bms --broker tcp://172.18.200.1:1883 --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
 
 # Run specific test
 go test -v ./tests/performance/ -run TestThroughputQoS0_Local
@@ -215,17 +216,17 @@ pass and exit:
 
 ```bash
 go run ./cmd/dummy-bms \
-  --broker tcp://127.0.0.1:11883 \
+  --broker tcp://172.18.200.1:1883 \
   --csv examples/dsx_exemplar.csv \
   --schema ../../schemas/asyncapi/bms/bms.yaml \
   --once
 ```
 
-To verify messages while `make dummy-bms` is running, subscribe to the forwarded
-CSC broker from another terminal:
+To verify messages while `make dummy-bms` is running, subscribe to the CSC Envoy
+Gateway from another terminal:
 
 ```bash
-mosquitto_sub -h 127.0.0.1 -p 11883 -t 'BMS/v1/PUB/#' -v
+mosquitto_sub -h 172.18.200.1 -p 1883 -t 'BMS/v1/PUB/#' -v
 ```
 
 ## Development
@@ -238,16 +239,17 @@ mosquitto_sub -h 127.0.0.1 -p 11883 -t 'BMS/v1/PUB/#' -v
 
 ### Running Against Local Broker
 
+Use this only for client development against a standalone broker. The local Kind
+environment uses the MetalLB Envoy Gateway IPs documented in the quick start
+above.
+
 ```bash
 # Start a local MQTT broker (using Docker)
 docker run -d -p 1883:1883 eclipse-mosquitto:latest
 
-# Set broker URL
-export CSC_BROKER_URL=tcp://127.0.0.1:1883
-
-# Run tests
-go test -v ./tests/functional/
-go test -v ./tests/performance/
+# Run tests against that standalone broker
+MQTT_BROKER=tcp://127.0.0.1:1883 go test -v ./tests/functional/
+CSC_BROKER_URL=tcp://127.0.0.1:1883 CPC1_BROKER_URL=tcp://127.0.0.1:1883 go test -v ./tests/performance/
 ```
 
 ## Troubleshooting
@@ -262,10 +264,10 @@ Error: connection refused
 
 ```bash
 # Test connectivity
-telnet localhost 1883
+telnet 172.18.200.1 1883
 
 # Check broker logs
-kubectl logs -n event-bus-nats <pod-name>
+kubectl logs -n event-bus <pod-name>
 ```
 
 ### High Latency

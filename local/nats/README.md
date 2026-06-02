@@ -67,9 +67,8 @@ make validate-nats
 ### Test MQTT Connectivity
 
 ```bash
-kubectl port-forward -n event-bus-nats svc/nats 1883:1883 --context kind-csc
-mosquitto_pub -h localhost -p 1883 -t "csc/test" -m "hello" -q 1
-mosquitto_sub -h localhost -p 1883 -t "csc/#" -q 1
+mosquitto_pub -h 172.18.200.1 -p 1883 -t "csc/test" -m "hello" -q 1
+mosquitto_sub -h 172.18.200.1 -p 1883 -t "csc/#" -q 1
 ```
 
 ## Performance Tuning
@@ -83,10 +82,9 @@ For monitoring configuration and metrics reference, see
 
 ### Accessing Metrics Locally
 
-```bash
-kubectl port-forward -n event-bus-nats svc/nats-metrics 7777:7777 --context kind-csc
-curl http://localhost:7777/metrics
-```
+Metrics are scraped by the local observability stack. See
+[local/infra/README.md](../infra/README.md) for the Prometheus and Grafana
+local access commands.
 
 Key NATS metrics:
 
@@ -112,8 +110,8 @@ Import NATS dashboard ID 2279 in Grafana. See https://docs.nats.io/nats-server/c
 ### Pod Not Starting
 
 ```bash
-kubectl get events -n event-bus-nats --context kind-csc
-kubectl logs -n event-bus-nats <pod-name> --context kind-csc
+kubectl get events -n event-bus --context kind-csc
+kubectl logs -n event-bus <pod-name> --context kind-csc
 ```
 
 ### MQTT Connection Failed
@@ -127,4 +125,3 @@ Check leaf node connections and Gateway configuration. Verify topic filtering at
 ### High Memory Usage
 
 Check JetStream stream usage and adjust retention policies as needed.
-

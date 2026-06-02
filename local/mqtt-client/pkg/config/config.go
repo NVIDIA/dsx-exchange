@@ -118,7 +118,7 @@ func (c *Config) Validate() error {
 func DefaultConfig() *Config {
 	return &Config{
 		Broker: BrokerConfig{
-			URL:            "tcp://localhost:1883",
+			URL:            "tcp://172.18.200.1:1883",
 			ClientIDPrefix: "mqtt-test",
 			TLS:            false,
 		},

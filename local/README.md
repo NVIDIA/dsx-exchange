@@ -57,9 +57,23 @@ make deploy-nats
 
 ### Run Tests
 
-Performance and benchmark targets require MetalLB (installed by `make setup-infra`). Without it, `kubectl port-forward` is used as a fallback but cannot sustain benchmark throughput — tests fail silently with connectivity errors that do not indicate the root cause.
+Performance and benchmark targets require MetalLB, installed by
+`make setup-infra`, so local clients connect through the Envoy Gateway
+LoadBalancer IPs. On macOS, keep `docker-mac-net-connect` running so the host can
+reach those IPs. Linux hosts normally reach the Docker bridge IPs directly.
+
+The default CSC broker endpoint is `tcp://172.18.200.1:1883`. Override
+`CSC_BROKER_URL` only when testing a different reachable broker.
+
+Full benchmark targets can saturate local hosts because they drive thousands of
+MQTT clients through Kind, Envoy Gateway, NATS, and auth-callout. If a full run
+fails with EOFs or success-rate misses, check host CPU and pod metrics before
+treating it as a networking failure.
 
 ```bash
+# Verify host access to the CSC Envoy Gateway after NATS is deployed
+nc -vz 172.18.200.1 1883
+
 # Run functional tests against all candidates
 make test-functional
 
@@ -169,6 +183,6 @@ Run against the local Kind environment:
 make dummy-bms
 ```
 
-The dummy BMS target uses the same local e2e environment and gateway
-port-forward setup as the functional and performance tests. It publishes to the
-CSC broker URL exported by that wrapper.
+The dummy BMS target uses the same local e2e environment and Envoy Gateway
+LoadBalancer path as the functional and performance tests. It publishes to the
+CSC broker at `tcp://172.18.200.1:1883` unless `CSC_BROKER_URL` is overridden.
