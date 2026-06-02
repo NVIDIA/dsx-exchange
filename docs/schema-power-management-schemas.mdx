@@ -48,7 +48,7 @@ Power limit constraint.
 List of feed identifiers this target applies to (e.g., ["main-a"]).
 If omitted or empty, the target applies to all feeds.
 
-**Type:** array\&lt;string\>
+**Type:** array&lt;string&gt;
 
 List of feed identifiers this target applies to (e.g., ["main-a"]).
 If omitted or empty, the target applies to all feeds.
@@ -143,7 +143,7 @@ Current power state for a single feed.
 | `metadata.default_constraint` | object | Yes | Power measurement with value and unit. |
 | `metadata.default_constraint.value` | number (double) | Yes | Power value (must be >= 0). |
 | `metadata.default_constraint.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
-| `targets` | array\<[FeedTarget](schema-power-management-schemas.mdx#feedtarget)\> | Yes | All load targets for this feed — active and scheduled. Empty array if no targets exist. |
+| `targets` | array&lt;[FeedTarget](schema-power-management-schemas.mdx#feedtarget)&gt; | Yes | All load targets for this feed — active and scheduled. Empty array if no targets exist. |
 | `calculated_load` | object | Yes | Power measurement with value and unit. |
 | `calculated_load.value` | number (double) | Yes | Power value (must be >= 0). |
 | `calculated_load.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
@@ -185,7 +185,7 @@ Payload for grid.loadtarget.set.v1.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `targets` | array\&lt;object\> | Yes | List of load target requests. |
+| `targets` | array&lt;object&gt; | Yes | List of load target requests. |
 
 ---
 
@@ -196,7 +196,7 @@ Payload for grid.powerstate.status.v1.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `snapshot_time` | string (date-time) | Yes | ISO 8601 UTC timestamp of this snapshot. |
-| `feeds` | map\&lt;string, [FeedState](schema-power-management-schemas.mdx#feedstate)\> | Yes | Map of feed_tag to power state. |
+| `feeds` | map&lt;string, [FeedState](schema-power-management-schemas.mdx#feedstate)&gt; | Yes | Map of feed_tag to power state. |
 
 ---
 
@@ -221,8 +221,8 @@ Payload for grid.powerbreach.alert.v1.
 | `measured_load` | object | Yes | Power measurement with value and unit. |
 | `measured_load.value` | number (double) | Yes | Power value (must be >= 0). |
 | `measured_load.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
-| `shed_hints` | array\<[ShedHint](schema-power-management-schemas.mdx#shedhint)\> | No | Ordered list of load shedding recommendations. Present when status is active or escalated. Absent when resolved. |
-| `infrastructure_actions` | array\&lt;string\> | Yes | Ordered list of escalating infrastructure-level actions. Empty array when status is resolved. Ordered from least to most disruptive. |
+| `shed_hints` | array&lt;[ShedHint](schema-power-management-schemas.mdx#shedhint)&gt; | No | Ordered list of load shedding recommendations. Present when status is active or escalated. Absent when resolved. |
+| `infrastructure_actions` | array&lt;string&gt; | Yes | Ordered list of escalating infrastructure-level actions. Empty array when status is resolved. Ordered from least to most disruptive. |
 
 ---
 
@@ -237,7 +237,7 @@ Payload for grid.powerbreach.enforcement.v1.
 | `action` | string | Yes | What phase of enforcement this represents. Values: `applied`, `reverted` |
 | `code` | string | Yes | Overall enforcement outcome. Values: `success`, `partial`, `error` |
 | `diag_msg` | string | No | Human-readable diagnostic message. |
-| `results` | array\<[EnforcementResult](schema-power-management-schemas.mdx#enforcementresult)\> | Yes | Per-resource enforcement outcome. |
+| `results` | array&lt;[EnforcementResult](schema-power-management-schemas.mdx#enforcementresult)&gt; | Yes | Per-resource enforcement outcome. |
 | `timestamp` | string (date-time) | Yes | ISO 8601 UTC timestamp when enforcement completed. |
 
 ---

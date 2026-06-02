@@ -488,11 +488,11 @@ def _type_str(schema: dict, spec: dict, schema_doc: str | None = None) -> str:
     if t == "array":
         items = schema.get("items", {})
         inner = _type_str(items, spec, schema_doc=schema_doc)
-        return f"array\\<{inner}\\>"
+        return f"array&lt;{inner}&gt;"
     if t == "object" and "additionalProperties" in schema:
         ap = schema["additionalProperties"]
         inner = _type_str(ap, spec, schema_doc=schema_doc) if isinstance(ap, dict) else "any"
-        return f"map\\<string, {inner}\\>"
+        return f"map&lt;string, {inner}&gt;"
     if t == "string" and schema.get("format"):
         return f"string ({schema['format']})"
     if t == "number" and schema.get("format"):
