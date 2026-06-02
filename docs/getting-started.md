@@ -9,8 +9,9 @@ Before starting, ensure all infrastructure prerequisites, secrets, and certifica
 To evaluate DSX Exchange locally without Vault, VSO, or production certificate infrastructure, use the `local/` evaluation framework. This creates Kind clusters and deploys a fully functional event bus:
 
 ```bash
-make -C local setup-infra      # Kind clusters + MetalLB + Envoy Gateway + cert-manager + Keycloak
-make -C local deploy-nats       # Deploy NATS event bus to all clusters
+make -C local install-e2e-prereqs
+make -C local setup-infra      # Kind clusters + required Skaffold-managed infra
+make -C local deploy-nats       # Build auth-callout and deploy NATS to all clusters
 make -C local validate-nats     # Verify connectivity
 ```
 

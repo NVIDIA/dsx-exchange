@@ -100,7 +100,7 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVar(&brokerURL, "broker", "tcp://localhost:1883", "MQTT broker URL")
+	cmd.Flags().StringVar(&brokerURL, "broker", defaultConfig.BrokerURL, "MQTT broker URL")
 	cmd.Flags().StringVar(&username, "username", "", "MQTT username (optional)")
 	cmd.Flags().StringVar(&password, "password", "", "MQTT password (optional)")
 	cmd.Flags().StringVar(&reportDir, "report-dir", "./results", "Directory for reports")

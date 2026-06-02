@@ -19,10 +19,11 @@ helm lint auth-callout/deploy
 
 Local Kind e2e deploys and functional tests must run outside the sandbox. The
 local e2e path builds Docker images, updates Docker buildx state under
-`~/.docker`, loads images into Kind, and starts `kubectl port-forward` processes
-for NATS and Keycloak. In the sandbox this has failed with Docker buildx
-permission errors and host-side Keycloak timeouts. Use the local Make targets
-with unsandboxed execution, for example `make -C local deploy-nats` and
+`~/.docker`, uses a local registry, deploys infrastructure with Skaffold, and
+exposes NATS and Keycloak through MetalLB-backed Envoy Gateways. In the sandbox
+this has failed with Docker buildx permission errors and host-side networking
+timeouts. Use the local Make targets with unsandboxed execution, for example
+`make -C local setup-infra`, `make -C local deploy-nats`, and
 `make -C local test-functional`.
 
 For local deploy and infrastructure scripts, prefer direct validation over

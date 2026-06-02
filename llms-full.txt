@@ -550,7 +550,10 @@ kubectl delete ns dsx --ignore-not-found
 
 ## Local Benchmark Tooling
 
-**Prerequisite:** Performance and benchmark targets require MetalLB or an equivalent LoadBalancer (installed by `make setup-infra`). Without it, `kubectl port-forward` cannot sustain benchmark throughput and tests fail silently.
+**Prerequisite:** Performance and benchmark targets require MetalLB or an
+equivalent LoadBalancer installed by `make setup-infra`. On macOS, start
+`docker-mac-net-connect` so the host can reach the MetalLB IPs. Linux hosts
+normally reach the Docker bridge IPs directly.
 
 The MQTT performance suite exercises combinations of QoS level, retention, and deployment topology (local and federated, both directions).
 
@@ -581,9 +584,11 @@ Most software integrations should use OAuth2. BMS, OT, and device integrations c
 
 ## Connection Settings
 
+Use the local CSC broker endpoint:
+
 ```bash
-export DSX_MQTT_HOST=127.0.0.1
-export DSX_MQTT_PORT=11883
+export DSX_MQTT_HOST=172.18.200.1
+export DSX_MQTT_PORT=1883
 export DSX_MQTT_TOPIC=test/hello
 ```
 

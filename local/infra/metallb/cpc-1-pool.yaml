@@ -1,0 +1,24 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: cpc-1-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.201.1-172.18.201.254
+  autoAssign: true
+  avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: cpc-1-l2-advert
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - cpc-1-pool
+  interfaces:
+    - eth0

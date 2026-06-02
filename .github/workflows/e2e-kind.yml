@@ -40,8 +40,10 @@ jobs:
       - name: Cache e2e tools
         uses: actions/cache@v4
         with:
-          path: ~/go/bin
-          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh') }}
+          path: |
+            ~/go/bin
+            ~/.cache/helm
+          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh', 'skaffold.yaml') }}
 
       - name: Install e2e tools
         run: |

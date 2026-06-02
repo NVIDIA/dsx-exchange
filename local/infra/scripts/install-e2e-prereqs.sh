@@ -7,6 +7,7 @@ set -euo pipefail
 KIND_VERSION="${KIND_VERSION:-v0.31.0}"
 KUBECTL_VERSION="${KUBECTL_VERSION:-v1.31.9}"
 HELM_VERSION="${HELM_VERSION:-v4.2.0}"
+SKAFFOLD_VERSION="${SKAFFOLD_VERSION:-v2.21.0}"
 CFSSL_VERSION="${CFSSL_VERSION:-v1.6.5}"
 NSC_VERSION="${NSC_VERSION:-v2.14.0}"
 NKEYS_VERSION="${NKEYS_VERSION:-v0.4.15}"
@@ -83,6 +84,20 @@ warn_command_version() {
   warn_version_mismatch "${name}" "${expected}" "${actual}" "${path}"
 }
 
+command_version_matches() {
+  name="$1"
+  expected="$2"
+  path="$3"
+  shift 3
+
+  actual="$("${path}" "$@" 2>&1 | head -1 || true)"
+  expected_without_v="${expected#v}"
+
+  [ -n "${actual}" ] \
+    && { printf '%s\n' "${actual}" | grep -Fq "${expected}" \
+      || printf '%s\n' "${actual}" | grep -Fq "${expected_without_v}"; }
+}
+
 warn_go_module_version() {
   name="$1"
   expected="$2"
@@ -111,6 +126,28 @@ install_binary_url() {
   fi
 
   echo "Installing ${name} ${version} to ${E2E_PREREQS_BIN}/${name}"
+  curl -fsSL -o "${tmp_dir}/${name}" "${url}"
+  install -m 0755 "${tmp_dir}/${name}" "${E2E_PREREQS_BIN}/${name}"
+}
+
+install_pinned_binary_url() {
+  name="$1"
+  version="$2"
+  url="$3"
+  shift 3
+
+  existing="$(tool_path "${name}")"
+  if [ -n "${existing}" ] && [ -x "${existing}" ]; then
+    if command_version_matches "${name}" "${version}" "${existing}" "$@"; then
+      echo "${name} ${version} already installed at ${existing}"
+      return
+    fi
+
+    echo "Replacing ${name} at ${existing} with pinned ${version} in ${E2E_PREREQS_BIN}/${name}"
+  else
+    echo "Installing ${name} ${version} to ${E2E_PREREQS_BIN}/${name}"
+  fi
+
   curl -fsSL -o "${tmp_dir}/${name}" "${url}"
   install -m 0755 "${tmp_dir}/${name}" "${E2E_PREREQS_BIN}/${name}"
 }
@@ -161,6 +198,9 @@ install_binary_url kind "${KIND_VERSION}" \
 install_binary_url kubectl "${KUBECTL_VERSION}" \
   "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/${tool_os}/${tool_arch}/kubectl" \
   version --client=true
+install_pinned_binary_url skaffold "${SKAFFOLD_VERSION}" \
+  "https://storage.googleapis.com/skaffold/releases/${SKAFFOLD_VERSION}/skaffold-${tool_os}-${tool_arch}" \
+  version
 install_helm
 install_go_tool cfssl github.com/cloudflare/cfssl/cmd/cfssl "${CFSSL_VERSION}" version
 install_go_tool cfssljson github.com/cloudflare/cfssl/cmd/cfssljson "${CFSSL_VERSION}" --version
@@ -170,6 +210,7 @@ install_go_tool yq github.com/mikefarah/yq/v4 "${YQ_VERSION}" --version
 
 kind version
 kubectl version --client=true
+skaffold version
 helm version
 cfssl version
 nsc --version

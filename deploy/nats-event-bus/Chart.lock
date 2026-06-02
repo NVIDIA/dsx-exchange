@@ -1,0 +1,18 @@
+dependencies:
+- name: nats
+  repository: https://nats-io.github.io/k8s/helm/charts/
+  version: 2.12.6
+- name: nats
+  repository: https://nats-io.github.io/k8s/helm/charts/
+  version: 2.12.6
+- name: nack
+  repository: https://nats-io.github.io/k8s/helm/charts/
+  version: 0.33.2
+- name: auth-callout
+  repository: file://../../auth-callout/deploy
+  version: 0.1.1
+- name: surveyor
+  repository: https://nats-io.github.io/k8s/helm/charts/
+  version: 0.20.7
+digest: sha256:ebb51d2884c15b6b148994e51a62abca9534642b1f41dcf20c3dab505ecb624b
+generated: "2026-06-02T03:19:31.228545-07:00"

@@ -14,6 +14,7 @@ Version-pinned where there is a known compatibility break; unpinned tools work w
 - [Kind](https://kind.sigs.k8s.io/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm](https://helm.sh/) 4.0+ — local deploy uses `--force` which requires Helm 4
+- [Skaffold](https://skaffold.dev/) — installed by `make install-e2e-prereqs`
 - [Go](https://go.dev/doc/install) 1.25+ — required by `go.mod`
 - Make
 
@@ -41,7 +42,10 @@ sudo brew services restart chipmk/tap/docker-mac-net-connect
 ### Setup Infrastructure
 
 ```bash
-# Create all three Kind clusters and deploy infrastructure
+# Install local e2e tools, including the pinned Skaffold version
+make install-e2e-prereqs
+
+# Create all three Kind clusters and deploy required infrastructure with Skaffold
 make setup-infra
 
 # Verify infrastructure is ready
@@ -51,15 +55,29 @@ make verify-infra
 ### Deploy Event Bus
 
 ```bash
-# Deploy NATS to all layers
+# Build auth-callout and deploy NATS to all layers with Skaffold
 make deploy-nats
 ```
 
 ### Run Tests
 
-Performance and benchmark targets require MetalLB (installed by `make setup-infra`). Without it, `kubectl port-forward` is used as a fallback but cannot sustain benchmark throughput — tests fail silently with connectivity errors that do not indicate the root cause.
+Performance and benchmark targets require MetalLB, installed by
+`make setup-infra`, so local clients connect through the Envoy Gateway
+LoadBalancer IPs. On macOS, keep `docker-mac-net-connect` running so the host can
+reach those IPs. Linux hosts normally reach the Docker bridge IPs directly.
+
+The default CSC broker endpoint is `tcp://172.18.200.1:1883`. Override
+`CSC_BROKER_URL` only when testing a different reachable broker.
+
+Full benchmark targets can saturate local hosts because they drive thousands of
+MQTT clients through Kind, Envoy Gateway, NATS, and auth-callout. If a full run
+fails with EOFs or success-rate misses, check host CPU and pod metrics before
+treating it as a networking failure.
 
 ```bash
+# Verify host access to the CSC Envoy Gateway after NATS is deployed
+nc -vz 172.18.200.1 1883
+
 # Run functional tests against all candidates
 make test-functional
 
@@ -87,17 +105,19 @@ For the testing strategy (functional and performance coverage), see
 ```bash
 # Infrastructure Setup
 make setup-clusters          # Create all Kind clusters (CSC, CPC-1, CPC-2)
-make setup-infra             # Deploy MetalLB, Envoy Gateway, cert-manager, metrics-server, Keycloak, Prometheus
+make setup-infra             # Deploy required infra with Skaffold (Prometheus CRDs only)
 make setup-metallb           # Deploy MetalLB only
 make setup-envoy-gateway     # Deploy Envoy Gateway only
 make setup-cert-manager      # Deploy cert-manager only
 make setup-metrics-server    # Deploy metrics-server only
-make setup-keycloak          # Deploy Keycloak only
-make setup-observability     # Deploy Prometheus/Grafana only
+make setup-keycloak          # Deploy CSC Keycloak only
+make setup-observability     # Deploy full Prometheus/Grafana only
+make skaffold-run            # Deploy required infra and NATS in one Skaffold run
+make skaffold-dev            # Run Skaffold dev for the complete local stack
 make verify-infra            # Verify infrastructure is ready
 
 # Event Bus Deployment
-make deploy-nats             # Deploy NATS to all layers
+make deploy-nats             # Build auth-callout and deploy NATS to all layers
 make validate-nats           # Validate NATS deployment
 
 # Testing
@@ -169,6 +189,6 @@ Run against the local Kind environment:
 make dummy-bms
 ```
 
-The dummy BMS target uses the same local e2e environment and gateway
-port-forward setup as the functional and performance tests. It publishes to the
-CSC broker URL exported by that wrapper.
+The dummy BMS target uses the same local e2e environment and Envoy Gateway
+LoadBalancer path as the functional and performance tests. It publishes to the
+CSC broker at `tcp://172.18.200.1:1883` unless `CSC_BROKER_URL` is overridden.

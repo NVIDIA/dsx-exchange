@@ -16,6 +16,8 @@ go.work
 
 # Dependency directories
 vendor/
+!infra/vendor/
+!infra/vendor/**
 node_modules/
 
 # MQTT client binaries
@@ -38,6 +40,7 @@ kubeconfig
 *.tgz
 charts/*/charts/
 .helmignore
+infra/charts/envoy-gateway/*/README.md
 
 # Test results
 test-results/
@@ -121,4 +124,3 @@ htmlcov/
 *.bak
 *.backup
 *.orig
-

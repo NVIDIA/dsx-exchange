@@ -11,8 +11,10 @@ For architecture and chart configuration details, see
 ### Prerequisites
 
 - Kind clusters created (CSC, CPC-1, CPC-2)
+- Local infrastructure deployed with `make -C local setup-infra`
 - Helm 4.0+
 - kubectl configured with cluster contexts
+- Skaffold installed by `make -C local install-e2e-prereqs`
 
 ### Deploy to All Layers
 
@@ -20,34 +22,26 @@ For architecture and chart configuration details, see
 # From the repository root
 make -C local deploy-nats
 
-# Or manually
+# Or deploy through the local wrapper
+cd local/nats
+./deploy.sh all
+```
+
+### Deploy Selected Layer
+
+The single-layer wrapper builds the shared auth-callout image before running
+the selected Skaffold NATS module. Running a raw module such as
+`skaffold run --module nats-csc` assumes `localhost:5001/auth-callout:local`
+already exists in the local registry.
+
+The CPC wrappers also reconcile CSC because CPC leaf-node configuration depends
+on the CSC deployment.
+
+```bash
 cd local/nats
 ./deploy.sh csc
 ./deploy.sh cpc-1
 ./deploy.sh cpc-2
-```
-
-### Deploy to Single Layer
-
-```bash
-# Deploy to CSC
-helm install nats-event-bus ../../deploy/nats-event-bus \
-  --dependency-update \
-  --namespace event-bus \
-  --create-namespace \
-  -f k8s/local-dev-values.yaml \
-  -f k8s/csc/values.yaml \
-  --kube-context kind-csc
-
-# Deploy to CPC-1
-helm install nats-event-bus ../../deploy/nats-event-bus \
-  --dependency-update \
-  --namespace event-bus \
-  --create-namespace \
-  -f k8s/local-dev-values.yaml \
-  -f k8s/cpc/values.yaml \
-  -f k8s/cpc/cpc-1.yaml \
-  --kube-context kind-cpc-1
 ```
 
 ## Configuration
@@ -67,9 +61,8 @@ make validate-nats
 ### Test MQTT Connectivity
 
 ```bash
-kubectl port-forward -n event-bus-nats svc/nats 1883:1883 --context kind-csc
-mosquitto_pub -h localhost -p 1883 -t "csc/test" -m "hello" -q 1
-mosquitto_sub -h localhost -p 1883 -t "csc/#" -q 1
+mosquitto_pub -h 172.18.200.1 -p 1883 -t "csc/test" -m "hello" -q 1
+mosquitto_sub -h 172.18.200.1 -p 1883 -t "csc/#" -q 1
 ```
 
 ## Performance Tuning
@@ -83,10 +76,9 @@ For monitoring configuration and metrics reference, see
 
 ### Accessing Metrics Locally
 
-```bash
-kubectl port-forward -n event-bus-nats svc/nats-metrics 7777:7777 --context kind-csc
-curl http://localhost:7777/metrics
-```
+Metrics are scraped by the local observability stack. See
+[local/infra/README.md](../infra/README.md) for the Prometheus and Grafana
+local access commands.
 
 Key NATS metrics:
 
@@ -112,8 +104,8 @@ Import NATS dashboard ID 2279 in Grafana. See https://docs.nats.io/nats-server/c
 ### Pod Not Starting
 
 ```bash
-kubectl get events -n event-bus-nats --context kind-csc
-kubectl logs -n event-bus-nats <pod-name> --context kind-csc
+kubectl get events -n event-bus --context kind-csc
+kubectl logs -n event-bus <pod-name> --context kind-csc
 ```
 
 ### MQTT Connection Failed
@@ -127,4 +119,3 @@ Check leaf node connections and Gateway configuration. Verify topic filtering at
 ### High Memory Usage
 
 Check JetStream stream usage and adjust retention policies as needed.
-

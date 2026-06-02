@@ -1,6 +1,9 @@
 # Helm chart artifacts
 *.tgz
 Chart.lock
+!nats-event-bus/Chart.lock
+!nats-event-bus/charts/
+!nats-event-bus/charts/*.tgz
 
 # macOS
 .DS_Store

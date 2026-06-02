@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0
@@ -84,16 +83,19 @@ check "CPC-1 metrics-server" "kubectl get deployment metrics-server -n kube-syst
 check "CPC-2 metrics-server" "kubectl get deployment metrics-server -n kube-system --context kind-cpc-2 --no-headers | grep -E '1/1|2/2'"
 echo ""
 
+# Check Prometheus Operator CRDs required by NATS ServiceMonitor resources
+echo "Checking Prometheus CRDs..."
+check "CSC ServiceMonitor CRD" "kubectl get crd servicemonitors.monitoring.coreos.com --context kind-csc"
+check "CPC-1 ServiceMonitor CRD" "kubectl get crd servicemonitors.monitoring.coreos.com --context kind-cpc-1"
+check "CPC-2 ServiceMonitor CRD" "kubectl get crd servicemonitors.monitoring.coreos.com --context kind-cpc-2"
+echo ""
+
 # Check Observability (Optional)
 echo "Checking Observability Stack (Optional)..."
-if kubectl get namespace monitoring --context kind-csc >/dev/null 2>&1; then
-    check "Monitoring namespace" "kubectl get namespace monitoring --context kind-csc"
+if kubectl get deployment prometheus-kube-prometheus-operator -n monitoring --context kind-csc >/dev/null 2>&1; then
     check "Prometheus Operator" "kubectl get pods -n monitoring -l app=kube-prometheus-stack-operator --context kind-csc --no-headers | grep Running"
     check "Prometheus server" "kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus --context kind-csc --no-headers | grep Running"
     check "Grafana" "kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana --context kind-csc --no-headers | grep Running"
-    check "Alertmanager" "kubectl get pods -n monitoring -l app.kubernetes.io/name=alertmanager --context kind-csc --no-headers | grep Running"
-    check "Node Exporter" "kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus-node-exporter --context kind-csc --no-headers | grep Running"
-    check "Kube State Metrics" "kubectl get pods -n monitoring -l app.kubernetes.io/name=kube-state-metrics --context kind-csc --no-headers | grep Running"
 else
     echo "Observability stack not installed (use 'make setup-observability' to install)"
 fi

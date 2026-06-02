@@ -1,0 +1,35 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+crds:
+  enabled: true
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 48Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+webhook:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+cainjector:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 20m
+      memory: 48Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

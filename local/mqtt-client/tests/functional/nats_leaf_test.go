@@ -73,6 +73,8 @@ func TestLaunchLayerLeafNodeRoutesNATSMessages(t *testing.T) {
 }
 
 func TestLaunchLayerJetStreamStoresLeafMessages(t *testing.T) {
+	// Core NATS publishes from each LaunchLayer cluster should be captured by a
+	// CSC-owned stream after stream interest propagates across the leaf path.
 	clusters := getNATSClusters()
 	csc := findNATSCluster(clusters, "CSC")
 	if csc == nil {
@@ -157,20 +159,38 @@ func testLaunchLayerJetStream(t *testing.T, source launchLayerEndpoint, streamOw
 		}
 	}()
 
-	if err := sourceConn.Publish(subject, payload); err != nil {
-		t.Fatalf("failed to publish LaunchLayer payload from %s: %v", source.cluster.name, err)
-	}
-	if err := sourceConn.FlushWithContext(ctx); err != nil {
-		t.Fatalf("failed to flush LaunchLayer publisher on %s: %v", source.cluster.name, err)
-	}
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
 
-	got := waitForStoredLaunchLayerMessage(t, ctx, ownerJS, streamName, subject)
-	if string(got.Data) != string(payload) {
-		t.Fatalf("stored payload %q, want %q", got.Data, payload)
-	}
+	for {
+		if err := sourceConn.Publish(subject, payload); err != nil {
+			t.Fatalf("failed to publish LaunchLayer payload from %s: %v", source.cluster.name, err)
+		}
+		if err := sourceConn.FlushWithContext(ctx); err != nil {
+			t.Fatalf("failed to flush LaunchLayer publisher on %s: %v", source.cluster.name, err)
+		}
 
-	t.Logf("JetStream stored LaunchLayer message in %s from %s at sequence %d",
-		streamName, source.cluster.name, got.Sequence)
+		msg, err := ownerJS.GetLastMsg(streamName, subject, nats.Context(ctx))
+		if err == nil {
+			if string(msg.Data) != string(payload) {
+				t.Fatalf("stored payload %q, want %q", msg.Data, payload)
+			}
+			t.Logf("JetStream stored LaunchLayer message in %s from %s at sequence %d",
+				streamName, source.cluster.name, msg.Sequence)
+			return
+		}
+		if !errors.Is(err, nats.ErrMsgNotFound) {
+			t.Fatalf("failed to read LaunchLayer stream %s: %v", streamName, err)
+		}
+
+		// AddStream can return before leaf-node interest for the new subject has
+		// reached the source cluster.
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			t.Fatalf("timeout waiting for LaunchLayer stream %s to store subject %s", streamName, subject)
+		}
+	}
 }
 
 func testLaunchLayerJetStreamAPI(t *testing.T, endpoint launchLayerEndpoint, streamOwner launchLayerEndpoint) {

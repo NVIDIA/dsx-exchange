@@ -3,7 +3,7 @@
 
 # Local development values - common across all clusters
 #
-# Uses locally-built auth-callout image instead of pulling from a registry.
+# Skaffold overrides this image with the local-registry image built for the run.
 # This file contains dev environment settings only.
 
 # Auth-callout service configuration
@@ -17,9 +17,9 @@ global:
 auth-callout:
   fullnameOverride: "auth-callout"
   image:
-    repository: auth-callout
+    repository: localhost:5001/auth-callout
     tag: "latest"
-    pullPolicy: Never
+    pullPolicy: Always
 
   serviceConfig:
     # Keycloak JWKS endpoint for OAuth2 token validation

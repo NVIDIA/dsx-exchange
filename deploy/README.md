@@ -218,11 +218,13 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
 helm install dsx ./nats-event-bus -n dsx --create-namespace
 
 # Run the local setup from the repository root
+make -C local install-e2e-prereqs
 make -C local setup-infra
 make -C local deploy-nats
 ```
 
-The local setup deploys the same chart with values from `local/nats/k8s/`.
+The local setup deploys the same chart through Skaffold with values from
+`local/nats/k8s/`.
 Use `local/nats/k8s/local-dev-values.yaml`, `local/nats/k8s/csc/values.yaml`,
 `local/nats/k8s/cpc/values.yaml`, and the per-CPC files in
 `local/nats/k8s/cpc/` as the working reference for value layering.

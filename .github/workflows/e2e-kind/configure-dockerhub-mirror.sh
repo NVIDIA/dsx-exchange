@@ -26,10 +26,6 @@ case "${mirror}" in
   *) mirror="https://${mirror}" ;;
 esac
 
-mirror_host="${mirror#http://}"
-mirror_host="${mirror_host#https://}"
-mirror_host="${mirror_host%/}"
-
 cd "${repo_root}"
 
 require_command() {
@@ -86,6 +82,7 @@ configure_kind_containerd_mirror() {
   local source_config
   local config
   local kind_config_dir
+  local tmp_config
 
   kind_config_dir="${RUNNER_TEMP:-/tmp}/dsx-e2e-kind-config"
   mkdir -p "${kind_config_dir}"
@@ -95,17 +92,27 @@ configure_kind_containerd_mirror() {
     cp "${source_config}" "${config}"
 
     if grep -q '^containerdConfigPatches:' "${config}"; then
-      echo "::error::${source_config} already defines containerdConfigPatches; update the CI mirror override"
-      exit 1
-    fi
-
-    cat >> "${config}" <<EOF
+      tmp_config="$(mktemp)"
+      awk -v mirror="${mirror}" '
+        /^containerdConfigPatches:/ {
+          print
+          print "  - |-"
+          print "    [plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"docker.io\"]"
+          print "      endpoint = [\"" mirror "\"]"
+          next
+        }
+        { print }
+      ' "${config}" > "${tmp_config}"
+      mv "${tmp_config}" "${config}"
+    else
+      cat >> "${config}" <<EOF
 
 containerdConfigPatches:
-- |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-    endpoint = ["${mirror}"]
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["${mirror}"]
 EOF
+    fi
   done
 
   if [ -z "${GITHUB_ENV:-}" ]; then
@@ -116,23 +123,11 @@ EOF
   echo "KIND_CONFIG_DIR=${kind_config_dir}" >> "${GITHUB_ENV}"
 }
 
-configure_envoy_gateway_mirror() {
-  if [ -z "${GITHUB_ENV:-}" ]; then
-    echo "::error::GITHUB_ENV is required to pass ENVOY_GATEWAY_OCI_REGISTRY to later CI steps"
-    exit 1
-  fi
-
-  echo "ENVOY_GATEWAY_OCI_REGISTRY=${mirror_host}" >> "${GITHUB_ENV}"
-}
-
 require_command "docker"
 require_command "jq"
 require_command "sudo"
 
 configure_host_docker_mirror
 
-echo "Writing CI Kind configs with Docker Hub containerd mirror patches..."
+echo "Writing CI Kind configs with Docker Hub containerd mirrors..."
 configure_kind_containerd_mirror
-
-echo "Routing Envoy Gateway OCI chart pulls through Docker Hub mirror..."
-configure_envoy_gateway_mirror

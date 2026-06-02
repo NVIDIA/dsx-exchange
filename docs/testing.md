@@ -19,7 +19,15 @@ The local environment includes MQTT benchmark tooling for smoke runs and
 operator-driven benchmark runs. These tests report the observed behavior of the
 current deployment; they do not define product targets.
 
-**Prerequisite:** Performance and benchmark targets require MetalLB or an equivalent LoadBalancer (installed by `make setup-infra`). Without it, `kubectl port-forward` cannot sustain benchmark throughput and tests fail silently.
+**Prerequisite:** Performance and benchmark targets require MetalLB or an
+equivalent LoadBalancer installed by `make -C local setup-infra`. On macOS, start
+`docker-mac-net-connect` so the host can reach the MetalLB IPs. Linux hosts
+normally reach the Docker bridge IPs directly.
+
+Full benchmark targets are sensitive to local host capacity. When they report
+EOFs, readloop stalls, or success-rate misses, capture host CPU and Kubernetes
+pod metrics with the run; the smoke targets are the portable local validation
+path.
 
 The MQTT performance suite exercises combinations of QoS level, retention, and
 deployment topology:

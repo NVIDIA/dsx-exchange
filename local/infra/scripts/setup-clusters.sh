@@ -50,6 +50,27 @@ fi
 echo "Creating clusters in parallel..."
 
 # Function to create a cluster
+cluster_has_local_registry_mirror() {
+  local cluster_name=$1
+  local node_name
+  local node_found=false
+
+  while IFS= read -r node_name; do
+    node_found=true
+    if ! docker exec "${node_name}" grep -q 'registry.mirrors."localhost:5001"' /etc/containerd/config.toml; then
+      return 1
+    fi
+  done < <(docker ps \
+    --filter "label=io.x-k8s.kind.cluster=${cluster_name}" \
+    --format '{{.Names}}')
+
+  if [ "${node_found}" = false ]; then
+    return 1
+  fi
+
+  return 0
+}
+
 create_cluster() {
   local cluster_name=$1
   local config_file=$2
@@ -60,7 +81,12 @@ create_cluster() {
   fi
 
   if kind get clusters | grep -q "^${cluster_name}$"; then
-    echo "${cluster_name} already exists, skipping"
+    if ! cluster_has_local_registry_mirror "${cluster_name}"; then
+      echo "ERROR: existing Kind cluster ${cluster_name} was not created with the localhost:5001 registry mirror." >&2
+      echo "Run 'make -C local clean-e2e' before using the Skaffold local deploy path." >&2
+      exit 1
+    fi
+    echo "${cluster_name} already exists with localhost:5001 registry mirror, skipping"
   else
     echo "Creating ${cluster_name}..."
     kind create cluster --config "${config_file}"
@@ -97,3 +123,5 @@ for pid in "${pids[@]}"; do
 done
 
 echo "Clusters created successfully"
+
+"${SCRIPT_DIR}/setup-local-registry.sh"

@@ -44,7 +44,7 @@ jobs:
           copyright-holder: "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
           year: "2026"
           paths: "auth-callout/src/ deploy/ local/ schemas/"
-          ignore: "**/vendor/**,**/tests/**,auth-callout/tests/**"
+          ignore: "**/vendor/**,**/tests/**,auth-callout/tests/**,local/infra/charts/**,local/infra/vendor/**"
           go-version: "1.25.5"
 
   go-lint:

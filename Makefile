@@ -10,6 +10,8 @@ LICENSE_IGNORES := \
 	-ignore "**/*.png" \
 	-ignore "**/go.sum" \
 	-ignore "**/tests/performance/reports/**" \
+	-ignore "local/infra/charts/**" \
+	-ignore "local/infra/vendor/**" \
 	-ignore "**/vendor/**"
 
 add-license-headers: ## Add SPDX license headers across repository sources

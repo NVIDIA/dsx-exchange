@@ -1,0 +1,940 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: auth-callout-image
+build:
+  tagPolicy:
+    envTemplate:
+      template: local
+  local:
+    push: true
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+    - image: localhost:5001/auth-callout
+      context: auth-callout
+      docker:
+        dockerfile: build/package/Dockerfile
+        cacheFrom:
+          - localhost:5001/auth-callout:local
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: metallb
+        remoteChart: metallb
+        repo: https://metallb.github.io/metallb
+        version: 0.15.2
+        namespace: metallb-system
+        createNamespace: true
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-csc-config
+requires:
+  - configs:
+      - metallb-csc
+manifests:
+  rawYaml:
+    - local/infra/metallb/csc-pool.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
+  kubectl:
+    hooks:
+      before:
+        - host:
+            command: ["local/infra/scripts/wait-metallb.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: metallb
+        remoteChart: metallb
+        repo: https://metallb.github.io/metallb
+        version: 0.15.2
+        namespace: metallb-system
+        createNamespace: true
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-1-config
+requires:
+  - configs:
+      - metallb-cpc-1
+manifests:
+  rawYaml:
+    - local/infra/metallb/cpc-1-pool.yaml
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
+  kubectl:
+    hooks:
+      before:
+        - host:
+            command: ["local/infra/scripts/wait-metallb.sh", "kind-cpc-1"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: metallb
+        remoteChart: metallb
+        repo: https://metallb.github.io/metallb
+        version: 0.15.2
+        namespace: metallb-system
+        createNamespace: true
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-2-config
+requires:
+  - configs:
+      - metallb-cpc-2
+manifests:
+  rawYaml:
+    - local/infra/metallb/cpc-2-pool.yaml
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 120
+  kubectl:
+    hooks:
+      before:
+        - host:
+            command: ["local/infra/scripts/wait-metallb.sh", "kind-cpc-2"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-all
+requires:
+  - configs:
+      - metallb-csc-config
+      - metallb-cpc-1-config
+      - metallb-cpc-2-config
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-csc-crds
+requires:
+  - configs:
+      - metallb-csc-config
+manifests:
+  helm:
+    releases:
+      - name: eg-crds
+        chartPath: local/infra/charts/envoy-gateway/gateway-crds-helm
+        namespace: envoy-gateway-system
+        setValues:
+          crds.gatewayAPI.enabled: true
+          crds.gatewayAPI.channel: experimental
+          crds.envoyGateway.enabled: true
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-csc
+requires:
+  - configs:
+      - envoy-gateway-csc-crds
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-envoy-gateway.sh", "kind-csc"]
+    releases:
+      - name: eg
+        chartPath: local/infra/charts/envoy-gateway/gateway-helm
+        namespace: envoy-gateway-system
+        createNamespace: true
+        valuesFiles:
+          - local/infra/envoy-gateway/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-csc-config
+requires:
+  - configs:
+      - envoy-gateway-csc
+manifests:
+  rawYaml:
+    - local/infra/envoy-gateway/gatewayclass.yaml
+    - local/infra/envoy-gateway/gateway.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-shared-gateway.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-1-crds
+requires:
+  - configs:
+      - metallb-cpc-1-config
+manifests:
+  helm:
+    releases:
+      - name: eg-crds
+        chartPath: local/infra/charts/envoy-gateway/gateway-crds-helm
+        namespace: envoy-gateway-system
+        setValues:
+          crds.gatewayAPI.enabled: true
+          crds.gatewayAPI.channel: experimental
+          crds.envoyGateway.enabled: true
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-1
+requires:
+  - configs:
+      - envoy-gateway-cpc-1-crds
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-envoy-gateway.sh", "kind-cpc-1"]
+    releases:
+      - name: eg
+        chartPath: local/infra/charts/envoy-gateway/gateway-helm
+        namespace: envoy-gateway-system
+        createNamespace: true
+        valuesFiles:
+          - local/infra/envoy-gateway/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-1-config
+requires:
+  - configs:
+      - envoy-gateway-cpc-1
+manifests:
+  rawYaml:
+    - local/infra/envoy-gateway/gatewayclass.yaml
+    - local/infra/envoy-gateway/gateway.yaml
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-shared-gateway.sh", "kind-cpc-1"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-2-crds
+requires:
+  - configs:
+      - metallb-cpc-2-config
+manifests:
+  helm:
+    releases:
+      - name: eg-crds
+        chartPath: local/infra/charts/envoy-gateway/gateway-crds-helm
+        namespace: envoy-gateway-system
+        setValues:
+          crds.gatewayAPI.enabled: true
+          crds.gatewayAPI.channel: experimental
+          crds.envoyGateway.enabled: true
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-2
+requires:
+  - configs:
+      - envoy-gateway-cpc-2-crds
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-envoy-gateway.sh", "kind-cpc-2"]
+    releases:
+      - name: eg
+        chartPath: local/infra/charts/envoy-gateway/gateway-helm
+        namespace: envoy-gateway-system
+        createNamespace: true
+        valuesFiles:
+          - local/infra/envoy-gateway/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-2-config
+requires:
+  - configs:
+      - envoy-gateway-cpc-2
+manifests:
+  rawYaml:
+    - local/infra/envoy-gateway/gatewayclass.yaml
+    - local/infra/envoy-gateway/gateway.yaml
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-shared-gateway.sh", "kind-cpc-2"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-all
+requires:
+  - configs:
+      - envoy-gateway-csc-config
+      - envoy-gateway-cpc-1-config
+      - envoy-gateway-cpc-2-config
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: cert-manager-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: cert-manager
+        remoteChart: cert-manager
+        repo: https://charts.jetstack.io
+        version: v1.16.2
+        namespace: cert-manager
+        createNamespace: true
+        valuesFiles:
+          - local/infra/cert-manager/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: cert-manager-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: cert-manager
+        remoteChart: cert-manager
+        repo: https://charts.jetstack.io
+        version: v1.16.2
+        namespace: cert-manager
+        createNamespace: true
+        valuesFiles:
+          - local/infra/cert-manager/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: cert-manager-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    releases:
+      - name: cert-manager
+        remoteChart: cert-manager
+        repo: https://charts.jetstack.io
+        version: v1.16.2
+        namespace: cert-manager
+        createNamespace: true
+        valuesFiles:
+          - local/infra/cert-manager/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: cert-manager-all
+requires:
+  - configs:
+      - cert-manager-csc
+      - cert-manager-cpc-1
+      - cert-manager-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  helm:
+    releases:
+      - name: metrics-server
+        remoteChart: metrics-server
+        repo: https://kubernetes-sigs.github.io/metrics-server/
+        version: 3.13.0
+        namespace: kube-system
+        valuesFiles:
+          - local/infra/metrics-server/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  helm:
+    releases:
+      - name: metrics-server
+        remoteChart: metrics-server
+        repo: https://kubernetes-sigs.github.io/metrics-server/
+        version: 3.13.0
+        namespace: kube-system
+        valuesFiles:
+          - local/infra/metrics-server/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  helm:
+    releases:
+      - name: metrics-server
+        remoteChart: metrics-server
+        repo: https://kubernetes-sigs.github.io/metrics-server/
+        version: 3.13.0
+        namespace: kube-system
+        valuesFiles:
+          - local/infra/metrics-server/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-all
+requires:
+  - configs:
+      - metrics-server-csc
+      - metrics-server-cpc-1
+      - metrics-server-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus-crds-csc
+manifests:
+  rawYaml:
+    - local/infra/vendor/prometheus-community/kube-prometheus-stack/86.1.0/crds.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-prometheus-crds.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus-crds-cpc-1
+manifests:
+  rawYaml:
+    - local/infra/vendor/prometheus-community/kube-prometheus-stack/86.1.0/crds.yaml
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-prometheus-crds.sh", "kind-cpc-1"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus-crds-cpc-2
+manifests:
+  rawYaml:
+    - local/infra/vendor/prometheus-community/kube-prometheus-stack/86.1.0/crds.yaml
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-prometheus-crds.sh", "kind-cpc-2"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus-crds-all
+requires:
+  - configs:
+      - prometheus-crds-csc
+      - prometheus-crds-cpc-1
+      - prometheus-crds-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-csc-crds
+requires:
+  - configs:
+      - envoy-gateway-csc-config
+manifests:
+  rawYaml:
+    - local/infra/keycloak/namespace.yaml
+    - local/infra/vendor/keycloak-operator/26.0.7/keycloaks.k8s.keycloak.org-v1.yml
+    - local/infra/vendor/keycloak-operator/26.0.7/keycloakrealmimports.k8s.keycloak.org-v1.yml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-keycloak-crds.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-csc-operator
+requires:
+  - configs:
+      - keycloak-csc-crds
+manifests:
+  rawYaml:
+    - local/infra/vendor/keycloak-operator/26.0.7/kubernetes.yml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl:
+    defaultNamespace: keycloak
+    flags:
+      apply:
+        - --server-side
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-keycloak-operator.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-csc
+requires:
+  - configs:
+      - keycloak-csc-operator
+manifests:
+  rawYaml:
+    - local/infra/keycloak/realm-configmap.yaml
+    - local/infra/keycloak/keycloak.yaml
+    - local/infra/keycloak/httproute.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  kubectl:
+    hooks:
+      after:
+        - host:
+            command: ["local/infra/scripts/wait-keycloak.sh", "kind-csc"]
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability-csc
+requires:
+  - configs:
+      - prometheus-crds-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    releases:
+      - name: prometheus
+        remoteChart: kube-prometheus-stack
+        repo: https://prometheus-community.github.io/helm-charts
+        version: 86.1.0
+        namespace: monitoring
+        createNamespace: true
+        valuesFiles:
+          - local/infra/prometheus/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability-cpc-1
+requires:
+  - configs:
+      - prometheus-crds-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    releases:
+      - name: prometheus
+        remoteChart: kube-prometheus-stack
+        repo: https://prometheus-community.github.io/helm-charts
+        version: 86.1.0
+        namespace: monitoring
+        createNamespace: true
+        valuesFiles:
+          - local/infra/prometheus/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability-cpc-2
+requires:
+  - configs:
+      - prometheus-crds-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    releases:
+      - name: prometheus
+        remoteChart: kube-prometheus-stack
+        repo: https://prometheus-community.github.io/helm-charts
+        version: 86.1.0
+        namespace: monitoring
+        createNamespace: true
+        valuesFiles:
+          - local/infra/prometheus/values.yaml
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability-all
+requires:
+  - configs:
+      - observability-csc
+      - observability-cpc-1
+      - observability-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    flags:
+      install:
+        - --timeout=10m
+      upgrade:
+        - --timeout=10m
+    hooks:
+      before:
+        - host:
+            command: ["local/nats/prepare-secrets.sh", "csc"]
+      after:
+        - host:
+            command: ["local/nats/wait-ready.sh", "csc"]
+    releases:
+      - name: nats-event-bus
+        chartPath: deploy/nats-event-bus
+        skipBuildDependencies: true
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - local/nats/k8s/local-dev-values.yaml
+          - local/nats/k8s/csc/values.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-1
+requires:
+  - configs:
+      - nats-csc
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    flags:
+      install:
+        - --timeout=10m
+      upgrade:
+        - --timeout=10m
+    hooks:
+      before:
+        - host:
+            command: ["local/nats/prepare-secrets.sh", "cpc-1"]
+      after:
+        - host:
+            command: ["local/nats/wait-ready.sh", "cpc-1"]
+    releases:
+      - name: nats-event-bus
+        chartPath: deploy/nats-event-bus
+        skipBuildDependencies: true
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - local/nats/k8s/local-dev-values.yaml
+          - local/nats/k8s/cpc/values.yaml
+          - local/nats/k8s/cpc/cpc-1.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-2
+requires:
+  - configs:
+      - nats-csc
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    flags:
+      install:
+        - --timeout=10m
+      upgrade:
+        - --timeout=10m
+    hooks:
+      before:
+        - host:
+            command: ["local/nats/prepare-secrets.sh", "cpc-2"]
+      after:
+        - host:
+            command: ["local/nats/wait-ready.sh", "cpc-2"]
+    releases:
+      - name: nats-event-bus
+        chartPath: deploy/nats-event-bus
+        skipBuildDependencies: true
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - local/nats/k8s/local-dev-values.yaml
+          - local/nats/k8s/cpc/values.yaml
+          - local/nats/k8s/cpc/cpc-2.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+        wait: true
+        upgradeOnChange: true
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: local-infra-minimal
+requires:
+  - configs:
+      - metallb-all
+      - envoy-gateway-all
+      - cert-manager-all
+      - metrics-server-all
+      - prometheus-crds-all
+      - keycloak-csc
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: local-infra
+requires:
+  - configs:
+      - local-infra-minimal
+      - observability-all
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-all
+requires:
+  - configs:
+      - auth-callout-image
+      - nats-cpc-1
+      - nats-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-csc-local
+requires:
+  - configs:
+      - auth-callout-image
+      - nats-csc
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-1-local
+requires:
+  - configs:
+      - auth-callout-image
+      - nats-cpc-1
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-2-local
+requires:
+  - configs:
+      - auth-callout-image
+      - nats-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: local-dev
+requires:
+  - configs:
+      - local-infra-minimal
+      - nats-all

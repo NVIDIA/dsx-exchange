@@ -17,6 +17,7 @@ import (
 
 	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/internal/dummybms"
 	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/pkg/client"
+	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/pkg/config"
 )
 
 const progressLogInterval = 5 * time.Second
@@ -86,7 +87,7 @@ func main() {
 
 	csvPath := flag.String("csv", "examples/dsx_exemplar.csv", "CSV scenario path")
 	schemaPath := flag.String("schema", dummybms.DefaultBMSSchemaPath, "BMS AsyncAPI schema path")
-	broker := flag.String("broker", "tcp://127.0.0.1:1883", "MQTT broker URL")
+	broker := flag.String("broker", config.GetCSCBrokerURL(), "MQTT broker URL")
 	clientID := flag.String("client-id", defaultClientID, "MQTT client ID")
 	qos := flag.Int("qos", 0, "MQTT QoS for publishes")
 	once := flag.Bool("once", false, "publish the CSV scenario once and exit")

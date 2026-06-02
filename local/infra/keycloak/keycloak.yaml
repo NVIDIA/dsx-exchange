@@ -17,8 +17,8 @@ spec:
     enabled: false
   resources:
     requests:
-      cpu: "100m"
-      memory: "550Mi"
+      cpu: "50m"
+      memory: "256Mi"
     limits:
       cpu: "1000m"
       memory: "550Mi"
@@ -38,4 +38,3 @@ spec:
             volumeMounts:
               - name: realm-import
                 mountPath: /opt/keycloak/data/import
-

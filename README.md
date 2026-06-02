@@ -11,7 +11,7 @@ DSX Exchange provides the repository pieces needed to describe, deploy, and vali
 - `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
 - `deploy`: Helm chart for the NATS event bus deployment.
-- `local`: Kind-based local evaluation environment, NATS deployment scripts, MQTT tests, and benchmark tooling.
+- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT tests, and benchmark tooling.
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
@@ -32,6 +32,7 @@ integration application, start with the
 For local end-to-end validation, create the Kind environment and deploy NATS:
 
 ```bash
+make -C local install-e2e-prereqs
 make -C local setup-infra
 make -C local deploy-nats
 make -C local validate-nats

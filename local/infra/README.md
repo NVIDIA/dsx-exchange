@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # Infrastructure Setup
 
 This directory contains the infrastructure configuration for the DSX Event Bus evaluation environment.
@@ -11,27 +14,44 @@ The infrastructure consists of:
 - Envoy Gateway controllers
 - Metrics Server for resource metrics (CPU/memory)
 - Keycloak for OAuth2 authentication (development)
+- Prometheus Operator CRDs for ServiceMonitor resources
 - Prometheus and Grafana for monitoring (optional)
 
 ## Quick Start
 
+On macOS, install and start `docker-mac-net-connect` before running local tests
+from the host. Linux hosts normally reach the Docker bridge IPs directly. See
+[local/README.md](../README.md#macos-tweaks).
+
 ```bash
-# Setup complete infrastructure (clusters, MetalLB, Envoy Gateway, cert-manager, metrics-server, Keycloak)
-# All operations are parallelized across clusters for maximum speed:
-#   - Kind clusters created in parallel (CSC + CPC clusters)
-#   - MetalLB deployed to all clusters in parallel
-#   - Envoy Gateway deployed to all clusters in parallel
-#   - cert-manager deployed to all clusters in parallel
-#   - Metrics Server deployed to all clusters in parallel
-#   - Keycloak deployed to CSC cluster (accessed by all clusters via external IP)
+# Install local e2e tools, including the pinned Skaffold version
+make install-e2e-prereqs
+
+# Setup required local infrastructure with Skaffold
 make setup-infra
 
 # Verify everything is running
 make verify-infra
 
+# Verify the host can reach the CSC Keycloak HTTPRoute through Envoy Gateway
+curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
+
 # Optional: Deploy full observability stack (Prometheus + Grafana)
 make setup-observability
 ```
+
+## Skaffold Behavior
+
+The local deploy path uses Skaffold after Kind cluster bootstrap. Scripting is
+limited to host prerequisites, cluster creation, local registry setup, and
+readiness hooks.
+
+- `setup-infra` deploys MetalLB, Envoy Gateway, cert-manager, metrics-server,
+  Keycloak, and Prometheus Operator CRDs through Skaffold.
+- `setup-observability` deploys the full Prometheus/Grafana stack separately.
+- Envoy Gateway uses pinned `v1.5.4` Helm chart packages.
+- `deploy-nats` builds `auth-callout`, pushes it to `localhost:5001`, and
+  deploys all NATS layers through Skaffold.
 
 ## Cluster Details
 
@@ -99,8 +119,7 @@ metadata:
 **Deployment:**
 
 ```bash
-# Deploy to all clusters in parallel
-./infra/scripts/setup-metallb.sh
+make setup-metallb
 ```
 
 ## Envoy Gateway Setup
@@ -110,8 +129,7 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 **Deployment:**
 
 ```bash
-# Deploy to all clusters in parallel
-./infra/scripts/setup-envoy-gateway.sh
+make setup-envoy-gateway
 ```
 
 **Usage:**
@@ -147,8 +165,7 @@ cert-manager provides automatic certificate management for TLS certificates. It'
 **Deployment:**
 
 ```bash
-# Deploy to all clusters (included in make setup-infra, runs in parallel)
-./infra/scripts/setup-cert-manager.sh
+make setup-cert-manager
 ```
 
 ## Metrics Server
@@ -158,11 +175,11 @@ Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and p
 **Deployment:**
 
 ```bash
-# Deploy to all clusters (included in make setup-infra, runs in parallel)
-./infra/scripts/setup-metrics-server.sh
+make setup-metrics-server
 ```
 
-**Note:** Uses `components.yaml` manifest (not high-availability) with `--kubelet-insecure-tls` flag for Kind compatibility.
+**Note:** Uses the metrics-server Helm chart with `--kubelet-insecure-tls` for
+Kind compatibility.
 
 **Usage:**
 
@@ -171,20 +188,17 @@ Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and p
 kubectl top nodes --context kind-csc
 
 # View pod metrics
-kubectl top pods -n event-bus-nats --context kind-csc
+kubectl top pods -n event-bus --context kind-csc
 ```
 
 ## Keycloak (OAuth2 Authentication)
 
-Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side tests use localhost port-forwarding because Docker-network LoadBalancer IPs are not reachable from every workstation environment.
+Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side local tests use the same Envoy Gateway path.
 
 **Deployment:**
 
 ```bash
-# Deploy to CSC cluster (included in make setup-infra, can be run separately)
 make setup-keycloak
-# or
-./infra/scripts/setup-keycloak.sh
 ```
 
 **Configuration:**
@@ -199,18 +213,11 @@ make setup-keycloak
 
 **Access:**
 
-Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. All clusters access Keycloak at this address. From the host, prefer `make test-functional` or `make test-performance`; those targets port-forward Keycloak to `http://127.0.0.1:18080` automatically.
+Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. On macOS, keep `docker-mac-net-connect` running so the host can reach this address. Linux hosts normally reach the Docker bridge IPs directly.
 
 ```bash
-# Verify Keycloak from inside the Docker network
-curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
-
 # Verify Keycloak from the host
-kubectl port-forward -n envoy-gateway-system svc/$(kubectl get svc \
-  --context kind-csc -n envoy-gateway-system \
-  -l gateway.envoyproxy.io/owning-gateway-name=shared-gateway \
-  -o jsonpath='{.items[0].metadata.name}') 18080:80 --context kind-csc
-curl http://127.0.0.1:18080/realms/event-bus/.well-known/openid-configuration
+curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 ```
 
 **Token Endpoint (all clusters):**
@@ -224,10 +231,7 @@ curl http://127.0.0.1:18080/realms/event-bus/.well-known/openid-configuration
 **Access Keycloak Admin Console:**
 
 ```bash
-# Port-forward to Keycloak service in CSC cluster
-kubectl port-forward -n keycloak svc/keycloak-service 8080:8080 --context kind-csc
-
-# Open http://localhost:8080
+# Open http://172.18.200.1/admin/master/console/
 # Admin credentials: admin/admin
 ```
 
@@ -259,7 +263,9 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
 
 ## Prometheus & Grafana (Optional)
 
-Full monitoring stack using the kube-prometheus-stack Helm chart. This is **optional** and only needed for detailed metrics collection and visualization.
+`make setup-infra` installs only the Prometheus Operator CRDs required by NATS
+ServiceMonitor resources. The full monitoring stack uses the
+kube-prometheus-stack Helm chart and is optional.
 
 **Components:**
 
@@ -273,10 +279,7 @@ Full monitoring stack using the kube-prometheus-stack Helm chart. This is **opti
 **Deployment:**
 
 ```bash
-# Deploy to CSC cluster (monitoring hub) - OPTIONAL
 make setup-observability
-# or
-./infra/scripts/setup-observability.sh
 ```
 
 **Access Grafana:**
@@ -512,7 +515,7 @@ kubectl get servicemonitor -A --context kind-csc
 # Access Prometheus UI and check Status -> Targets
 
 # Verify service labels match ServiceMonitor selector
-kubectl get svc -n event-bus-nats -o yaml --context kind-csc
+kubectl get svc -n event-bus -o yaml --context kind-csc
 ```
 
 ## Cleanup
