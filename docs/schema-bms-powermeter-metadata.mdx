@@ -35,7 +35,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `Voltage` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -67,7 +67,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `PowerFactor` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 
 <Accordion title="Example payload">
 
@@ -97,7 +97,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `Frequency` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -129,7 +129,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `ApparentPower` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -161,7 +161,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `ActivePower` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -193,7 +193,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `Current` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -225,7 +225,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `CurrentLimit` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 
 <Accordion title="Example payload">
@@ -257,7 +257,7 @@ BMS-published metadata for all PowerMeter points.
 | `pointType` | string | Yes | Values: `PhaseCurrent` |
 | `objectName` | string | Yes | Human-readable name of the electrical device. |
 | `objectId` | string | Yes | Stable unique identifier for the electrical device. |
-| `servesId` | array\&lt;string\> | Yes | List of objectIds of entities served by this power meter. |
+| `servesId` | array&lt;string&gt; | Yes | List of objectIds of entities served by this power meter. |
 | `engUnit` | string | Yes |  |
 | `phase` | string | Yes | Electrical phase identifier. Letter form (A/B/C) and numeric form (1/2/3) are both accepted to align with publisher conventions. Values: `A`, `B`, `C`, `1`, `2`, `3` |
 
@@ -299,7 +299,7 @@ Field fragment for a vendor-specific or unmapped GenericPoint. `processArea` is 
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `stateText` | array\&lt;map\&lt;string, any\>\> | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
+| `stateText` | array&lt;map&lt;string, any&gt;&gt; | No | State label mapping. Each entry maps a numeric state value to its human-readable label (e.g., `[{value: 0, text: "Off"}, {value: 1, text: "On"}]`). |
 
 <Accordion title="Example payload">
 

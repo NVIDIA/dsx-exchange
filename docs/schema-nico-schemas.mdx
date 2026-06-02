@@ -13,7 +13,7 @@ Dpu was discovered by a site-explorer and is being configuring via redfish.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpu_states` | [DpuDiscoveringStates](schema-nico-schemas.mdx#dpudiscoveringstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [DpuDiscoveringState](schema-nico-schemas.mdx#dpudiscoveringstate)\> | Yes |  |
+| `dpu_states.states` | map&lt;string, [DpuDiscoveringState](schema-nico-schemas.mdx#dpudiscoveringstate)&gt; | Yes |  |
 | `state` | string | Yes | Values: `dpudiscoveringstate` |
 
 ### dpuinit
@@ -23,7 +23,7 @@ DPU is not yet ready.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpu_states` | [DpuInitStates](schema-nico-schemas.mdx#dpuinitstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [DpuInitState](schema-nico-schemas.mdx#dpuinitstate)\> | Yes |  |
+| `dpu_states.states` | map&lt;string, [DpuInitState](schema-nico-schemas.mdx#dpuinitstate)&gt; | Yes |  |
 | `state` | string | Yes | Values: `dpuinit` |
 
 ### hostinit
@@ -107,7 +107,7 @@ State used to indicate that DPU reprovisioning is going on.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpu_states` | [DpuReprovisionStates](schema-nico-schemas.mdx#dpureprovisionstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)\> | Yes |  |
+| `dpu_states.states` | map&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)&gt; | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
 
 ### hostreprovision
@@ -410,7 +410,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [DpuDiscoveringState](schema-nico-schemas.mdx#dpudiscoveringstate)\> | Yes |  |
+| `states` | map&lt;string, [DpuDiscoveringState](schema-nico-schemas.mdx#dpudiscoveringstate)&gt; | Yes |  |
 
 ---
 
@@ -466,7 +466,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [DpuInitState](schema-nico-schemas.mdx#dpuinitstate)\> | Yes |  |
+| `states` | map&lt;string, [DpuInitState](schema-nico-schemas.mdx#dpuinitstate)&gt; | Yes |  |
 
 ---
 
@@ -474,7 +474,7 @@ A context for passing information between states thoughout the BOM validation pr
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `states` | map\&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)\> | Yes |  |
+| `states` | map&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)&gt; | Yes |  |
 
 ---
 
@@ -837,7 +837,7 @@ Possible Instance state-machine implementation, for when the machine host is ass
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `dpu_states` | [DpuReprovisionStates](schema-nico-schemas.mdx#dpureprovisionstates) | Yes |  |
-| `dpu_states.states` | map\&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)\> | Yes |  |
+| `dpu_states.states` | map&lt;string, [ReprovisionState](schema-nico-schemas.mdx#reprovisionstate)&gt; | Yes |  |
 | `state` | string | Yes | Values: `dpureprovision` |
 
 ### failed
