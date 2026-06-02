@@ -118,7 +118,7 @@ func (c *Config) Validate() error {
 func DefaultConfig() *Config {
 	return &Config{
 		Broker: BrokerConfig{
-			URL:            "tcp://172.18.200.1:1883",
+			URL:            "tcp://localhost:1883",
 			ClientIDPrefix: "mqtt-test",
 			TLS:            false,
 		},
@@ -157,20 +157,20 @@ func GetBrokerURL(envVar, configURL string) string {
 
 // GetCSCBrokerURL returns CSC broker URL
 func GetCSCBrokerURL() string {
-	return GetBrokerURL("CSC_BROKER_URL", "tcp://172.18.200.1:1883")
+	return GetBrokerURL("CSC_BROKER_URL", "tcp://localhost:1883")
 }
 
 // GetCPC1BrokerURL returns CPC1 broker URL
 func GetCPC1BrokerURL() string {
-	return GetBrokerURL("CPC1_BROKER_URL", "tcp://172.18.201.1:1883")
+	return GetBrokerURL("CPC1_BROKER_URL", "tcp://localhost:1883")
 }
 
 // GetCPC2BrokerURL returns CPC2 broker URL
 func GetCPC2BrokerURL() string {
-	return GetBrokerURL("CPC2_BROKER_URL", "tcp://172.18.202.1:1883")
+	return GetBrokerURL("CPC2_BROKER_URL", "tcp://localhost:1883")
 }
 
 // GetKeycloakURL returns Keycloak URL (consolidated in CSC cluster)
 func GetKeycloakURL() string {
-	return GetBrokerURL("KEYCLOAK_URL", "http://172.18.200.1")
+	return GetBrokerURL("KEYCLOAK_URL", "http://localhost:8080")
 }
