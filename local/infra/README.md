@@ -27,11 +27,12 @@ from the host. Linux hosts normally reach the Docker bridge IPs directly. See
 # Install local e2e tools, including the pinned Skaffold version
 make install-e2e-prereqs
 
-# Setup required local infrastructure with Skaffold
-make setup-infra
+# Setup the complete local stack with Skaffold
+make skaffold-run
 
 # Verify everything is running
 make verify-infra
+make validate-nats
 
 # Verify the host can reach the CSC Keycloak HTTPRoute through Envoy Gateway
 curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
@@ -532,9 +533,9 @@ kind delete cluster --name cpc-2
 
 ## Next Steps
 
-After infrastructure is ready:
+After the local stack is ready:
 
-1. Deploy event bus:
+1. Reconcile the event bus after NATS or auth-callout changes:
 
    ```bash
    make deploy-nats

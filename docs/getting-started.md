@@ -10,8 +10,7 @@ To evaluate DSX Exchange locally without Vault, VSO, or production certificate i
 
 ```bash
 make -C local install-e2e-prereqs
-make -C local setup-infra      # Kind clusters + required Skaffold-managed infra
-make -C local deploy-nats       # Build auth-callout and deploy NATS to all clusters
+make -C local skaffold-run      # Kind clusters + Skaffold-managed infra and NATS
 make -C local validate-nats     # Verify connectivity
 ```
 
@@ -89,7 +88,7 @@ helm install dsx ./deploy/nats-event-bus \
 
 For a working CSC reference, see `local/nats/k8s/local-dev-values.yaml` and
 `local/nats/k8s/csc/values.yaml`. Those are the values applied by
-`make -C local deploy-nats`.
+`make -C local skaffold-run`.
 
 CSC values configure the cluster type, list of CPC IDs that will connect, and auth permissions:
 
@@ -140,7 +139,7 @@ helm install dsx ./deploy/nats-event-bus \
 
 For a working CPC reference, see `local/nats/k8s/local-dev-values.yaml`,
 `local/nats/k8s/cpc/values.yaml`, and `local/nats/k8s/cpc/cpc-1.yaml`. Those are
-the values applied by `make -C local deploy-nats`.
+the values applied by `make -C local skaffold-run`.
 
 CPC values set the cluster type, cluster ID, CSC endpoint, and cross-layer routing:
 

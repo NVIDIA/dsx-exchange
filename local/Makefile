@@ -27,6 +27,7 @@ install-e2e-prereqs: ## Install local Kind e2e CLI prerequisites into E2E_PREREQ
 
 e2e-kind: install-e2e-prereqs ## Set up local Kind clusters, deploy with Skaffold, and run the e2e suite
 	$(MAKE) skaffold-run
+	$(MAKE) validate-nats
 	$(MAKE) test-functional
 	$(MAKE) test-performance
 
@@ -93,13 +94,13 @@ check-e2e-env: ## Check local Kind/NATS prerequisites for e2e tests
 	@echo "Checking local e2e prerequisites..."
 	@for cluster in csc cpc-1 cpc-2; do \
 		kind get clusters | grep -q "^$${cluster}$$" || { \
-			echo "Missing Kind cluster: $${cluster}. Run 'make -C local setup-infra deploy-nats' first."; \
+			echo "Missing Kind cluster: $${cluster}. Run 'make -C local skaffold-run' first."; \
 			exit 1; \
 		}; \
 	done
 	@for context in kind-csc kind-cpc-1 kind-cpc-2; do \
 		kubectl get namespace event-bus --context "$${context}" >/dev/null 2>&1 || { \
-			echo "Missing event-bus namespace in $${context}. Run 'make -C local deploy-nats' first."; \
+			echo "Missing event-bus namespace in $${context}. Run 'make -C local skaffold-run' first."; \
 			exit 1; \
 		}; \
 	done

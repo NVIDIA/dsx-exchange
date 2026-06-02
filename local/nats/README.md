@@ -11,12 +11,20 @@ For architecture and chart configuration details, see
 ### Prerequisites
 
 - Kind clusters created (CSC, CPC-1, CPC-2)
-- Local infrastructure deployed with `make -C local setup-infra`
+- Local infrastructure deployed with `make -C local skaffold-run` or
+  `make -C local setup-infra`
 - Helm 4.0+
 - kubectl configured with cluster contexts
 - Skaffold installed by `make -C local install-e2e-prereqs`
 
-### Deploy to All Layers
+### Deploy Complete Local Stack
+
+```bash
+# From the repository root
+make -C local skaffold-run
+```
+
+### Deploy NATS After Infrastructure Exists
 
 ```bash
 # From the repository root

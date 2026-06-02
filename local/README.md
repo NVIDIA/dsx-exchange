@@ -39,30 +39,31 @@ You may need to restart the service if it stops working.
 sudo brew services restart chipmk/tap/docker-mac-net-connect
 ```
 
-### Setup Infrastructure
+### Setup Local Stack
 
 ```bash
 # Install local e2e tools, including the pinned Skaffold version
 make install-e2e-prereqs
 
-# Create all three Kind clusters and deploy required infrastructure with Skaffold
-make setup-infra
+# Create all three Kind clusters and deploy required infrastructure and NATS with Skaffold
+make skaffold-run
 
-# Verify infrastructure is ready
+# Verify infrastructure and NATS are ready
 make verify-infra
+make validate-nats
 ```
 
-### Deploy Event Bus
+### Deploy Event Bus Only
 
 ```bash
-# Build auth-callout and deploy NATS to all layers with Skaffold
+# Rebuild auth-callout and redeploy NATS after infrastructure already exists
 make deploy-nats
 ```
 
 ### Run Tests
 
-Performance and benchmark targets require MetalLB, installed by
-`make setup-infra`, so local clients connect through the Envoy Gateway
+Performance and benchmark targets require MetalLB, installed by the
+Skaffold-managed local stack, so local clients connect through the Envoy Gateway
 LoadBalancer IPs. On macOS, keep `docker-mac-net-connect` running so the host can
 reach those IPs. Linux hosts normally reach the Docker bridge IPs directly.
 

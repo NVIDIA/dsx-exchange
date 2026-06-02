@@ -29,12 +29,12 @@ If you already have a DSX Exchange broker and need to build or test an MQTT
 integration application, start with the
 [Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
 
-For local end-to-end validation, create the Kind environment and deploy NATS:
+For local end-to-end validation, create the Kind environment and deploy the
+Skaffold-managed local stack:
 
 ```bash
 make -C local install-e2e-prereqs
-make -C local setup-infra
-make -C local deploy-nats
+make -C local skaffold-run
 make -C local validate-nats
 make test-e2e
 ```

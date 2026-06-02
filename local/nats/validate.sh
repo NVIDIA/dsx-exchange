@@ -32,6 +32,22 @@ get_extra_accounts() {
   done | sort -u
 }
 
+leaf_federation_ready() {
+  local leaf_json=$1
+  local leaf_count
+  local account_name
+
+  leaf_count=$(echo "${leaf_json}" | jq -r '.leafs | length' 2>/dev/null || echo "0")
+  if [ "${leaf_count}" = "null" ] || [ "${leaf_count}" -eq 0 ]; then
+    return 1
+  fi
+
+  for account_name in $(get_extra_accounts); do
+    echo "${leaf_json}" | jq -e --arg account "${account_name}" \
+      '.leafs[]? | select(.account == $account)' >/dev/null || return 1
+  done
+}
+
 echo "Validating NATS deployment on ${cluster}..."
 echo ""
 
@@ -87,8 +103,20 @@ echo ""
 
 # Check Leaf Node connections
 echo "Checking Leaf Node federation..."
-leafz=$(kubectl exec -n ${namespace} nats-0 --context "${context}" -c nats -- \
-  wget -qO- http://localhost:8222/leafz 2>/dev/null)
+for i in {1..60}; do
+  leafz=$(kubectl exec -n ${namespace} nats-0 --context "${context}" -c nats -- \
+    wget -qO- http://localhost:8222/leafz 2>/dev/null || true)
+
+  if leaf_federation_ready "${leafz}"; then
+    break
+  fi
+
+  if [ "${i}" -eq 60 ]; then
+    break
+  fi
+
+  sleep 1
+done
 
 leaf_count=$(echo "${leafz}" | jq -r '.leafs | length' 2>/dev/null || echo "0")
 echo "Leaf node connections: ${leaf_count}"
