@@ -1,0 +1,131 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: auth-callout-image
+build:
+  tagPolicy:
+    envTemplate:
+      template: local
+  local:
+    push: true
+    tryImportMissing: true
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+    - image: localhost:5001/auth-callout
+      context: ../../auth-callout
+      docker:
+        dockerfile: build/package/Dockerfile
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-csc
+requires:
+  - configs:
+      - auth-callout-image
+  - path: ../infra/skaffold.yaml
+    configs:
+      - infra-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    releases:
+      - name: nats-event-bus
+        chartPath: ../../deploy/nats-event-bus
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/csc/values.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh csc
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-1
+requires:
+  - configs:
+      - auth-callout-image
+  - path: ../infra/skaffold.yaml
+    configs:
+      - infra-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    releases:
+      - name: nats-event-bus
+        chartPath: ../../deploy/nats-event-bus
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/cpc/values.yaml
+          - k8s/cpc/cpc-1.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh cpc-1
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-cpc-2
+requires:
+  - configs:
+      - auth-callout-image
+  - path: ../infra/skaffold.yaml
+    configs:
+      - infra-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    releases:
+      - name: nats-event-bus
+        chartPath: ../../deploy/nats-event-bus
+        namespace: event-bus
+        createNamespace: true
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/cpc/values.yaml
+          - k8s/cpc/cpc-2.yaml
+        setValues:
+          auth-callout.image.repository: localhost:5001/auth-callout
+          auth-callout.image.tag: local
+          auth-callout.image.pullPolicy: Always
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh cpc-2

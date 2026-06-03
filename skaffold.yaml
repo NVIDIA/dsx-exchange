@@ -1,0 +1,14 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: local-stack
+resourceSelector:
+  allow:
+    - groupKind: "Stream.jetstream.nats.io"
+      labels: [".*"]
+requires:
+  - path: local/infra/skaffold.yaml
+  - path: local/nats/skaffold.yaml

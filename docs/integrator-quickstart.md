@@ -53,8 +53,7 @@ macOS, install and start `docker-mac-net-connect` from the local quick start so
 the host can reach the MetalLB IPs.
 
 ```bash
-cd local
-make setup-infra deploy-nats
+make -C local skaffold-run
 ```
 
 Use the local CSC broker endpoint:

@@ -8,14 +8,24 @@ For architecture details, see [docs/architecture.md](../docs/architecture.md).
 
 ### Prerequisites
 
-Version-pinned where there is a known compatibility break; unpinned tools work with any recent release.
+Install Docker, Go, and Make first:
 
 - Docker Desktop or equivalent
-- [Kind](https://kind.sigs.k8s.io/)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [Helm](https://helm.sh/) 4.0+ — local deploy uses `--force` which requires Helm 4
 - [Go](https://go.dev/doc/install) 1.25+ — required by `go.mod`
 - Make
+
+`make install-e2e-prereqs` installs missing local e2e tools into
+`E2E_PREREQS_BIN`. If a tool is already on `PATH`, the target reuses it and
+warns when its version differs from the expected version:
+
+- [Kind](https://kind.sigs.k8s.io/) v0.31.0
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.31.9
+- [Helm](https://helm.sh/) v4.2.0
+- [Skaffold](https://skaffold.dev/) v2.21.0
+- cfssl/cfssljson v1.6.5
+- nsc v2.14.0
+- nk v0.4.15
+- yq v4.53.2
 
 ### MacOS Tweaks
 
@@ -38,60 +48,76 @@ You may need to restart the service if it stops working.
 sudo brew services restart chipmk/tap/docker-mac-net-connect
 ```
 
-### Setup Infrastructure
+### Setup Local Stack
+
+Run local e2e targets from a host shell with Docker access. Sandboxed shells can
+fail on Docker buildx permissions or host network access.
 
 ```bash
-# Create all three Kind clusters and deploy infrastructure
-make setup-infra
-
-# Verify infrastructure is ready
-make verify-infra
+make test
 ```
 
-### Deploy Event Bus
+Use `make skaffold-run` for deploy-only local setup.
+
+### Skaffold Setup
+
+The root `skaffold.yaml` imports the local infra and NATS modules:
+
+- `local/infra/skaffold.yaml`: MetalLB, Envoy Gateway, cert-manager,
+  metrics-server, Prometheus, and CSC Keycloak.
+- `local/nats/skaffold.yaml`: auth-callout image build and the NATS event-bus
+  chart for CSC, CPC-1, and CPC-2.
+
+Use the Make targets for local runs. `make skaffold-run` deploys the three
+clusters in parallel with cluster-scoped `skaffold run` commands. `make
+skaffold-run-serial` runs the same modules in one `skaffold run` for comparison
+or debugging.
+
+The full e2e targets follow the same default:
+
+- `make test`: deploy the stack in parallel, then run functional and
+  performance tests.
+- `make test-serial`: deploy the stack serially, then run the same tests.
+- `make test-dev`: run the same tests against an already running local stack.
+
+For iterative development, keep Skaffold running in one terminal:
 
 ```bash
-# Deploy NATS to all layers
-make deploy-nats
+make skaffold-dev
 ```
+
+Then run the e2e test suite from another terminal:
+
+```bash
+make test-dev
+```
+
+Host scripts still handle local prerequisites, Kind cluster creation, the local
+Docker registry, and generated NATS secret material. Skaffold builds the
+auth-callout image, deploys chart releases with Helm, applies raw local
+manifests, and watches local changes in dev mode. It keeps resources after a run
+so follow-up tests can use the deployed environment. Its artifact cache lives
+under `~/.skaffold` unless `SKAFFOLD_CACHE_FILE` or
+`SKAFFOLD_REMOTE_CACHE_DIR` is overridden.
+
+CI uses the existing `DOCKERHUB_MIRROR` value for Docker daemon and Kind image
+pulls.
 
 ### Run Tests
 
-Performance and benchmark targets require MetalLB, installed by
-`make setup-infra`, so local clients connect through the Envoy Gateway
-LoadBalancer IPs. On macOS, keep `docker-mac-net-connect` running so the host can
-reach those IPs. Linux hosts normally reach the Docker bridge IPs directly.
+Performance and benchmark targets require MetalLB from the local stack. Local
+clients connect through the Envoy Gateway LoadBalancer IPs. On macOS, keep
+`docker-mac-net-connect` running so the host can reach those IPs. Linux hosts
+normally reach the Docker bridge IPs directly.
 
-The default CSC broker endpoint is `tcp://172.18.200.1:1883`. Override
-`CSC_BROKER_URL` only when testing a different reachable broker.
+`make test` runs the full local e2e suite. The default CSC broker endpoint
+is `tcp://172.18.200.1:1883`; override `CSC_BROKER_URL` only when testing a
+different broker.
 
 Full benchmark targets can saturate local hosts because they drive thousands of
 MQTT clients through Kind, Envoy Gateway, NATS, and auth-callout. If a full run
 fails with EOFs or success-rate misses, check host CPU and pod metrics before
 treating it as a networking failure.
-
-```bash
-# Verify host access to the CSC Envoy Gateway after NATS is deployed
-nc -vz 172.18.200.1 1883
-
-# Run functional tests against all candidates
-make test-functional
-
-# Run performance e2e smoke tests (requires MetalLB)
-make test-performance
-
-# Run full performance benchmarks (requires MetalLB)
-make benchmark-performance
-
-# Run MQTT benchmark smoke suite (requires MetalLB)
-make benchmark-basic
-
-# Run full MQTT benchmark suite (requires MetalLB)
-make benchmark-basic-full
-
-# Publish looping dummy BMS data to the CSC MQTT broker
-make dummy-bms
-```
 
 For the testing strategy (functional and performance coverage), see
 [docs/testing.md](../docs/testing.md).
@@ -99,36 +125,22 @@ For the testing strategy (functional and performance coverage), see
 ## Common Commands
 
 ```bash
-# Infrastructure Setup
-make setup-clusters          # Create all Kind clusters (CSC, CPC-1, CPC-2)
-make setup-infra             # Deploy MetalLB, Envoy Gateway, cert-manager, metrics-server, Keycloak, Prometheus
-make setup-metallb           # Deploy MetalLB only
-make setup-envoy-gateway     # Deploy Envoy Gateway only
-make setup-cert-manager      # Deploy cert-manager only
-make setup-metrics-server    # Deploy metrics-server only
-make setup-keycloak          # Deploy Keycloak only
-make setup-observability     # Deploy Prometheus/Grafana only
-make verify-infra            # Verify infrastructure is ready
+# Local Setup
+make test                    # Deploy local stack and run the e2e suite
+make test-serial             # Run the same e2e suite with serial deploy
+make test-dev                # Run the e2e suite against the current stack
+make skaffold-run            # Deploy required infra and NATS
+make skaffold-run-serial     # Deploy required infra and NATS in one Skaffold run
+make skaffold-dev            # Run Skaffold dev for the complete local dev stack
 
-# Event Bus Deployment
-make deploy-nats             # Deploy NATS to all layers
-make validate-nats           # Validate NATS deployment
-
-# Testing
-make test-functional         # Run functional tests (MQTT + federation)
-make test-performance        # Run performance e2e smoke tests
-make benchmark-performance   # Run full performance benchmarks
-make benchmark-basic         # Run MQTT benchmark smoke suite
-make benchmark-basic-full    # Run full MQTT benchmark basic suite
+# Benchmarks and demos
+make benchmark               # Run MQTT benchmark smoke suite
+make benchmark-full          # Run full MQTT benchmark basic suite
 make dummy-bms               # Publish looping dummy BMS data
 
 # Monitoring & Cleanup
 make status                  # Check deployment status
-make clean-nats              # Delete NATS namespaces
-make clean                   # Delete all Kind clusters
-
-# Development
-make lint                    # Run linters
+make clean                   # Delete Kind clusters and generated local artifacts
 make help                    # Show all available targets
 ```
 
@@ -143,9 +155,6 @@ make help                    # Show all available targets
 Run standardized MQTT broker benchmarks following the [Open MQTT Benchmark Suite](https://github.com/emqx/mqttbs):
 
 ```bash
-# Run all Basic scenarios (automatically discovers CSC NATS gateway)
-make benchmark-basic
-
 # Run individual scenarios
 cd mqttbs
 GATEWAY_IP=$(kubectl --context kind-csc get gateway -A -l app.kubernetes.io/component=event-bus-gateway -o jsonpath='{.items[0].status.addresses[0].value}')

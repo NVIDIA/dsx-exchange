@@ -20,7 +20,7 @@ operator-driven benchmark runs. These tests report the observed behavior of the
 current deployment; they do not define product targets.
 
 **Prerequisite:** Performance and benchmark targets require MetalLB or an
-equivalent LoadBalancer installed by `make setup-infra`. On macOS, start
+equivalent LoadBalancer from the local stack. On macOS, start
 `docker-mac-net-connect` so the host can reach the MetalLB IPs. Linux hosts
 normally reach the Docker bridge IPs directly.
 

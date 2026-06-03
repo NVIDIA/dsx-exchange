@@ -18,11 +18,8 @@ go test ./pkg/...
 # Run functional tests
 go test ./tests/functional/...
 
-# Run performance e2e smoke tests from repo root
-make -C .. test-performance
-
-# Run full performance benchmarks from repo root
-make -C .. benchmark-performance
+# Run the full local e2e suite from local/
+make -C .. test
 
 # Run all tests with coverage
 go test -cover ./...
@@ -70,7 +67,7 @@ Test throughput on a single cluster:
 
 ```bash
 # From local/
-make test-performance
+make test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_Local'
@@ -89,7 +86,7 @@ Test cross-cluster throughput (CPC1 <-> CSC):
 
 ```bash
 # From local/
-make test-performance
+make test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_(CPCtoCSC|CSCtoCPC)'
@@ -139,13 +136,13 @@ The performance tests expose Prometheus metrics:
 ## Quick Start
 
 ```bash
-# From local/, use the Makefile targets against the MetalLB Envoy Gateway IPs.
-make test-functional
-make test-performance
+# From local/, run the full local e2e suite against the MetalLB Envoy Gateway IPs.
+make test
 make dummy-bms
 
-# Run full performance benchmarks instead of the e2e smoke profile.
-make benchmark-performance
+# Run MQTT benchmarks instead of the e2e smoke profile.
+make benchmark
+make benchmark-full
 
 # Direct test runs use the MetalLB Envoy Gateway IPs.
 export CSC_BROKER_URL=tcp://172.18.200.1:1883

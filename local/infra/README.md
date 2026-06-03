@@ -11,7 +11,7 @@ The infrastructure consists of:
 - Envoy Gateway controllers
 - Metrics Server for resource metrics (CPU/memory)
 - Keycloak for OAuth2 authentication (development)
-- Prometheus and Grafana for monitoring (optional)
+- Prometheus for ServiceMonitor-backed metrics
 
 ## Quick Start
 
@@ -19,26 +19,21 @@ On macOS, install and start `docker-mac-net-connect` before running local tests
 from the host. Linux hosts normally reach the Docker bridge IPs directly. See
 [local/README.md](../README.md#macos-tweaks).
 
+From the repository root:
+
 ```bash
-# Setup complete infrastructure (clusters, MetalLB, Envoy Gateway, cert-manager, metrics-server, Keycloak)
-# All operations are parallelized across clusters for maximum speed:
-#   - Kind clusters created in parallel (CSC + CPC clusters)
-#   - MetalLB deployed to all clusters in parallel
-#   - Envoy Gateway deployed to all clusters in parallel
-#   - cert-manager deployed to all clusters in parallel
-#   - Metrics Server deployed to all clusters in parallel
-#   - Keycloak deployed to CSC cluster (accessed by all clusters via external IP)
-make setup-infra
-
-# Verify everything is running
-make verify-infra
-
-# Verify the host can reach the CSC Keycloak HTTPRoute through Envoy Gateway
-curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
-
-# Optional: Deploy full observability stack (Prometheus + Grafana)
-make setup-observability
+make -C local test
 ```
+
+## Local Targets
+
+The repository root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
+`local/nats/skaffold.yaml`. Host scripts handle prerequisites, Kind cluster
+creation, local registry setup, and NATS secret preparation. Skaffold deploys
+the infra chart releases with Helm and applies local cluster config manifests.
+
+- `skaffold-run`: complete local stack, including infrastructure and NATS.
+- `skaffold-dev`: complete local stack with file watching.
 
 ## Cluster Details
 
@@ -75,14 +70,13 @@ MetalLB provides LoadBalancer service type support in Kind clusters.
 **Why MetalLB?**
 Since clusters have overlapping internal networks, they cannot directly route to each other. MetalLB provides unique external IPs from the Docker network that enable inter-cluster communication through Envoy Gateway.
 
-**IP Ranges (on Docker network 172.18.0.0/16):**
+**Gateway IPs (on Docker network 172.18.0.0/16):**
 
-- CSC: 172.18.200.0/24
-- CPC-1: 172.18.201.0/24
-- CPC-2: 172.18.202.0/24
-- CPC-N: Additional ranges as needed
+- CSC: 172.18.200.1
+- CPC-1: 172.18.201.1
+- CPC-2: 172.18.202.1
 
-These IP ranges are **separate and non-overlapping**, allowing clusters to reach each other's LoadBalancer services via the Docker network.
+These IPs are **separate and non-overlapping**, allowing clusters to reach each other's Envoy Gateway services via the Docker network.
 
 **Configuration:**
 
@@ -90,36 +84,27 @@ These IP ranges are **separate and non-overlapping**, allowing clusters to reach
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: first-pool
+  name: csc-pool
   namespace: metallb-system
 spec:
   addresses:
-  - 172.18.200.0/24  # CSC: 172.18.200.0/24, CPC-1: 172.18.201.0/24, etc.
+    - 172.18.200.1/32
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
-  name: empty
+  name: csc-l2-advert
   namespace: metallb-system
-```
-
-**Deployment:**
-
-```bash
-# Deploy to all clusters in parallel
-./infra/scripts/setup-metallb.sh
+spec:
+  ipAddressPools:
+    - csc-pool
+  interfaces:
+    - eth0
 ```
 
 ## Envoy Gateway Setup
 
 Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gateway capabilities.
-
-**Deployment:**
-
-```bash
-# Deploy to all clusters in parallel
-./infra/scripts/setup-envoy-gateway.sh
-```
 
 **Usage:**
 
@@ -151,25 +136,12 @@ spec:
 
 cert-manager provides automatic certificate management for TLS certificates. It's deployed to all clusters for future TLS support.
 
-**Deployment:**
-
-```bash
-# Deploy to all clusters (included in make setup-infra, runs in parallel)
-./infra/scripts/setup-cert-manager.sh
-```
-
 ## Metrics Server
 
 Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and pods, enabling `kubectl top` commands and Horizontal Pod Autoscaling (HPA).
 
-**Deployment:**
-
-```bash
-# Deploy to all clusters (included in make setup-infra, runs in parallel)
-./infra/scripts/setup-metrics-server.sh
-```
-
-**Note:** Uses `components.yaml` manifest (not high-availability) with `--kubelet-insecure-tls` flag for Kind compatibility.
+**Note:** Uses the official metrics-server Helm chart with
+`--kubelet-insecure-tls` for Kind compatibility.
 
 **Usage:**
 
@@ -184,15 +156,6 @@ kubectl top pods -n event-bus --context kind-csc
 ## Keycloak (OAuth2 Authentication)
 
 Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side local tests use the same Envoy Gateway path.
-
-**Deployment:**
-
-```bash
-# Deploy to CSC cluster (included in make setup-infra, can be run separately)
-make setup-keycloak
-# or
-./infra/scripts/setup-keycloak.sh
-```
 
 **Configuration:**
 
@@ -224,10 +187,7 @@ curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 **Access Keycloak Admin Console:**
 
 ```bash
-# Port-forward to Keycloak service in CSC cluster
-kubectl port-forward -n keycloak svc/keycloak-service 8080:8080 --context kind-csc
-
-# Open http://localhost:8080
+# Open http://172.18.200.1/admin/master/console/
 # Admin credentials: admin/admin
 ```
 
@@ -257,37 +217,14 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
 - Single replica
 - Not suitable for production
 
-## Prometheus & Grafana (Optional)
+## Prometheus
 
-Full monitoring stack using the kube-prometheus-stack Helm chart. This is **optional** and only needed for detailed metrics collection and visualization.
+The local stack installs a lightweight kube-prometheus-stack in each cluster.
 
 **Components:**
 
 - Prometheus Operator
 - Prometheus Server
-- Grafana
-- AlertManager
-- Node Exporter
-- Kube State Metrics
-
-**Deployment:**
-
-```bash
-# Deploy to CSC cluster (monitoring hub) - OPTIONAL
-make setup-observability
-# or
-./infra/scripts/setup-observability.sh
-```
-
-**Access Grafana:**
-
-```bash
-# Port-forward to Grafana
-kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 --context kind-csc
-
-# Open http://localhost:3000
-# Default credentials: admin/admin
-```
 
 **Access Prometheus:**
 
@@ -297,13 +234,6 @@ kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 909
 
 # Open http://localhost:9090
 ```
-
-**Pre-configured Dashboards:**
-
-- Kubernetes cluster metrics
-- Node metrics
-- Pod metrics
-- NATS metrics (if deployed)
 
 ## Network Architecture
 
@@ -439,8 +369,8 @@ docker system info
 # - Memory: 8GB+
 
 # Clean up and retry
-make cleanup
-make setup-clusters
+make -C local clean
+make -C local setup-clusters
 ```
 
 ### MetalLB Not Working
@@ -497,9 +427,6 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
   -d 'client_id=mqtt-client' \
   -d 'client_secret=mqtt-client-secret' \
   -d 'scope=mqtt'
-
-# Wait for Keycloak readiness if still starting
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak -n keycloak --context kind-csc --timeout=5m
 ```
 
 ### Prometheus Not Scraping
@@ -519,7 +446,7 @@ kubectl get svc -n event-bus -o yaml --context kind-csc
 
 ```bash
 # Delete all clusters
-make cleanup
+make -C local clean
 
 # Or delete individually
 kind delete cluster --name csc
@@ -529,23 +456,22 @@ kind delete cluster --name cpc-2
 
 ## Next Steps
 
-After infrastructure is ready:
+After the local stack is ready:
 
-1. Deploy event bus:
+1. Reconcile the local stack after config or image changes:
 
    ```bash
-   make deploy-nats
+   make -C local skaffold-run
    ```
 
 2. Run tests:
 
    ```bash
-   make test-functional
-   make test-performance
+   make -C local test
    ```
 
-3. Monitor via Grafana:
+3. Inspect Prometheus targets:
 
    ```bash
-   kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80 --context kind-csc
+   kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 --context kind-csc
    ```

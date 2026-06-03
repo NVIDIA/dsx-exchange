@@ -1,0 +1,24 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: csc-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.200.1/32
+  autoAssign: true
+  avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: csc-l2-advert
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - csc-pool
+  interfaces:
+    - eth0

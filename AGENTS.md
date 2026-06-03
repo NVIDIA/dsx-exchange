@@ -9,9 +9,8 @@ DSX Exchange is a monorepo for the DSX event bus: AsyncAPI schemas, NATS auth-ca
 ## Build and test
 
 ```bash
-make check                     # license headers + unit tests + helm lint
-make test                      # unit tests only (no cluster required)
-make test-e2e                  # requires Kind clusters (see local/)
+make test                      # full validation, including local Kind e2e
+make check                     # license headers + helm lint
 make -C auth-callout test      # auth-callout unit tests
 helm lint deploy/nats-event-bus
 helm lint auth-callout/deploy
@@ -19,11 +18,10 @@ helm lint auth-callout/deploy
 
 Local Kind e2e deploys and functional tests must run outside the sandbox. The
 local e2e path builds Docker images, updates Docker buildx state under
-`~/.docker`, loads images into Kind, and starts `kubectl port-forward` processes
-for NATS and Keycloak. In the sandbox this has failed with Docker buildx
-permission errors and host-side Keycloak timeouts. Use the local Make targets
-with unsandboxed execution, for example `make -C local deploy-nats` and
-`make -C local test-functional`.
+`~/.docker`, uses a local registry, and deploys the local stack with Skaffold.
+In the sandbox this has failed with Docker buildx permission errors and
+host-side networking timeouts. Use the local Make targets with unsandboxed
+execution, for example `make -C local skaffold-run` and `make -C local test`.
 
 For local deploy and infrastructure scripts, prefer direct validation over
 meta-level tests. Do not add shell tests whose main purpose is to inspect deploy

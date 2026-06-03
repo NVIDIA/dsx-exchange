@@ -40,8 +40,15 @@ jobs:
       - name: Cache e2e tools
         uses: actions/cache@v4
         with:
-          path: ~/go/bin
-          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh') }}
+          path: |
+            ~/go/bin
+            ~/.cache/helm
+            ~/.local/share/helm
+            ~/.skaffold/cache
+            ~/.skaffold/remote-cache
+          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh', 'skaffold.yaml', 'local/infra/skaffold.yaml', 'local/nats/skaffold.yaml') }}
+          restore-keys: |
+            e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Install e2e tools
         run: |
@@ -64,7 +71,7 @@ jobs:
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
       - name: Run Kind e2e
-        run: make e2e-kind
+        run: make -C local test
 
       - name: Collect e2e diagnostics
         if: failure()

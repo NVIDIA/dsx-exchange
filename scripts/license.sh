@@ -48,8 +48,14 @@ args=(
 	-ignore '**/tmp/**'
 	-ignore '**/vendor/**'
 	-ignore 'auth-callout/vault-agent/templates/**'
+	-ignore 'deploy/nats-event-bus/Chart.lock'
+	-ignore 'deploy/nats-event-bus/charts/**'
 	-ignore 'docs/schema-viewer/**'
 	-ignore 'LICENSE'
+	-ignore 'local/helm/cache/**'
+	-ignore 'local/mqtt-client/tests/performance/reports/**'
+	-ignore 'local/nats/certs/**'
+	-ignore 'local/nats/secrets/**'
 	-ignore 'THIRD_PARTY_LICENSES*'
 )
 [[ "${mode}" == "check" ]] && args=(-check "${args[@]}")

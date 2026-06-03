@@ -1,43 +1,37 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# kube-prometheus-stack Helm Chart Values
-# Only overriding non-default values for evaluation environment
+# kube-prometheus-stack Helm chart values for local e2e.
 
-# Grafana configuration
+defaultRules:
+  create: false
+
+alertmanager:
+  enabled: false
+
 grafana:
-  # Set simple admin password for dev/test
-  adminPassword: "admin"
+  enabled: false
 
-  # Import useful community dashboards
-  dashboards:
-    default:
-      kubernetes-cluster:
-        gnetId: 7249
-        revision: 1
-        datasource: Prometheus
-      node-exporter:
-        gnetId: 1860
-        revision: 31
-        datasource: Prometheus
+kubeStateMetrics:
+  enabled: false
 
-# Prometheus configuration
+nodeExporter:
+  enabled: false
+
 prometheus:
   prometheusSpec:
-    # Allow scraping ServiceMonitors from all namespaces
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
-
-    # Reduce resource usage for local Kind environment
+    retention: 1h
+    retentionSize: 256MB
     resources:
       requests:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 50m
+        memory: 128Mi
       limits:
-        cpu: 1000m
-        memory: 512Mi
+        cpu: 500m
+        memory: 384Mi
 
-# Disable components not needed in Kind
 kubeControllerManager:
   enabled: false
 
@@ -49,4 +43,3 @@ kubeProxy:
 
 kubeEtcd:
   enabled: false
-

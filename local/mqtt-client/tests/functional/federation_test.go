@@ -328,13 +328,29 @@ func testMessageFlow(t *testing.T, source, target Cluster, pubTopic, subTopic st
 
 // testRetainedMessageFlow tests retained message routing across clusters
 func testRetainedMessageFlow(t *testing.T, source, target Cluster, pubTopic, subTopic string, expectFailure bool) {
-	// Use shorter timeout for failure cases since we expect no message
-	timeout := 10 * time.Second
 	if expectFailure {
-		timeout = 2 * time.Second
+		if testRetainedMessageFlowAttempt(t, source, target, pubTopic, subTopic, time.Second, 2*time.Second) {
+			t.Fatalf("UNEXPECTED: Retained message reached %s from %s - should not work!", target.name, source.name)
+		}
+		t.Logf("[OK] Retained message correctly blocked: %s -> %s (as expected)", source.name, target.name)
+		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+
+	// Retained routes may become ready after MQTT accepts connections.
+	deadline := time.Now().Add(90 * time.Second)
+	for time.Now().Before(deadline) {
+		if testRetainedMessageFlowAttempt(t, source, target, pubTopic, subTopic, 2*time.Second, 5*time.Second) {
+			t.Logf("[OK] Retained message routed: %s[%s] -> %s[%s]", source.name, pubTopic, target.name, subTopic)
+			return
+		}
+		time.Sleep(time.Second)
+	}
+
+	t.Fatalf("Timeout: retained message not routed from %s[%s] to %s[%s]", source.name, pubTopic, target.name, subTopic)
+}
+
+func testRetainedMessageFlowAttempt(t *testing.T, source, target Cluster, pubTopic, subTopic string, waitBeforeSubscribe, timeout time.Duration) bool {
+	t.Helper()
 
 	testID := uuid.New().String()[:8]
 	fullPubTopic := fmt.Sprintf("%s/%s", pubTopic, testID)
@@ -355,13 +371,7 @@ func testRetainedMessageFlow(t *testing.T, source, target Cluster, pubTopic, sub
 	}
 	pub.Disconnect()
 
-	// Wait for retained message to be stored and propagated
-	// Shorter wait for failure cases
-	waitTime := 2 * time.Second
-	if expectFailure {
-		waitTime = 1 * time.Second
-	}
-	time.Sleep(waitTime)
+	time.Sleep(waitBeforeSubscribe)
 
 	// Subscribe on target cluster (should receive retained message immediately)
 	var received int64
@@ -382,22 +392,15 @@ func testRetainedMessageFlow(t *testing.T, source, target Cluster, pubTopic, sub
 	}
 	defer sub.Disconnect()
 
-	// Give subscription time to be active before waiting for retained message
-	time.Sleep(500 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	// Wait for retained message
 	select {
 	case <-receivedChan:
-		if expectFailure {
-			t.Fatalf("UNEXPECTED: Retained message reached %s from %s - should not work!", target.name, source.name)
-		}
-		t.Logf("[OK] Retained message routed: %s[%s] -> %s[%s]", source.name, pubTopic, target.name, subTopic)
+		return true
 	case <-ctx.Done():
-		if expectFailure {
-			t.Logf("[OK] Retained message correctly blocked: %s -> %s (as expected)", source.name, target.name)
-		} else {
-			t.Fatalf("Timeout: retained message not routed from %s[%s] to %s[%s]", source.name, pubTopic, target.name, subTopic)
-		}
+		return false
 	}
 }
 
