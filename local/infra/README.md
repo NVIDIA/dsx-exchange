@@ -30,15 +30,8 @@ From the repository root:
 make -C local test
 ```
 
-## Local Targets
-
-The repository root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
-`local/nats/skaffold.yaml`. Host scripts handle prerequisites, Kind cluster
-creation, local registry setup, and NATS secret preparation. Skaffold deploys
-the infra chart releases with Helm and applies local cluster config manifests.
-
-- `skaffold-run`: complete local stack, including infrastructure and NATS.
-- `skaffold-dev`: complete local stack with file watching.
+See [local/README.md](../README.md) for deploy-only, dev, test, and benchmark
+targets.
 
 ## Cluster Details
 

@@ -223,7 +223,6 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
 helm install dsx ./nats-event-bus -n dsx --create-namespace
 
 # Run the local setup from the repository root
-make -C local install-e2e-prereqs
 make -C local skaffold-run
 ```
 

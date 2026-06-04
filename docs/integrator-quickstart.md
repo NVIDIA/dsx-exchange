@@ -53,7 +53,7 @@ macOS, install and start `docker-mac-net-connect` from the local quick start so
 the host can reach the MetalLB IPs.
 
 ```bash
-make -C local install-e2e-prereqs skaffold-run
+make -C local skaffold-run
 ```
 
 Use the local CSC broker endpoint:

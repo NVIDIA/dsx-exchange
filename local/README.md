@@ -62,26 +62,22 @@ make test
 
 Use `make skaffold-run` for deploy-only local setup.
 
-### Skaffold Setup
+### Skaffold
 
-The root `skaffold.yaml` imports the local infra and NATS modules:
+The root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
+`local/nats/skaffold.yaml`. Skaffold deploys the cluster infrastructure, builds
+the auth-callout image, and installs the event-bus chart. Host scripts still
+handle prerequisites, Kind cluster creation, the local registry, and generated
+NATS secret material.
 
-- `local/infra/skaffold.yaml`: MetalLB, Envoy Gateway, cert-manager,
-  metrics-server, Prometheus, and CSC Keycloak.
-- `local/nats/skaffold.yaml`: auth-callout image build and the NATS event-bus
-  chart for CSC, CPC-1, and CPC-2.
-
-Use the Make targets for local runs. `make skaffold-run` builds the
-auth-callout image once, then deploys the CSC, CPC-1, and CPC-2 module groups in
-parallel with the saved Skaffold build artifact. `make skaffold-run-serial`
-uses the same build artifact with one serial Skaffold deploy.
-
-The full e2e targets follow the same default:
+Local targets:
 
 - `make test`: deploy the stack in parallel, then run functional and
   performance tests.
 - `make test-serial`: deploy the stack serially, then run the same tests.
 - `make test-dev`: run the same tests against an already running local stack.
+- `make skaffold-run`: deploy the stack in parallel without running tests.
+- `make skaffold-run-serial`: deploy the stack serially without running tests.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -94,18 +90,6 @@ Then run the e2e test suite from another terminal:
 ```bash
 make test-dev
 ```
-
-Host scripts still handle local prerequisites, Kind cluster creation, the local
-Docker registry, and generated NATS secret material. Skaffold builds the
-auth-callout image, deploys chart releases with Helm, applies raw local
-manifests, and watches local changes in dev mode. `make skaffold-dev` runs the
-whole stack through one Skaffold process. Skaffold keeps resources after a run so
-follow-up tests can use the deployed environment. Its artifact cache lives under
-`~/.skaffold` unless `SKAFFOLD_CACHE_FILE` or `SKAFFOLD_REMOTE_CACHE_DIR` is
-overridden.
-
-CI uses the existing `DOCKERHUB_MIRROR` value for Docker daemon and Kind image
-pulls.
 
 ### Run Tests
 

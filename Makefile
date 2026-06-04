@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms help install-e2e-prereqs test test-dev third-party-licenses
+.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms help install-e2e-prereqs skaffold-dev test test-dev third-party-licenses
 
 add-license-headers: ## Add SPDX license headers across repository sources
 	bash scripts/license.sh fix
@@ -34,6 +34,9 @@ test: ## Run the full validation suite
 
 test-dev: ## Run local e2e tests against an already running local stack
 	$(MAKE) -C local test-dev
+
+skaffold-dev: ## Run Skaffold dev for the complete local dev stack
+	$(MAKE) -C local skaffold-dev
 
 third-party-licenses: ## Regenerate third-party license inventory
 	$(MAKE) -C auth-callout third-party-licenses

@@ -12,7 +12,7 @@ To evaluate DSX Exchange locally without Vault, VSO, or production certificate i
 make test
 ```
 
-See `local/README.md` for deploy-only, serial, benchmark, and MQTT client targets.
+See `local/README.md` for the full set of evaluation targets including functional tests, performance benchmarks, and MQTT client tooling.
 
 Use the local setup as the runnable end-to-end example. Its Helm values live in
 `local/nats/k8s/`: shared local settings in `local-dev-values.yaml`, CSC settings
