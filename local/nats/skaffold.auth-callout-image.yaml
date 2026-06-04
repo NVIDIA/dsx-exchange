@@ -7,11 +7,9 @@ metadata:
   name: auth-callout-image
 build:
   tagPolicy:
-    envTemplate:
-      template: local
+    inputDigest: {}
   local:
     push: true
-    tryImportMissing: true
     useDockerCLI: true
     useBuildkit: true
   artifacts:
