@@ -129,7 +129,7 @@ Run standardized MQTT broker benchmarks following the [Open MQTT Benchmark Suite
 ```bash
 # Run individual scenarios
 cd mqttbs
-GATEWAY_IP=$(kubectl --context kind-csc get gateway -A -l app.kubernetes.io/component=event-bus-gateway -o jsonpath='{.items[0].status.addresses[0].value}')
+GATEWAY_IP=$(kubectl --context kind-csc get gateway shared-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}')
 ./mqttbs run connection-10k --broker tcp://$GATEWAY_IP:1883
 ./mqttbs run fanout-1k --broker tcp://$GATEWAY_IP:1883 --duration 30s
 ./mqttbs run p2p-1k --broker tcp://$GATEWAY_IP:1883

@@ -1,8 +1,3 @@
-<!--
-Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-SPDX-License-Identifier: Apache-2.0
--->
-
 # DSX Event Bus - Deployment
 
 This directory contains the `nats-event-bus` **umbrella Helm chart**. It bundles
