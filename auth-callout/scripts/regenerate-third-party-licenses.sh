@@ -91,6 +91,7 @@ report_module() {
 report_module "$auth_dir" "-mod=vendor"
 report_module "$repo_dir/local/mqtt-client" ""
 report_module "$repo_dir/local/mqttbs" ""
+report_module "$repo_dir/mcp/dsx-exchange-mcp" "-mod=vendor"
 
 if [[ -n "${DSX_LICENSE_VERBOSE:-}" && -s "$warnings" ]]; then
 	cat "$warnings" >&2

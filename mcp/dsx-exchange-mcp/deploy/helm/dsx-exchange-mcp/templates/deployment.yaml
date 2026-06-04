@@ -1,0 +1,146 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: dsx-exchange-mcp
+spec:
+  {{- if and .Values.mqtt.tls.insecureSkipVerify (not .Values.acceptInsecureMQTTTLS) }}
+  {{- fail "mqtt.tls.insecureSkipVerify=true disables broker certificate verification. Set acceptInsecureMQTTTLS=true only for local-dev, or configure mqtt.tls.caCertSecret/serverName." }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: dsx-exchange-mcp
+  template:
+    metadata:
+      labels:
+        app: dsx-exchange-mcp
+      {{- if .Values.metrics.scrape }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+      {{- end }}
+    spec:
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: mcp
+              containerPort: 8080
+          env:
+            - name: MCP_ADDR
+              value: ":8080"
+            - name: NATS_URL
+              value: {{ .Values.natsURL | quote }}
+            - name: MQTT_USERNAME
+              value: {{ .Values.mqtt.username | quote }}
+            - name: MQTT_CONNECT_TIMEOUT_S
+              value: {{ .Values.mqtt.connectTimeoutSeconds | int | quote }}
+            - name: MQTT_SUBSCRIBE_TIMEOUT_S
+              value: {{ .Values.mqtt.subscribeTimeoutSeconds | int | quote }}
+            - name: MQTT_MAX_RESULT_BYTES
+              value: {{ .Values.mqtt.maxResultBytes | int | quote }}
+            {{- if .Values.mqtt.tls.caCertSecret.name }}
+            - name: MQTT_TLS_CA_FILE
+              value: "/etc/dsx-exchange/ca/{{ .Values.mqtt.tls.caCertSecret.key }}"
+            {{- end }}
+            {{- if .Values.mqtt.tls.serverName }}
+            - name: MQTT_TLS_SERVER_NAME
+              value: {{ .Values.mqtt.tls.serverName | quote }}
+            {{- end }}
+            - name: MQTT_TLS_INSECURE_SKIP_VERIFY
+              value: {{ .Values.mqtt.tls.insecureSkipVerify | quote }}
+            - name: MCP_DEFAULT_MAX_MESSAGES
+              value: {{ .Values.limits.defaultMaxMessages | int | quote }}
+            - name: MCP_MAX_MESSAGES
+              value: {{ .Values.limits.maxMessages | int | quote }}
+            - name: MCP_DEFAULT_MAX_DURATION_S
+              value: {{ .Values.limits.defaultMaxDurationSeconds | int | quote }}
+            - name: MCP_MAX_DURATION_S
+              value: {{ .Values.limits.maxDurationSeconds | int | quote }}
+            - name: MCP_WATCH_DEFAULT_TTL_S
+              value: {{ .Values.limits.watch.defaultTTLSeconds | int | quote }}
+            - name: MCP_WATCH_MAX_TTL_S
+              value: {{ .Values.limits.watch.maxTTLSeconds | int | quote }}
+            - name: MCP_WATCH_DEFAULT_BUFFER_MESSAGES
+              value: {{ .Values.limits.watch.defaultBufferMessages | int | quote }}
+            - name: MCP_WATCH_MAX_BUFFER_MESSAGES
+              value: {{ .Values.limits.watch.maxBufferMessages | int | quote }}
+            - name: MCP_WATCH_DEFAULT_BUFFER_BYTES
+              value: {{ .Values.limits.watch.defaultBufferBytes | int | quote }}
+            - name: MCP_WATCH_MAX_BUFFER_BYTES
+              value: {{ .Values.limits.watch.maxBufferBytes | int | quote }}
+            - name: MCP_WATCH_MAX_PER_SESSION
+              value: {{ .Values.limits.watch.maxPerSession | int | quote }}
+            - name: MCP_WATCH_MAX_PER_POD
+              value: {{ .Values.limits.watch.maxPerPod | int | quote }}
+            - name: MCP_FIND_TOPICS_DEFAULT_LIMIT
+              value: {{ .Values.limits.findTopics.defaultLimit | int | quote }}
+            - name: MCP_FIND_TOPICS_MAX_LIMIT
+              value: {{ .Values.limits.findTopics.maxLimit | int | quote }}
+            - name: LOG_FORMAT
+              value: json
+            {{- if .Values.otel.exporterOtlpEndpoint }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.exporterOtlpEndpoint | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.otel.serviceName | quote }}
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /healthz/live
+              port: mcp
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: mcp
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: mcp
+            periodSeconds: 5
+            failureThreshold: 2
+          {{- if .Values.mqtt.tls.caCertSecret.name }}
+          volumeMounts:
+            - name: mqtt-ca
+              mountPath: /etc/dsx-exchange/ca
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.mqtt.tls.caCertSecret.name }}
+      volumes:
+        - name: mqtt-ca
+          secret:
+            secretName: {{ .Values.mqtt.tls.caCertSecret.name | quote }}
+            items:
+              - key: {{ .Values.mqtt.tls.caCertSecret.key | quote }}
+                path: {{ .Values.mqtt.tls.caCertSecret.key | quote }}
+      {{- end }}

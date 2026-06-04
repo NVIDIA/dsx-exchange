@@ -1,0 +1,9 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: dsx-exchange-mcp
+description: MCP server exposing DSX Exchange AsyncAPI specs and a read-only NATS-MQTT bridge.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
