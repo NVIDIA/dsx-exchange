@@ -11,8 +11,6 @@ FUNCTIONAL_E2E_TIMEOUT ?= 3m
 BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
 CSC_BROKER_URL ?= tcp://172.18.200.1:1883
 SKAFFOLD ?= skaffold
-SKAFFOLD_RUN_LABEL ?= skaffold.dev/run-id=local-e2e
-SKAFFOLD_FLAGS ?= --cleanup=false --label="$(SKAFFOLD_RUN_LABEL)"
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
 E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
@@ -44,11 +42,11 @@ setup-clusters:
 
 skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
 	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml $(SKAFFOLD_FLAGS)
+	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml
 
 skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
 	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(SKAFFOLD_FLAGS)
+	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml --cleanup=false
 
 clean: ## Delete Kind clusters and generated local e2e artifacts
 	./infra/scripts/cleanup.sh
