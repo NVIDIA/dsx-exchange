@@ -1,0 +1,79 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: dsx-exchange-mcp
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  port: 8080
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Per Latinum MCP Gateway SDD: upstream MCP servers run with kata, nonroot,
+# readonly rootfs, and emit JSON logs. OTel Collector can scrape /metrics.
+runtimeClassName: kata
+
+natsURL: tcp://nats.nats.svc:1883
+
+mqtt:
+  username: oauthtoken
+  connectTimeoutSeconds: 5
+  subscribeTimeoutSeconds: 5
+  maxResultBytes: 1048576
+  tls:
+    caCertSecret:
+      name: ""
+      key: ca.crt
+    serverName: ""
+    insecureSkipVerify: false
+
+limits:
+  defaultMaxMessages: 100
+  maxMessages: 1000
+  defaultMaxDurationSeconds: 30
+  maxDurationSeconds: 30
+  watch:
+    defaultTTLSeconds: 300
+    maxTTLSeconds: 900
+    defaultBufferMessages: 100
+    maxBufferMessages: 1000
+    defaultBufferBytes: 262144
+    maxBufferBytes: 1048576
+    maxPerSession: 10
+    maxPerPod: 1000
+  findTopics:
+    defaultLimit: 20
+    maxLimit: 100
+
+metrics:
+  scrape: true
+
+acceptInsecureMQTTTLS: false
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: dsx-exchange-mcp
+          topologyKey: kubernetes.io/hostname
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+otel:
+  exporterOtlpEndpoint: ""
+  serviceName: dsx-exchange-mcp

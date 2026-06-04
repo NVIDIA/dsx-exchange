@@ -1,0 +1,19 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Example overlay for gated e2e / dev testing against the deployed DSX Exchange
+# bus. Do not commit real bearer tokens or CA material; create the referenced
+# Secret out of band in the target namespace.
+
+natsURL: tls://event-bus-ytl-dev2.dev.dsx.nvidia.com:1883
+
+runtimeClassName: ""
+
+mqtt:
+  username: oauth
+  tls:
+    caCertSecret:
+      name: dsx-exchange-broker-ca
+      key: ca.crt
+    serverName: event-bus-ytl-dev2.dev.dsx.nvidia.com
+    insecureSkipVerify: false

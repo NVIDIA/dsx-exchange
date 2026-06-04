@@ -1,0 +1,11 @@
+/bin/
+*.test
+*.out
+.env
+.idea/
+.vscode/
+.claude/
+context/
+/schema/
+/internal/specs/data/*
+!/internal/specs/data/.gitkeep

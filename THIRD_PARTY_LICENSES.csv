@@ -12,6 +12,7 @@ github.com/go-logr/logr,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-ca
 github.com/go-logr/stdr,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/go-logr/stdr/LICENSE,Apache-2.0
 github.com/go-viper/mapstructure/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/go-viper/mapstructure/v2/LICENSE,MIT
 github.com/golang-jwt/jwt/v5,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/golang-jwt/jwt/v5/LICENSE,MIT
+github.com/google/jsonschema-go/jsonschema,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/github.com/google/jsonschema-go/LICENSE,MIT
 github.com/google/uuid,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/google/uuid/LICENSE,BSD-3-Clause
 github.com/gorilla/handlers,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/gorilla/handlers/LICENSE,BSD-3-Clause
 github.com/gorilla/mux,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/gorilla/mux/LICENSE,BSD-3-Clause
@@ -33,6 +34,7 @@ github.com/knadh/koanf/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-
 github.com/minio/highwayhash,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/minio/highwayhash/LICENSE,Apache-2.0
 github.com/mitchellh/copystructure,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/mitchellh/copystructure/LICENSE,MIT
 github.com/mitchellh/reflectwalk,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/mitchellh/reflectwalk/LICENSE,MIT
+github.com/modelcontextprotocol/go-sdk,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/github.com/modelcontextprotocol/go-sdk/LICENSE,Apache-2.0
 github.com/munnerz/goautoneg,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/munnerz/goautoneg/LICENSE,BSD-3-Clause
 github.com/nats-io/jwt/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/nats-io/jwt/v2/LICENSE,Apache-2.0
 github.com/nats-io/nats-server/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/nats-io/nats-server/v2/LICENSE,Apache-2.0
@@ -47,6 +49,8 @@ github.com/prometheus/common,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/au
 github.com/prometheus/otlptranslator,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/prometheus/otlptranslator/LICENSE,Apache-2.0
 github.com/prometheus/procfs,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/prometheus/procfs/LICENSE,Apache-2.0
 github.com/santhosh-tekuri/jsonschema/v6,https://github.com/santhosh-tekuri/jsonschema/blob/v6.0.2/LICENSE,Apache-2.0
+github.com/segmentio/asm,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/github.com/segmentio/asm/LICENSE,MIT
+github.com/segmentio/encoding,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/github.com/segmentio/encoding/LICENSE,MIT
 github.com/spf13/cobra,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/spf13/cobra/LICENSE.txt,Apache-2.0
 github.com/spf13/pflag,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/spf13/pflag/LICENSE,BSD-3-Clause
 github.com/synadia-io/callout.go,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/synadia-io/callout.go/LICENSE,Apache-2.0
@@ -54,6 +58,7 @@ github.com/uptrace/opentelemetry-go-extra/otelutil,https://github.com/NVIDIA/dsx
 github.com/uptrace/opentelemetry-go-extra/otelzap,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/uptrace/opentelemetry-go-extra/otelzap/LICENSE,BSD-2-Clause
 github.com/valyala/fastrand,https://github.com/valyala/fastrand/blob/v1.1.0/LICENSE,MIT
 github.com/valyala/histogram,https://github.com/valyala/histogram/blob/v1.2.0/LICENSE,MIT
+github.com/yosida95/uritemplate/v3,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/github.com/yosida95/uritemplate/v3/LICENSE,BSD-3-Clause
 gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config,Unknown,Apache-2.0
 gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config/internal/providers,Unknown,Apache-2.0
 gitlab-master.nvidia.com/ncp/vmaas/services/pkg/nv-config/internal/watcher,Unknown,Apache-2.0
@@ -88,6 +93,7 @@ golang.org/x/net,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/v
 golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/v0.33.0:LICENSE,BSD-3-Clause
 golang.org/x/sync/semaphore,https://cs.opensource.google/go/x/sync/+/v0.17.0:LICENSE,BSD-3-Clause
 golang.org/x/sys,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/sys/LICENSE,BSD-3-Clause
+golang.org/x/sys/cpu,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/mcp/dsx-exchange-mcp/vendor/golang.org/x/sys/LICENSE,BSD-3-Clause
 golang.org/x/sys/unix,https://cs.opensource.google/go/x/sys/+/v0.37.0:LICENSE,BSD-3-Clause
 golang.org/x/text,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/text/LICENSE,BSD-3-Clause
 golang.org/x/time/rate,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/time/LICENSE,BSD-3-Clause
