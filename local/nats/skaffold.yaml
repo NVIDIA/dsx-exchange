@@ -19,6 +19,8 @@ build:
       context: ../../auth-callout
       docker:
         dockerfile: build/package/Dockerfile
+        cliFlags:
+          - --provenance=false
 ---
 apiVersion: skaffold/v4beta14
 kind: Config

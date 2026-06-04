@@ -29,6 +29,35 @@ Kind image loads, timeouts, or Gateway YAML fields. Validate these changes with
 syntax checks, Helm rendering/linting when applicable, and the real affected
 local Make target outside the sandbox.
 
+## Skaffold validation checklist
+
+When changing the local Skaffold or Makefile flow, validate the affected paths
+outside the sandbox and record what passed or failed:
+
+- [ ] Run `make check` from the repo root.
+- [ ] Run `make -C local skaffold-run` from a clean Kind state.
+- [ ] Run `make -C local skaffold-run` again against the same state; confirm
+      image builds are cached and unchanged services are not rolled.
+- [ ] Run `make -C local skaffold-run-serial`; confirm the serial deploy path
+      completes and leaves CSC, CPC-1, and CPC-2 healthy.
+- [ ] Run `make -C local test`; confirm deploy, functional tests, and
+      performance tests pass.
+- [ ] Run `make -C local test-dev` against the deployed stack; confirm it only
+      runs the functional and performance tests.
+- [ ] Run `make -C local skaffold-dev`; confirm the dev process reaches watch
+      mode and keeps the stack deployed after exit.
+- [ ] While `skaffold-dev` is running, edit an event-bus chart/value file;
+      confirm the NATS release updates in CSC, CPC-1, and CPC-2.
+- [ ] While `skaffold-dev` is running, edit an infra manifest/value file;
+      confirm the affected resource updates in the expected clusters.
+- [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
+      image rebuilds once, is pushed to the local registry, and the event-bus
+      pods use it.
+
+Verify each observed rollout or resource update with `kubectl` using the
+`kind-csc`, `kind-cpc-1`, and `kind-cpc-2` contexts. Leave the local stack
+deployed when the user asks to inspect it.
+
 ## Commit conventions
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this via commitlint.

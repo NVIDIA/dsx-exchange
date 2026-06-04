@@ -19,7 +19,7 @@ SKAFFOLD_BUILD_ARTIFACTS ?= $(CURDIR)/.skaffold-build-artifacts.json
 SKAFFOLD_RUN_LABEL ?= skaffold.dev/run-id=local-e2e
 SKAFFOLD_BUILD_FLAGS ?= --cache-artifacts=true --sync-remote-cache=missing
 SKAFFOLD_DEPLOY_FLAGS ?= --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
-SKAFFOLD_DEV_FLAGS ?= --cleanup=false --cache-artifacts=true --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
+SKAFFOLD_DEV_FLAGS ?= --cleanup=false --cache-artifacts=false --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
 SKAFFOLD_INFRA_MODULES := infra-csc infra-cpc-1 infra-cpc-2
 SKAFFOLD_NATS_MODULES := nats-csc nats-cpc-1 nats-cpc-2
 SKAFFOLD_STACK_MODULES := $(SKAFFOLD_INFRA_MODULES) $(SKAFFOLD_NATS_MODULES)
