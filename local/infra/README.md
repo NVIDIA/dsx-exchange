@@ -1,8 +1,3 @@
-<!--
-Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-SPDX-License-Identifier: Apache-2.0
--->
-
 # Infrastructure Setup
 
 This directory contains the infrastructure configuration for the DSX Event Bus evaluation environment.
@@ -82,20 +77,33 @@ These IPs are **separate and non-overlapping**, allowing clusters to reach each 
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: csc-pool
+  name: envoy-pool
   namespace: metallb-system
 spec:
   addresses:
+    # Reserved for the shared Envoy Gateway.
     - 172.18.200.1/32
+  autoAssign: false
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    # Available for future LoadBalancer services.
+    - 172.18.200.2-172.18.200.254
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
-  name: csc-l2-advert
+  name: envoy-l2-advert
   namespace: metallb-system
 spec:
   ipAddressPools:
-    - csc-pool
+    - envoy-pool
+    - default-pool
   interfaces:
     - eth0
 ```
@@ -106,7 +114,10 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 
 **Usage:**
 
-The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system` namespace and provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS passthrough listener for mTLS MQTT (port 8883), and an HTTP listener (port 80) for Keycloak.
+The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system`
+namespace and is pinned to the reserved `envoy-pool` address in each cluster. It
+provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS passthrough
+listener for mTLS MQTT (port 8883), and an HTTP listener (port 80) for Keycloak.
 
 Example HTTPRoute for Keycloak:
 
@@ -184,10 +195,9 @@ curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 
 **Access Keycloak Admin Console:**
 
-```bash
-# Open http://172.18.200.1/admin/master/console/
-# Admin credentials: admin/admin
-```
+Open `http://172.18.200.1/admin/master/console/`.
+
+Admin credentials: `admin/admin`.
 
 **Testing:**
 
@@ -251,7 +261,8 @@ package "Host Machine" {
             - 10.96.0.0/12 (services)
 
             External (via MetalLB):
-            - 172.18.200.0/24
+            - Envoy: 172.18.200.1
+            - Other LB: 172.18.200.2-.254
         end note
     }
 
@@ -263,7 +274,8 @@ package "Host Machine" {
             - 10.96.0.0/12 (services)
 
             External (via MetalLB):
-            - 172.18.201.0/24
+            - Envoy: 172.18.201.1
+            - Other LB: 172.18.201.2-.254
         end note
     }
 
@@ -275,7 +287,8 @@ package "Host Machine" {
             - 10.96.0.0/12 (services)
 
             External (via MetalLB):
-            - 172.18.202.0/24
+            - Envoy: 172.18.202.1
+            - Other LB: 172.18.202.2-.254
         end note
     }
 }
@@ -283,10 +296,10 @@ package "Host Machine" {
 note bottom
     Docker Network: 172.18.0.0/16
 
-    MetalLB IP Pools:
-    - CSC: 172.18.200.0/24
-    - CPC-1: 172.18.201.0/24
-    - CPC-2: 172.18.202.0/24
+    MetalLB IPs:
+    - CSC Envoy: 172.18.200.1
+    - CPC-1 Envoy: 172.18.201.1
+    - CPC-2 Envoy: 172.18.202.1
 end note
 
 cpc1_gw --> csc_gw : LoadBalancer\nservices
@@ -303,7 +316,7 @@ cpc2_gw --> csc_gw : LoadBalancer\nservices
 
 3. **Network Isolation**: Each cluster is a separate Kind cluster on the same Docker network but with isolated internal networking. They cannot directly route to each other's pod or service IPs.
 
-4. **External Access**: Services are accessed via MetalLB LoadBalancer IPs on the Docker network (CSC: 172.18.200.0/24, CPC-1: 172.18.201.0/24, CPC-2: 172.18.202.0/24, etc.).
+4. **External Access**: Envoy Gateway uses the documented `.1` MetalLB address in each cluster. Additional LoadBalancer services can use the rest of each cluster's MetalLB range.
 
 5. **Federation Model**: Event bus federation happens via:
    - CPC -> CSC: MQTT bridge through Envoy Gateway LoadBalancer

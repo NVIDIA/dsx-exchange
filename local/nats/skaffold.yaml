@@ -25,13 +25,13 @@ build:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: nats-csc
+  name: nats
 requires:
   - configs:
       - auth-callout-image
   - path: ../infra/skaffold.yaml
     configs:
-      - infra-csc
+      - infra
 deploy:
   kubeContext: kind-csc
   statusCheck: true
@@ -60,83 +60,32 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: nats-cpc-1
-requires:
-  - configs:
-      - auth-callout-image
-  - path: ../infra/skaffold.yaml
-    configs:
-      - infra-cpc-1
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  tolerateFailuresUntilDeadline: true
-  helm:
-    flags:
-      depBuild:
-        - --repository-config=local/helm/repositories.yaml
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh cpc-1
-    releases:
-      - name: nats-event-bus
-        chartPath: ../../deploy/nats-event-bus
-        namespace: event-bus
-        createNamespace: true
-        valuesFiles:
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+      - op: replace
+        path: /deploy/helm/hooks/before/0/host/command/2
+        value: local/nats/prepare-secrets.sh cpc-1
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
           - k8s/local-dev-values.yaml
           - k8s/cpc/values.yaml
           - k8s/cpc/cpc-1.yaml
-        setValues:
-          auth-callout.image.repository: localhost:5001/auth-callout
-          auth-callout.image.tag: local
-          auth-callout.image.pullPolicy: Always
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: nats-cpc-2
-requires:
-  - configs:
-      - auth-callout-image
-  - path: ../infra/skaffold.yaml
-    configs:
-      - infra-cpc-2
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  tolerateFailuresUntilDeadline: true
-  helm:
-    flags:
-      depBuild:
-        - --repository-config=local/helm/repositories.yaml
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh cpc-2
-    releases:
-      - name: nats-event-bus
-        chartPath: ../../deploy/nats-event-bus
-        namespace: event-bus
-        createNamespace: true
-        valuesFiles:
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
+      - op: replace
+        path: /deploy/helm/hooks/before/0/host/command/2
+        value: local/nats/prepare-secrets.sh cpc-2
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles
+        value:
           - k8s/local-dev-values.yaml
           - k8s/cpc/values.yaml
           - k8s/cpc/cpc-2.yaml
-        setValues:
-          auth-callout.image.repository: localhost:5001/auth-callout
-          auth-callout.image.tag: local
-          auth-callout.image.pullPolicy: Always

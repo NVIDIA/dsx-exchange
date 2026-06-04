@@ -3,7 +3,7 @@
 
 .PHONY: help install-e2e-prereqs test test-serial test-dev
 .PHONY: skaffold-run skaffold-run-serial skaffold-dev
-.PHONY: clean status dummy-bms benchmark benchmark-full
+.PHONY: clean status validate dummy-bms benchmark benchmark-full
 .PHONY: setup-clusters
 .PHONY: skaffold-build-artifacts
 .PHONY: skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
@@ -20,12 +20,7 @@ SKAFFOLD_RUN_LABEL ?= skaffold.dev/run-id=local-e2e
 SKAFFOLD_BUILD_FLAGS ?= --cache-artifacts=true --sync-remote-cache=missing
 SKAFFOLD_DEPLOY_FLAGS ?= --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
 SKAFFOLD_DEV_FLAGS ?= --cleanup=false --cache-artifacts=false --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
-SKAFFOLD_INFRA_MODULES := infra-csc infra-cpc-1 infra-cpc-2
-SKAFFOLD_NATS_MODULES := nats-csc nats-cpc-1 nats-cpc-2
-SKAFFOLD_STACK_MODULES := $(SKAFFOLD_INFRA_MODULES) $(SKAFFOLD_NATS_MODULES)
-SKAFFOLD_CSC_MODULES := infra-csc nats-csc
-SKAFFOLD_CPC_1_MODULES := infra-cpc-1 nats-cpc-1
-SKAFFOLD_CPC_2_MODULES := infra-cpc-2 nats-cpc-2
+SKAFFOLD_STACK_MODULES := infra nats
 SKAFFOLD_CLUSTER_TARGETS := skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
@@ -72,19 +67,21 @@ skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
 skaffold-run-serial: install-e2e-prereqs ## Deploy the complete local dev stack serially
 	$(MAKE) setup-clusters
 	$(MAKE) skaffold-build-artifacts
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/serial"
+	$(MAKE) skaffold-deploy-csc
+	$(MAKE) skaffold-deploy-cpc-1
+	$(MAKE) skaffold-deploy-cpc-2
 
 skaffold-build-artifacts:
 	cd .. && "$(SKAFFOLD)" build -f skaffold.yaml $(SKAFFOLD_BUILD_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).build" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/build" --build-concurrency=1 --file-output="$(SKAFFOLD_BUILD_ARTIFACTS)"
 
 skaffold-deploy-csc:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CSC_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-deploy-cpc-1:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_1_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml --profile cpc-1 $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-deploy-cpc-2:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_2_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml --profile cpc-2 $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
 	$(MAKE) setup-clusters
@@ -115,6 +112,9 @@ status: ## Check deployment status
 	@echo ""
 	@echo "CPC-2 Cluster:"
 	@kubectl get pods -n event-bus --context kind-cpc-2 2>/dev/null || echo "  NATS: Not deployed"
+
+validate: ## Validate the deployed local stack
+	./validate.sh
 
 benchmark: ## Run the MQTT benchmark smoke suite
 	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)" $(BENCHMARK_BASIC_FLAGS)

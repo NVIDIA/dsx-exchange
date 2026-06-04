@@ -4,38 +4,27 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: infra-csc
+  name: infra
 requires:
   - configs:
-      - infra-csc-controllers
-      - infra-csc-config
-      - cert-manager-csc
-      - keycloak-csc
+      - infra-controllers
+      - infra-config
+      - cert-manager
+      - keycloak
+profiles:
+  - name: cpc-1
+    patches:
+      - op: remove
+        path: /requires/0/configs/3
+  - name: cpc-2
+    patches:
+      - op: remove
+        path: /requires/0/configs/3
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: infra-cpc-1
-requires:
-  - configs:
-      - infra-cpc-1-controllers
-      - infra-cpc-1-config
-      - cert-manager-cpc-1
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: infra-cpc-2
-requires:
-  - configs:
-      - infra-cpc-2-controllers
-      - infra-cpc-2-config
-      - cert-manager-cpc-2
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: envoy-gateway-crds-csc
+  name: envoy-gateway-crds
 manifests:
   helm:
     releases:
@@ -55,59 +44,22 @@ deploy:
     flags:
       apply:
         - --server-side
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: envoy-gateway-crds-cpc-1
-manifests:
-  helm:
-    releases:
-      - name: eg-crds
-        remoteChart: oci://docker.io/envoyproxy/gateway-crds-helm
-        version: v1.5.4
-        namespace: envoy-gateway-system
-        setValues:
-          crds.gatewayAPI.enabled: true
-          crds.gatewayAPI.channel: experimental
-          crds.envoyGateway.enabled: true
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 300
-  kubectl:
-    flags:
-      apply:
-        - --server-side
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: envoy-gateway-crds-cpc-2
-manifests:
-  helm:
-    releases:
-      - name: eg-crds
-        remoteChart: oci://docker.io/envoyproxy/gateway-crds-helm
-        version: v1.5.4
-        namespace: envoy-gateway-system
-        setValues:
-          crds.gatewayAPI.enabled: true
-          crds.gatewayAPI.channel: experimental
-          crds.envoyGateway.enabled: true
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 300
-  kubectl:
-    flags:
-      apply:
-        - --server-side
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: cert-manager-csc
+  name: cert-manager
 manifests:
   kustomize:
     paths:
@@ -117,42 +69,25 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 300
   kubectl: {}
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: cert-manager-cpc-1
-manifests:
-  kustomize:
-    paths:
-      - cert-manager
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 300
-  kubectl: {}
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: cert-manager-cpc-2
-manifests:
-  kustomize:
-    paths:
-      - cert-manager
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 300
-  kubectl: {}
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: infra-csc-controllers
+  name: infra-controllers
 requires:
   - configs:
-      - envoy-gateway-crds-csc
+      - envoy-gateway-crds
 deploy:
   kubeContext: kind-csc
   statusCheck: true
@@ -171,6 +106,8 @@ deploy:
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
+        valuesFiles:
+          - envoy-gateway/values.yaml
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -187,98 +124,25 @@ deploy:
         createNamespace: true
         valuesFiles:
           - prometheus/values.yaml
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: infra-cpc-1-controllers
+  name: infra-config
 requires:
   - configs:
-      - envoy-gateway-crds-cpc-1
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  helm:
-    concurrency: 0
-    releases:
-      - name: metallb
-        remoteChart: metallb
-        repo: https://metallb.github.io/metallb
-        version: 0.15.2
-        namespace: metallb-system
-        createNamespace: true
-      - name: eg
-        remoteChart: oci://docker.io/envoyproxy/gateway-helm
-        version: v1.5.4
-        namespace: envoy-gateway-system
-        createNamespace: true
-      - name: metrics-server
-        remoteChart: metrics-server
-        repo: https://kubernetes-sigs.github.io/metrics-server/
-        version: 3.13.0
-        namespace: kube-system
-        setValues:
-          image.tag: v0.8.1
-          args[0]: --kubelet-insecure-tls
-      - name: prometheus
-        remoteChart: kube-prometheus-stack
-        repo: https://prometheus-community.github.io/helm-charts
-        version: 86.1.0
-        namespace: monitoring
-        createNamespace: true
-        valuesFiles:
-          - prometheus/values.yaml
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: infra-cpc-2-controllers
-requires:
-  - configs:
-      - envoy-gateway-crds-cpc-2
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  helm:
-    concurrency: 0
-    releases:
-      - name: metallb
-        remoteChart: metallb
-        repo: https://metallb.github.io/metallb
-        version: 0.15.2
-        namespace: metallb-system
-        createNamespace: true
-      - name: eg
-        remoteChart: oci://docker.io/envoyproxy/gateway-helm
-        version: v1.5.4
-        namespace: envoy-gateway-system
-        createNamespace: true
-      - name: metrics-server
-        remoteChart: metrics-server
-        repo: https://kubernetes-sigs.github.io/metrics-server/
-        version: 3.13.0
-        namespace: kube-system
-        setValues:
-          image.tag: v0.8.1
-          args[0]: --kubelet-insecure-tls
-      - name: prometheus
-        remoteChart: kube-prometheus-stack
-        repo: https://prometheus-community.github.io/helm-charts
-        version: 86.1.0
-        namespace: monitoring
-        createNamespace: true
-        valuesFiles:
-          - prometheus/values.yaml
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: infra-csc-config
-requires:
-  - configs:
-      - infra-csc-controllers
+      - infra-controllers
 manifests:
   rawYaml:
     - metallb/csc-pool.yaml
@@ -289,47 +153,28 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 180
   kubectl: {}
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /manifests/rawYaml/0
+        value: metallb/cpc-1-pool.yaml
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /manifests/rawYaml/0
+        value: metallb/cpc-2-pool.yaml
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: infra-cpc-1-config
-requires:
-  - configs:
-      - infra-cpc-1-controllers
-manifests:
-  rawYaml:
-    - metallb/cpc-1-pool.yaml
-    - envoy-gateway/gatewayclass.yaml
-    - envoy-gateway/gateway.yaml
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 180
-  kubectl: {}
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: infra-cpc-2-config
-requires:
-  - configs:
-      - infra-cpc-2-controllers
-manifests:
-  rawYaml:
-    - metallb/cpc-2-pool.yaml
-    - envoy-gateway/gatewayclass.yaml
-    - envoy-gateway/gateway.yaml
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 180
-  kubectl: {}
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: keycloak-operator-csc
+  name: keycloak-operator
 manifests:
   kustomize:
     paths:
@@ -343,11 +188,11 @@ deploy:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: keycloak-csc
+  name: keycloak
 requires:
   - configs:
-      - keycloak-operator-csc
-      - infra-csc-config
+      - keycloak-operator
+      - infra-config
 manifests:
   rawYaml:
     - keycloak/realm-import.yaml

@@ -4,6 +4,8 @@
 apiVersion: ""
 generated: "0001-01-01T00:00:00Z"
 repositories:
+  # Used by Helm dependency builds for deploy/nats-event-bus without mutating
+  # the user's global Helm repository config.
   - caFile: ""
     certFile: ""
     insecure_skip_tls_verify: false

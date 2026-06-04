@@ -329,6 +329,7 @@ func testMessageFlow(t *testing.T, source, target Cluster, pubTopic, subTopic st
 // testRetainedMessageFlow tests retained message routing across clusters
 func testRetainedMessageFlow(t *testing.T, source, target Cluster, pubTopic, subTopic string, expectFailure bool) {
 	if expectFailure {
+		// Use shorter timing for failure cases since we expect no message.
 		if testRetainedMessageFlowAttempt(t, source, target, pubTopic, subTopic, time.Second, 2*time.Second) {
 			t.Fatalf("UNEXPECTED: Retained message reached %s from %s - should not work!", target.name, source.name)
 		}
@@ -371,6 +372,7 @@ func testRetainedMessageFlowAttempt(t *testing.T, source, target Cluster, pubTop
 	}
 	pub.Disconnect()
 
+	// Wait for retained state to settle before subscribing.
 	time.Sleep(waitBeforeSubscribe)
 
 	// Subscribe on target cluster (should receive retained message immediately)

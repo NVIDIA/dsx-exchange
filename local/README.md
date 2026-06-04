@@ -1,6 +1,3 @@
-# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-
 # DSX Event Bus
 
 This repository contains the NATS event bus implementation for the AI Factory DSX platform.
@@ -10,8 +7,6 @@ For architecture details, see [docs/architecture.md](../docs/architecture.md).
 ## Quick Start
 
 ### Prerequisites
-
-Install Docker, Go, and Make first:
 
 - Docker Desktop or equivalent
 - [Go](https://go.dev/doc/install) 1.25+ — required by `go.mod`
@@ -78,6 +73,8 @@ Local targets:
 - `make test-dev`: run the same tests against an already running local stack.
 - `make skaffold-run`: deploy the stack in parallel without running tests.
 - `make skaffold-run-serial`: deploy the stack serially without running tests.
+- `make validate`: check the deployed stack's cluster, Gateway, NATS, and
+  Keycloak readiness.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -120,6 +117,7 @@ make test-dev                # Run the e2e suite against the current stack
 make skaffold-run            # Build once, then deploy required infra and NATS in parallel
 make skaffold-run-serial     # Build once, then deploy required infra and NATS serially
 make skaffold-dev            # Run Skaffold dev for the complete local dev stack
+make validate                # Validate the deployed local stack
 
 # Benchmarks and demos
 make benchmark               # Run MQTT benchmark smoke suite

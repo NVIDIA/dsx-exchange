@@ -2,23 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 apiVersion: v1
-kind: Secret
-metadata:
-  name: keycloak-client-secrets
-  namespace: keycloak
-type: Opaque
-stringData:
-  mqtt-client: mqtt-client-secret
-  mqtt-publisher: mqtt-publisher-secret
-  mqtt-subscriber: mqtt-subscriber-secret
-  launchlayer-client: launchlayer-client-secret
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: keycloak-realm-import
   namespace: keycloak
 data:
+  # Local demo IdP only. Keep the test client secrets inline rather than adding
+  # production secret-management plumbing to the Kind evaluation stack.
   realm-event-bus.json: |
     {
       "id": "event-bus",
@@ -36,7 +26,7 @@ data:
           "clientId": "mqtt-client",
           "enabled": true,
           "publicClient": false,
-          "secret": "${MQTT_CLIENT_SECRET}",
+          "secret": "mqtt-client-secret",
           "directAccessGrantsEnabled": false,
           "standardFlowEnabled": false,
           "implicitFlowEnabled": false,
@@ -53,7 +43,7 @@ data:
           "clientId": "mqtt-publisher",
           "enabled": true,
           "publicClient": false,
-          "secret": "${MQTT_PUBLISHER_SECRET}",
+          "secret": "mqtt-publisher-secret",
           "directAccessGrantsEnabled": false,
           "standardFlowEnabled": false,
           "implicitFlowEnabled": false,
@@ -70,7 +60,7 @@ data:
           "clientId": "mqtt-subscriber",
           "enabled": true,
           "publicClient": false,
-          "secret": "${MQTT_SUBSCRIBER_SECRET}",
+          "secret": "mqtt-subscriber-secret",
           "directAccessGrantsEnabled": false,
           "standardFlowEnabled": false,
           "implicitFlowEnabled": false,
@@ -87,7 +77,7 @@ data:
           "clientId": "launchlayer-client",
           "enabled": true,
           "publicClient": false,
-          "secret": "${LAUNCHLAYER_CLIENT_SECRET}",
+          "secret": "launchlayer-client-secret",
           "directAccessGrantsEnabled": false,
           "standardFlowEnabled": false,
           "implicitFlowEnabled": false,

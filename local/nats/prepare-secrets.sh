@@ -10,11 +10,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-MONOREPO_ROOT="$(cd "${PROJECT_ROOT}/.." && pwd)"
+MONOREPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required" >&2; exit 1; }
 command -v cfssl >/dev/null 2>&1 || { echo "ERROR: cfssl is required (brew install cfssl)" >&2; exit 1; }
+command -v cfssljson >/dev/null 2>&1 || { echo "ERROR: cfssljson is required (brew install cfssl)" >&2; exit 1; }
 command -v yq >/dev/null 2>&1 || { echo "ERROR: yq is required (brew install yq)" >&2; exit 1; }
 
 cluster=${1:-csc}
@@ -23,8 +23,7 @@ case "${cluster}" in
   *) echo "Unknown cluster: ${cluster}"; exit 1 ;;
 esac
 
-kind_cluster="${cluster}"
-context="kind-${kind_cluster}"
+context="kind-${cluster}"
 namespace="event-bus"
 
 echo "Preparing NATS Event Bus secrets for ${cluster}..."
@@ -36,56 +35,29 @@ kubectl create namespace "${namespace}" --context "${context}" --dry-run=client 
 SECRETS_ROOT="${SCRIPT_DIR}/secrets"
 SECRETS_DIR="${SECRETS_ROOT}/${cluster}"
 SECRETS_NKEYS_DIR="${SECRETS_DIR}/nkeys"
-LOCK_WAIT_SECONDS="${LOCK_WAIT_SECONDS:-600}"
-LOCK_STALE_SECONDS="${LOCK_STALE_SECONDS:-900}"
-
-lock_mtime() {
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || printf '0\n'
-}
 
 with_lock() {
   local lock_dir="$1"
-  local start
-  local now
-  local lock_time
-  local lock_pid
+  local deadline
   shift
 
   mkdir -p "$(dirname "${lock_dir}")"
-  start="$(date +%s)"
+  deadline=$(( $(date +%s) + 600 ))
   while ! mkdir "${lock_dir}" 2>/dev/null; do
-    now="$(date +%s)"
-    lock_time="$(lock_mtime "${lock_dir}")"
-    if [ "${lock_time}" -gt 0 ] && [ $((now - lock_time)) -ge "${LOCK_STALE_SECONDS}" ]; then
-      lock_pid=""
-      if [ -r "${lock_dir}/pid" ]; then
-        read -r lock_pid < "${lock_dir}/pid" || true
-      fi
-      if [ -n "${lock_pid}" ] && kill -0 "${lock_pid}" 2>/dev/null; then
-        :
-      else
-        echo "Reclaiming stale lock ${lock_dir}" >&2
-        rm -f "${lock_dir}/pid"
-        rmdir "${lock_dir}" 2>/dev/null || true
-        continue
-      fi
-    fi
-    if [ $((now - start)) -ge "${LOCK_WAIT_SECONDS}" ]; then
+    if [ "$(date +%s)" -ge "${deadline}" ]; then
       echo "ERROR: timed out waiting for lock ${lock_dir}" >&2
       return 1
     fi
     sleep 1
   done
 
-  printf '%s\n' "$$" > "${lock_dir}/pid"
-  trap "status=\$?; rm -f \"${lock_dir}/pid\"; rmdir \"${lock_dir}\" 2>/dev/null || true; trap - EXIT INT TERM; exit \"\${status}\"" EXIT INT TERM
+  trap "status=\$?; rmdir \"${lock_dir}\" 2>/dev/null || true; trap - EXIT INT TERM; exit \"\${status}\"" EXIT INT TERM
   set +e
   "$@"
   local status=$?
   set -e
 
   trap - EXIT INT TERM
-  rm -f "${lock_dir}/pid"
   if ! rmdir "${lock_dir}" 2>/dev/null; then
     echo "WARNING: lock ${lock_dir} was already removed" >&2
   fi

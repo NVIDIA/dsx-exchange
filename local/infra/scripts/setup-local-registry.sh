@@ -5,11 +5,6 @@
 set -euo pipefail
 
 REGISTRY_NAME="kind-registry"
-if [ "${KIND_REGISTRY_PORT:-5001}" != "5001" ]; then
-  echo "ERROR: KIND_REGISTRY_PORT is not configurable; Kind and Skaffold use localhost:5001" >&2
-  exit 1
-fi
-
 REGISTRY_PORT="5001"
 REGISTRY_CONTAINER_PORT="5000"
 
