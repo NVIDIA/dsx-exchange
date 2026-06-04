@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # MQTT Benchmark Suite (mqttbs)
 
 Broker-agnostic MQTT benchmark tool implementing the [Open MQTT Benchmark Suite](https://github.com/emqx/mqttbs) specification.

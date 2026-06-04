@@ -296,7 +296,9 @@ Each Kubernetes cluster (one CSC, one or more CPCs) runs its own event bus insta
 ## Evaluation Install (~10 minutes)
 
 ```bash
-make test
+make -C local install-e2e-prereqs
+make -C local skaffold-run
+make test-e2e
 ```
 
 ## Install Order

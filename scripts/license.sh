@@ -52,9 +52,10 @@ args=(
 	-ignore 'deploy/nats-event-bus/charts/**'
 	-ignore 'docs/schema-viewer/**'
 	-ignore 'LICENSE'
-	-ignore 'local/helm/cache/**'
 	-ignore 'local/mqtt-client/tests/performance/reports/**'
 	-ignore 'local/nats/certs/**'
+	-ignore 'local/nats/keys/**'
+	-ignore 'local/nats/nsc/**'
 	-ignore 'local/nats/secrets/**'
 	-ignore 'THIRD_PARTY_LICENSES*'
 )

@@ -35,7 +35,27 @@ spec:
               - "--verbose"
               - "start"
               - "--import-realm"
+            env:
+              - name: MQTT_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-client-secrets
+                    key: mqtt-client
+              - name: MQTT_PUBLISHER_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-client-secrets
+                    key: mqtt-publisher
+              - name: MQTT_SUBSCRIBER_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-client-secrets
+                    key: mqtt-subscriber
+              - name: LAUNCHLAYER_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    name: keycloak-client-secrets
+                    key: launchlayer-client
             volumeMounts:
               - name: realm-import
                 mountPath: /opt/keycloak/data/import
-

@@ -1,3 +1,8 @@
+<!--
+Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Infrastructure Setup
 
 This directory contains the infrastructure configuration for the DSX Event Bus evaluation environment.

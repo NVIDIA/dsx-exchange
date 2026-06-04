@@ -12,7 +12,6 @@ DSX Exchange is a monorepo for the DSX event bus: AsyncAPI schemas, NATS auth-ca
 make test                      # full validation, including local Kind e2e
 make check                     # license headers + helm lint
 make -C auth-callout test      # auth-callout unit tests
-helm lint deploy/nats-event-bus
 helm lint auth-callout/deploy
 ```
 

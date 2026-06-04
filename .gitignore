@@ -1,6 +1,5 @@
 /deploy/nats-event-bus/Chart.lock
 /deploy/nats-event-bus/charts/
-/local/helm/cache/
 /local/mqtt-client/tests/performance/reports/
 /local/nats/certs/
 /local/nats/keys/

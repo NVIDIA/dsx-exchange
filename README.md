@@ -53,11 +53,12 @@ make help
 make test
 ```
 
-Run component-specific targets from the directory you are changing:
+Run component-specific targets from the directory you are changing, and use
+`make check` for repo-level license and chart validation:
 
 ```bash
 make -C auth-callout test
-helm lint deploy/nats-event-bus
+make check
 ```
 
 After the local Kind environment is deployed, run the dummy BMS demo with

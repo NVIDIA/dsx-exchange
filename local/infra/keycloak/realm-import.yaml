@@ -1,0 +1,129 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-client-secrets
+  namespace: keycloak
+type: Opaque
+stringData:
+  mqtt-client: mqtt-client-secret
+  mqtt-publisher: mqtt-publisher-secret
+  mqtt-subscriber: mqtt-subscriber-secret
+  launchlayer-client: launchlayer-client-secret
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-import
+  namespace: keycloak
+data:
+  realm-event-bus.json: |
+    {
+      "id": "event-bus",
+      "realm": "event-bus",
+      "enabled": true,
+      "displayName": "Event Bus Realm",
+      "accessTokenLifespan": 3600,
+      "ssoSessionIdleTimeout": 1800,
+      "ssoSessionMaxLifespan": 36000,
+      "attributes": {
+        "frontendUrl": "http://172.18.200.1"
+      },
+      "clients": [
+        {
+          "clientId": "mqtt-client",
+          "enabled": true,
+          "publicClient": false,
+          "secret": "${MQTT_CLIENT_SECRET}",
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "protocol": "openid-connect",
+          "defaultClientScopes": ["mqtt"],
+          "optionalClientScopes": [],
+          "attributes": {
+            "oauth2.device.authorization.grant.enabled": "false",
+            "oidc.ciba.grant.enabled": "false"
+          }
+        },
+        {
+          "clientId": "mqtt-publisher",
+          "enabled": true,
+          "publicClient": false,
+          "secret": "${MQTT_PUBLISHER_SECRET}",
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "protocol": "openid-connect",
+          "defaultClientScopes": ["mqtt"],
+          "optionalClientScopes": [],
+          "attributes": {
+            "oauth2.device.authorization.grant.enabled": "false",
+            "oidc.ciba.grant.enabled": "false"
+          }
+        },
+        {
+          "clientId": "mqtt-subscriber",
+          "enabled": true,
+          "publicClient": false,
+          "secret": "${MQTT_SUBSCRIBER_SECRET}",
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "protocol": "openid-connect",
+          "defaultClientScopes": ["mqtt"],
+          "optionalClientScopes": [],
+          "attributes": {
+            "oauth2.device.authorization.grant.enabled": "false",
+            "oidc.ciba.grant.enabled": "false"
+          }
+        },
+        {
+          "clientId": "launchlayer-client",
+          "enabled": true,
+          "publicClient": false,
+          "secret": "${LAUNCHLAYER_CLIENT_SECRET}",
+          "directAccessGrantsEnabled": false,
+          "standardFlowEnabled": false,
+          "implicitFlowEnabled": false,
+          "serviceAccountsEnabled": true,
+          "protocol": "openid-connect",
+          "defaultClientScopes": ["mqtt"],
+          "optionalClientScopes": [],
+          "attributes": {
+            "oauth2.device.authorization.grant.enabled": "false",
+            "oidc.ciba.grant.enabled": "false"
+          }
+        }
+      ],
+      "clientScopes": [
+        {
+          "name": "mqtt",
+          "description": "MQTT access scope",
+          "protocol": "openid-connect",
+          "attributes": {
+            "include.in.token.scope": "true",
+            "display.on.consent.screen": "true"
+          },
+          "protocolMappers": [
+            {
+              "name": "dsx-exchange-audience",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-audience-mapper",
+              "consentRequired": false,
+              "config": {
+                "included.custom.audience": "dsx-exchange",
+                "id.token.claim": "false",
+                "access.token.claim": "true"
+              }
+            }
+          ]
+        }
+      ],
+      "users": []
+    }

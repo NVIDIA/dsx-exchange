@@ -166,11 +166,13 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
+        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
+        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -179,15 +181,16 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
+        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
         version: 86.1.0
         namespace: monitoring
         createNamespace: true
-        upgradeOnChange: true
         valuesFiles:
           - prometheus/values.yaml
+        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -209,11 +212,13 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
+        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
+        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -222,15 +227,16 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
+        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
         version: 86.1.0
         namespace: monitoring
         createNamespace: true
-        upgradeOnChange: true
         valuesFiles:
           - prometheus/values.yaml
+        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -252,11 +258,13 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
+        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
+        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -265,15 +273,16 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
+        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
         version: 86.1.0
         namespace: monitoring
         createNamespace: true
-        upgradeOnChange: true
         valuesFiles:
           - prometheus/values.yaml
+        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -352,9 +361,10 @@ requires:
       - keycloak-operator-csc
       - infra-csc-config
 manifests:
-  kustomize:
-    paths:
-      - keycloak
+  rawYaml:
+    - keycloak/realm-import.yaml
+    - keycloak/keycloak.yaml
+    - keycloak/httproute.yaml
 deploy:
   kubeContext: kind-csc
   statusCheck: true

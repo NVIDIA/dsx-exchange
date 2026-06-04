@@ -36,6 +36,13 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh csc
     releases:
       - name: nats-event-bus
         chartPath: ../../deploy/nats-event-bus
@@ -48,13 +55,7 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh csc
+        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -72,6 +73,13 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh cpc-1
     releases:
       - name: nats-event-bus
         chartPath: ../../deploy/nats-event-bus
@@ -85,13 +93,7 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh cpc-1
+        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -109,6 +111,13 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    hooks:
+      before:
+        - host:
+            command:
+              - sh
+              - -c
+              - local/nats/prepare-secrets.sh cpc-2
     releases:
       - name: nats-event-bus
         chartPath: ../../deploy/nats-event-bus
@@ -122,10 +131,4 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh cpc-2
+        upgradeOnChange: true
