@@ -1,0 +1,37 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-operator
+manifests:
+  kustomize:
+    paths:
+      - operator
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak
+requires:
+  - configs:
+      - keycloak-operator
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-config-csc
+manifests:
+  rawYaml:
+    - realm-import.yaml
+    - keycloak.yaml
+    - httproute.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  kubectl: {}

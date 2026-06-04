@@ -73,19 +73,29 @@ validate_cluster() {
   fi
 
   local stream_json
-  stream_json=$(kubectl exec -n event-bus nats-0 --context "${context}" -c nats -- \
-    wget -qO- 'http://localhost:8222/jsz?streams=true&config=true')
-
-  for stream in '$MQTT_msgs' '$MQTT_rmsgs' '$MQTT_sess' '$MQTT_qos2in' '$MQTT_out'; do
-    check_json "${cluster} ${stream} memory replicated stream" "${stream_json}" \
-      --arg stream "${stream}" '[.account_details[].stream_detail[]? | select(.name == $stream and .config.storage == "memory" and .config.num_replicas == 3)] | length > 0'
-  done
+  if stream_json=$(kubectl exec -n event-bus nats-0 --context "${context}" -c nats -- \
+    wget -qO- 'http://localhost:8222/jsz?streams=true&config=true'); then
+    for stream in '$MQTT_msgs' '$MQTT_rmsgs' '$MQTT_sess' '$MQTT_qos2in' '$MQTT_out'; do
+      check_json "${cluster} ${stream} memory replicated stream" "${stream_json}" \
+        --arg stream "${stream}" '[.account_details[].stream_detail[]? | select(.name == $stream and .config.storage == "memory" and .config.num_replicas == 3)] | length > 0'
+    done
+  else
+    echo "FAIL: ${cluster} stream config readable"
+    failures=$((failures + 1))
+  fi
 
   local leafz
-  leafz=$(kubectl exec -n event-bus nats-0 --context "${context}" -c nats -- \
-    wget -qO- http://localhost:8222/leafz)
+  local leaf_connections=false
+  for pod in nats-0 nats-1 nats-2; do
+    if leafz=$(kubectl exec -n event-bus "${pod}" --context "${context}" -c nats -- \
+      wget -qO- http://localhost:8222/leafz) &&
+      jq -e '.leafs | length > 0' >/dev/null <<<"${leafz}"; then
+      leaf_connections=true
+      break
+    fi
+  done
 
-  if jq -e '.leafs | length > 0' >/dev/null <<<"${leafz}"; then
+  if [ "${leaf_connections}" = true ]; then
     echo "PASS: ${cluster} leaf connections present"
   else
     echo "FAIL: ${cluster} leaf connections present"

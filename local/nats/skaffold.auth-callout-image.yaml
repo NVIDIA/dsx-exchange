@@ -1,0 +1,23 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: auth-callout-image
+build:
+  tagPolicy:
+    envTemplate:
+      template: local
+  local:
+    push: true
+    tryImportMissing: true
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+    - image: localhost:5001/auth-callout
+      context: ../../auth-callout
+      docker:
+        dockerfile: build/package/Dockerfile
+        cliFlags:
+          - --provenance=false

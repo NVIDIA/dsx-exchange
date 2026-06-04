@@ -1,6 +1,3 @@
-# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-
 # NATS Event Bus Deployment
 
 NATS deployment configuration for the DSX Event Bus evaluation.
@@ -11,19 +8,14 @@ For architecture and chart configuration details, see
 
 ## Deployment
 
-### Prerequisites
-
-- Kind clusters created (CSC, CPC-1, CPC-2)
-- Helm 4.0+
-- kubectl configured with cluster contexts
-- Skaffold v2.21.0
-
-### Deploy Complete Local Stack
+Deploy the complete local stack through the local Skaffold targets:
 
 ```bash
 # From the repository root
 make -C local skaffold-run
 ```
+
+See [local/README.md](../README.md) for prerequisites and the full target list.
 
 ## Configuration
 

@@ -1,0 +1,42 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-csc
+.metricsServerHelm: &metrics_server_helm
+  releases:
+    - name: metrics-server
+      remoteChart: metrics-server
+      repo: https://kubernetes-sigs.github.io/metrics-server/
+      version: 3.13.0
+      namespace: kube-system
+      setValues:
+        image.tag: v0.8.1
+        args[0]: --kubelet-insecure-tls
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metrics_server_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metrics_server_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metrics_server_helm

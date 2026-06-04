@@ -26,9 +26,14 @@ with_lock() {
 }
 
 certs_ready() {
-  [ -s "${SCRIPT_DIR}/certs/csc/server.pem" ] &&
-    [ -s "${SCRIPT_DIR}/certs/cpc-1/server.pem" ] &&
-    [ -s "${SCRIPT_DIR}/certs/cpc-2/server.pem" ]
+  local cluster
+  for cluster in csc cpc-1 cpc-2; do
+    [ -s "${SCRIPT_DIR}/certs/${cluster}/ca.pem" ] || return 1
+    [ -s "${SCRIPT_DIR}/certs/${cluster}/server.pem" ] || return 1
+    [ -s "${SCRIPT_DIR}/certs/${cluster}/server-key.pem" ] || return 1
+  done
+
+  return 0
 }
 
 generate_nkeys() {

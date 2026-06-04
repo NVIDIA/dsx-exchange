@@ -20,8 +20,9 @@ SKAFFOLD_RUN_LABEL ?= skaffold.dev/run-id=local-e2e
 SKAFFOLD_BUILD_FLAGS ?= --cache-artifacts=true --sync-remote-cache=missing
 SKAFFOLD_DEPLOY_FLAGS ?= --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
 SKAFFOLD_DEV_FLAGS ?= --cleanup=false --cache-artifacts=false --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
-SKAFFOLD_STACK_MODULES := infra nats
-SKAFFOLD_CLUSTER_TARGETS := skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
+SKAFFOLD_CSC_MODULES := infra-csc nats-csc
+SKAFFOLD_CPC_1_MODULES := infra-cpc-1 nats-cpc-1
+SKAFFOLD_CPC_2_MODULES := infra-cpc-2 nats-cpc-2
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
 E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
@@ -62,7 +63,7 @@ setup-clusters:
 skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
 	$(MAKE) setup-clusters
 	$(MAKE) skaffold-build-artifacts
-	$(MAKE) -j$(words $(SKAFFOLD_CLUSTER_TARGETS)) $(SKAFFOLD_CLUSTER_TARGETS)
+	$(MAKE) -j3 skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
 
 skaffold-run-serial: install-e2e-prereqs ## Deploy the complete local dev stack serially
 	$(MAKE) setup-clusters
@@ -75,17 +76,17 @@ skaffold-build-artifacts:
 	cd .. && "$(SKAFFOLD)" build -f skaffold.yaml $(SKAFFOLD_BUILD_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).build" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/build" --build-concurrency=1 --file-output="$(SKAFFOLD_BUILD_ARTIFACTS)"
 
 skaffold-deploy-csc:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CSC_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-deploy-cpc-1:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml --profile cpc-1 $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_1_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-deploy-cpc-2:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml --profile cpc-2 $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_2_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
 
 skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
 	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_STACK_MODULES)) $(SKAFFOLD_DEV_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).dev" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/dev" --build-concurrency=1
+	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(SKAFFOLD_DEV_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).dev" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/dev" --build-concurrency=1
 
 clean: ## Delete Kind clusters and generated local e2e artifacts
 	./infra/scripts/cleanup.sh

@@ -11,4 +11,8 @@ resourceSelector:
       labels: [".*"]
 requires:
   - path: local/infra/skaffold.yaml
+    configs:
+      - infra
   - path: local/nats/skaffold.yaml
+    configs:
+      - nats

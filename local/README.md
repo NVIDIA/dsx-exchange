@@ -63,18 +63,9 @@ The root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
 `local/nats/skaffold.yaml`. Skaffold deploys the cluster infrastructure, builds
 the auth-callout image, and installs the event-bus chart. Host scripts still
 handle prerequisites, Kind cluster creation, the local registry, and generated
-NATS secret material.
-
-Local targets:
-
-- `make test`: deploy the stack in parallel, then run functional and
-  performance tests.
-- `make test-serial`: deploy the stack serially, then run the same tests.
-- `make test-dev`: run the same tests against an already running local stack.
-- `make skaffold-run`: deploy the stack in parallel without running tests.
-- `make skaffold-run-serial`: deploy the stack serially without running tests.
-- `make validate`: check the deployed stack's cluster, Gateway, NATS, and
-  Keycloak readiness.
+NATS secret material. The local Skaffold entrypoints import smaller domain files
+for MetalLB, Envoy Gateway, cert-manager, metrics-server, Prometheus, Keycloak,
+auth-callout image build, secret manifests, and NATS releases.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -107,28 +98,23 @@ treating it as a networking failure.
 For the testing strategy (functional and performance coverage), see
 [docs/testing.md](../docs/testing.md).
 
-## Common Commands
+## Targets
 
-```bash
-# Local Setup
-make test                    # Deploy local stack and run the e2e suite
-make test-serial             # Run the same e2e suite with serial deploy
-make test-dev                # Run the e2e suite against the current stack
-make skaffold-run            # Build once, then deploy required infra and NATS in parallel
-make skaffold-run-serial     # Build once, then deploy required infra and NATS serially
-make skaffold-dev            # Run Skaffold dev for the complete local dev stack
-make validate                # Validate the deployed local stack
-
-# Benchmarks and demos
-make benchmark               # Run MQTT benchmark smoke suite
-make benchmark-full          # Run full MQTT benchmark basic suite
-make dummy-bms               # Publish looping dummy BMS data
-
-# Monitoring & Cleanup
-make status                  # Check deployment status
-make clean                   # Delete Kind clusters and generated local artifacts
-make help                    # Show all available targets
-```
+- `make test`: deploy the stack in parallel, then run functional and
+  performance tests.
+- `make test-serial`: deploy the stack serially, then run the same tests.
+- `make test-dev`: run the same tests against an already running local stack.
+- `make skaffold-run`: deploy the stack in parallel without running tests.
+- `make skaffold-run-serial`: deploy the stack serially without running tests.
+- `make skaffold-dev`: run Skaffold dev for the complete local stack.
+- `make validate`: check the deployed stack's cluster, Gateway, NATS, and
+  Keycloak readiness.
+- `make benchmark`: run the MQTT benchmark smoke suite.
+- `make benchmark-full`: run the full MQTT benchmark basic suite.
+- `make dummy-bms`: publish looping dummy BMS data.
+- `make status`: check deployment status.
+- `make clean`: delete Kind clusters and generated local artifacts.
+- `make help`: show all available targets.
 
 ## Development
 

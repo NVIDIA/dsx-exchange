@@ -44,12 +44,14 @@ outside the sandbox and record what passed or failed:
       performance tests pass.
 - [ ] Run `make -C local test-dev` against the deployed stack; confirm it only
       runs the functional and performance tests.
-- [ ] Run `make -C local skaffold-dev`; confirm the dev process reaches watch
-      mode and keeps the stack deployed after exit.
+- [ ] Run `make -C local skaffold-dev`; confirm exactly one Skaffold dev
+      process reaches watch mode and keeps the stack deployed after exit.
 - [ ] While `skaffold-dev` is running, edit an event-bus chart/value file;
-      confirm the NATS release updates in CSC, CPC-1, and CPC-2.
+      confirm the NATS release updates in CSC, CPC-1, and CPC-2. If only one
+      cluster updates, this check failed.
 - [ ] While `skaffold-dev` is running, edit an infra manifest/value file;
-      confirm the affected resource updates in the expected clusters.
+      confirm the affected resource updates in the expected clusters. If the
+      changed cluster is not reconciled, this check failed.
 - [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
       image rebuilds once, is pushed to the local registry, and the event-bus
       pods use it.
