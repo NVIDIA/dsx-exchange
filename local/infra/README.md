@@ -115,9 +115,9 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 **Usage:**
 
 The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system`
-namespace and is pinned to the reserved `envoy-pool` address in each cluster. It
-provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS passthrough
-listener for mTLS MQTT (port 8883), and an HTTP listener (port 80) for Keycloak.
+namespace. It provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS
+passthrough listener for mTLS MQTT (port 8883), and an HTTP listener (port 80)
+for Keycloak.
 
 Example HTTPRoute for Keycloak:
 
@@ -148,9 +148,6 @@ cert-manager provides automatic certificate management for TLS certificates. It'
 ## Metrics Server
 
 Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and pods, enabling `kubectl top` commands and Horizontal Pod Autoscaling (HPA).
-
-**Note:** Uses the official metrics-server Helm chart with
-`--kubelet-insecure-tls` for Kind compatibility.
 
 **Usage:**
 
