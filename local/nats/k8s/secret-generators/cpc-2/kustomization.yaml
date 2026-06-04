@@ -1,0 +1,60 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: event-bus
+resources:
+  - ../namespace.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+  - name: nats-mtls-server-tls
+    files:
+      - ca.crt=../../../certs/cpc-2/ca.pem
+      - tls.crt=../../../certs/cpc-2/server.pem
+      - tls.key=../../../certs/cpc-2/server-key.pem
+  - name: nats-authx-user
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-authx-user/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-authx-user/seed
+  - name: nats-auth-signing
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-auth-signing/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-auth-signing/seed
+  - name: nats-xkey
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-xkey/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-xkey/seed
+  - name: nats-nack-user
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-nack-user/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-nack-user/seed
+      - nack-user.nk=../../../secrets/cpc-2/nkeys/nats-nack-user/nack-user.nk
+  - name: nats-mtls-leaf
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-mtls-leaf/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-mtls-leaf/seed
+  - name: nats-mtls-authx-leaf
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-mtls-authx-leaf/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-mtls-authx-leaf/seed
+  - name: nats-mtls-sys-leaf
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-mtls-sys-leaf/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-mtls-sys-leaf/seed
+  - name: nats-surveyor
+    files:
+      - pubkey=../../../secrets/cpc-2/nkeys/nats-surveyor/pubkey
+      - seed=../../../secrets/cpc-2/nkeys/nats-surveyor/seed
+  - name: nats-leaf-csc
+    files:
+      - seed=../../../secrets/cpc-2/nkeys/nats-leaf-csc/seed
+  - name: nats-leaf-launchlayer-csc
+    files:
+      - seed=../../../secrets/cpc-2/nkeys/nats-leaf-launchlayer-csc/seed
+  - name: auth-callout-keys
+    files:
+      - nkey-seed=../../../secrets/cpc-2/nkeys/nats-authx-user/seed
+      - issuer-seed=../../../secrets/cpc-2/nkeys/nats-auth-signing/seed
+      - xkey-seed=../../../secrets/cpc-2/nkeys/nats-xkey/seed

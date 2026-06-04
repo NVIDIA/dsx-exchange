@@ -25,10 +25,51 @@ build:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
+  name: nats-secrets
+manifests:
+  hooks:
+    before:
+      - host:
+          command:
+            - sh
+            - -c
+            - local/nats/prepare-secrets.sh
+  kustomize:
+    paths:
+      - k8s/secret-generators/csc
+    buildArgs:
+      - --load-restrictor=LoadRestrictionsNone
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+profiles:
+  - name: cpc-1
+    patches:
+      - op: replace
+        path: /manifests/kustomize/paths/0
+        value: k8s/secret-generators/cpc-1
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-1
+  - name: cpc-2
+    patches:
+      - op: replace
+        path: /manifests/kustomize/paths/0
+        value: k8s/secret-generators/cpc-2
+      - op: replace
+        path: /deploy/kubeContext
+        value: kind-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
   name: nats
 requires:
   - configs:
       - auth-callout-image
+      - nats-secrets
   - path: ../infra/skaffold.yaml
     configs:
       - infra
@@ -41,13 +82,6 @@ deploy:
     flags:
       depBuild:
         - --repository-config=local/helm/repositories.yaml
-    hooks:
-      before:
-        - host:
-            command:
-              - sh
-              - -c
-              - local/nats/prepare-secrets.sh csc
     releases:
       - name: nats-event-bus
         chartPath: ../../deploy/nats-event-bus
@@ -67,9 +101,6 @@ profiles:
         path: /deploy/kubeContext
         value: kind-cpc-1
       - op: replace
-        path: /deploy/helm/hooks/before/0/host/command/2
-        value: local/nats/prepare-secrets.sh cpc-1
-      - op: replace
         path: /deploy/helm/releases/0/valuesFiles
         value:
           - k8s/local-dev-values.yaml
@@ -80,9 +111,6 @@ profiles:
       - op: replace
         path: /deploy/kubeContext
         value: kind-cpc-2
-      - op: replace
-        path: /deploy/helm/hooks/before/0/host/command/2
-        value: local/nats/prepare-secrets.sh cpc-2
       - op: replace
         path: /deploy/helm/releases/0/valuesFiles
         value:
