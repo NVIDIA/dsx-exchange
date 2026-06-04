@@ -280,10 +280,12 @@ channels:
     address: 'BMS/v1/{integration}/Value/Rack/{pointType}/{tagPath}'
     description: |
       Values published by integrations for Rack control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Rack/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
 
       **MQTT wildcard examples**
 
-      - All integration rack values: `BMS/v1/+/Value/Rack/#`
+      - All integration Rack values: `BMS/v1/+/Value/Rack/#`
     parameters:
       integration:
         description: Integration identifier.
@@ -373,6 +375,29 @@ channels:
       phaseCurrent:
         $ref: '#/components/messages/PowerMeterPhaseCurrentMsg'
 
+  powerMeterIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/PowerMeter/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for PowerMeter control points.
+      Subscribe to `BMS/v1/PUB/Metadata/PowerMeter/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration PowerMeter values: `BMS/v1/+/Value/PowerMeter/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published PowerMeter point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # BESS
   # ---------------------------------------------------------------------------
@@ -423,6 +448,29 @@ channels:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
       available:
         $ref: '#/components/messages/BESSAvailableMsg'
+
+  bessIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/BESS/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for BESS control points.
+      Subscribe to `BMS/v1/PUB/Metadata/BESS/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration BESS values: `BMS/v1/+/Value/BESS/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published BESS point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # UPS
@@ -475,6 +523,29 @@ channels:
       available:
         $ref: '#/components/messages/UPSAvailableMsg'
 
+  upsIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/UPS/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for UPS control points.
+      Subscribe to `BMS/v1/PUB/Metadata/UPS/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration UPS values: `BMS/v1/+/Value/UPS/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published UPS point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # ATS
   # ---------------------------------------------------------------------------
@@ -525,6 +596,29 @@ channels:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
       available:
         $ref: '#/components/messages/ATSAvailableMsg'
+
+  atsIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/ATS/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for ATS control points.
+      Subscribe to `BMS/v1/PUB/Metadata/ATS/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration ATS values: `BMS/v1/+/Value/ATS/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published ATS point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # Generator
@@ -577,6 +671,29 @@ channels:
       available:
         $ref: '#/components/messages/GeneratorAvailableMsg'
 
+  generatorIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Generator/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Generator control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Generator/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Generator values: `BMS/v1/+/Value/Generator/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Generator point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Shunt
   # ---------------------------------------------------------------------------
@@ -627,6 +744,29 @@ channels:
       available:
         $ref: '#/components/messages/ShuntAvailableMsg'
 
+  shuntIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Shunt/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Shunt control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Shunt/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Shunt values: `BMS/v1/+/Value/Shunt/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Shunt point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Breaker
   # ---------------------------------------------------------------------------
@@ -676,6 +816,29 @@ channels:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
       available:
         $ref: '#/components/messages/BreakerAvailableMsg'
+
+  breakerIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Breaker/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Breaker control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Breaker/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Breaker values: `BMS/v1/+/Value/Breaker/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Breaker point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # CDU
@@ -791,7 +954,8 @@ channels:
     address: 'BMS/v1/{integration}/Value/CDU/{pointType}/{tagPath}'
     description: |
       Values published by integrations for CDU control points.
-      Subscribe to `cduMetadata` first and read `integration` for the exact topic.
+      Subscribe to `BMS/v1/PUB/Metadata/CDU/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
 
       **MQTT wildcard examples**
 
@@ -802,6 +966,7 @@ channels:
       pointType:
         enum:
           - LiquidTemperatureSpRequest
+          - GenericPoint
         description: Integration-published CDU point type.
       tagPath:
         description: Must match the tagPath from the corresponding BMS metadata exactly.
@@ -915,6 +1080,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  coolingTowerIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/CoolingTower/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for CoolingTower control points.
+      Subscribe to `BMS/v1/PUB/Metadata/CoolingTower/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration CoolingTower values: `BMS/v1/+/Value/CoolingTower/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published CoolingTower point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # HX
   # ---------------------------------------------------------------------------
@@ -1020,6 +1208,29 @@ channels:
         $ref: '#/components/messages/HXLeakDetectMsg'
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
+
+  hxIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/HX/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for HX control points.
+      Subscribe to `BMS/v1/PUB/Metadata/HX/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration HX values: `BMS/v1/+/Value/HX/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published HX point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # CRAH
@@ -1127,6 +1338,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  crahIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/CRAH/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for CRAH control points.
+      Subscribe to `BMS/v1/PUB/Metadata/CRAH/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration CRAH values: `BMS/v1/+/Value/CRAH/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published CRAH point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # CRAC
   # ---------------------------------------------------------------------------
@@ -1232,6 +1466,29 @@ channels:
         $ref: '#/components/messages/CRACLeakDetectMsg'
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
+
+  cracIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/CRAC/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for CRAC control points.
+      Subscribe to `BMS/v1/PUB/Metadata/CRAC/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration CRAC values: `BMS/v1/+/Value/CRAC/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published CRAC point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # AHU
@@ -1339,6 +1596,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  ahuIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/AHU/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for AHU control points.
+      Subscribe to `BMS/v1/PUB/Metadata/AHU/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration AHU values: `BMS/v1/+/Value/AHU/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published AHU point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Chiller
   # ---------------------------------------------------------------------------
@@ -1445,6 +1725,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  chillerIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Chiller/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Chiller control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Chiller/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Chiller values: `BMS/v1/+/Value/Chiller/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Chiller point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Valve
   # ---------------------------------------------------------------------------
@@ -1494,6 +1797,29 @@ channels:
         $ref: '#/components/messages/ValveAvailableMsg'
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
+
+  valveIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Valve/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Valve control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Valve/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Valve values: `BMS/v1/+/Value/Valve/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Valve point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # Pump
@@ -1545,6 +1871,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  pumpIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Pump/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Pump control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Pump/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Pump values: `BMS/v1/+/Value/Pump/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Pump point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Fan
   # ---------------------------------------------------------------------------
@@ -1595,6 +1944,29 @@ channels:
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
 
+  fanIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Fan/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Fan control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Fan/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Fan values: `BMS/v1/+/Value/Fan/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Fan point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
+
   # ---------------------------------------------------------------------------
   # Damper
   # ---------------------------------------------------------------------------
@@ -1644,6 +2016,29 @@ channels:
         $ref: '#/components/messages/DamperAvailableMsg'
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
+
+  damperIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Damper/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Damper control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Damper/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Damper values: `BMS/v1/+/Value/Damper/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Damper point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # Sensor
@@ -1735,6 +2130,29 @@ channels:
       sound:
         $ref: '#/components/messages/SensorSoundMsg'
 
+
+  sensorIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Sensor/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Sensor control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Sensor/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Sensor values: `BMS/v1/+/Value/Sensor/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Sensor point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # Tank
@@ -1843,6 +2261,29 @@ channels:
         $ref: '#/components/messages/TankLeakDetectMsg'
       genericPoint:
         $ref: '#/components/messages/GenericEquipmentPointMsg'
+
+  tankIntegrationValue:
+    address: 'BMS/v1/{integration}/Value/Tank/{pointType}/{tagPath}'
+    description: |
+      Values published by integrations for Tank control points.
+      Subscribe to `BMS/v1/PUB/Metadata/Tank/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
+
+      **MQTT wildcard examples**
+
+      - All integration Tank values: `BMS/v1/+/Value/Tank/#`
+    parameters:
+      integration:
+        description: Integration identifier.
+      pointType:
+        enum:
+          - GenericPoint
+        description: Integration-published Tank point type.
+      tagPath:
+        description: Must match the tagPath from the corresponding BMS metadata exactly.
+    messages:
+      valueMessage:
+        $ref: '#/components/messages/ValueMessage'
 
   # ---------------------------------------------------------------------------
   # GenericObject
@@ -1963,7 +2404,8 @@ channels:
     address: 'BMS/v1/{integration}/Value/GenericObject/{pointType}/{tagPath}'
     description: |
       Values published by integrations for GenericObject control points.
-      Subscribe to `genericObjectMetadata` first and read `integration` for the exact topic.
+      Subscribe to `BMS/v1/PUB/Metadata/GenericObject/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
 
       **MQTT wildcard examples**
 
@@ -1974,6 +2416,7 @@ channels:
       pointType:
         enum:
           - LiquidTemperatureSpRequest
+          - GenericPoint
         description: Integration-published GenericObject point type.
       tagPath:
         description: Must match the tagPath from the corresponding BMS metadata exactly.
@@ -2048,11 +2491,13 @@ channels:
   systemIntegrationValue:
     address: 'BMS/v1/{integration}/Value/System/{pointType}/{tagPath}'
     description: |
-      Values published by integrations for Heartbeat points.
+      Values published by integrations for System points (Integration heartbeats, Status, Available, and GenericPoint).
+      Subscribe to `BMS/v1/PUB/Metadata/System/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+      That matching metadata payload indicates the integration can publish values to this topic.
 
       **MQTT wildcard examples**
 
-      - All integration heartbeat values: `BMS/v1/+/Value/System/#`
+      - All integration System values: `BMS/v1/+/Value/System/#`
     parameters:
       integration:
         description: Integration identifier.
@@ -2060,6 +2505,9 @@ channels:
         enum:
           - HeartbeatTimestampIntegration
           - HeartbeatEchoIntegration
+          - Status
+          - Available
+          - GenericPoint
         description: Integration-published System point type.
       tagPath:
         description: Vendor-defined hierarchical tag path.
@@ -2136,6 +2584,14 @@ operations:
       - $ref: '#/channels/powerMeterMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for all PowerMeter points.
 
+  publishPowerMeterIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/powerMeterIntegrationValue'
+    messages:
+      - $ref: '#/channels/powerMeterIntegrationValue/messages/valueMessage'
+    description: Publish integration values for PowerMeter control points.
+
   receiveBESSValue:
     action: receive
     channel:
@@ -2153,6 +2609,14 @@ operations:
       - $ref: '#/channels/bessMetadata/messages/available'
       - $ref: '#/channels/bessMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for BESS points.
+
+  publishBESSIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/bessIntegrationValue'
+    messages:
+      - $ref: '#/channels/bessIntegrationValue/messages/valueMessage'
+    description: Publish integration values for BESS control points.
 
   receiveUPSValue:
     action: receive
@@ -2172,6 +2636,14 @@ operations:
       - $ref: '#/channels/upsMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for UPS points.
 
+  publishUPSIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/upsIntegrationValue'
+    messages:
+      - $ref: '#/channels/upsIntegrationValue/messages/valueMessage'
+    description: Publish integration values for UPS control points.
+
   receiveATSValue:
     action: receive
     channel:
@@ -2189,6 +2661,14 @@ operations:
       - $ref: '#/channels/atsMetadata/messages/available'
       - $ref: '#/channels/atsMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for ATS points.
+
+  publishATSIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/atsIntegrationValue'
+    messages:
+      - $ref: '#/channels/atsIntegrationValue/messages/valueMessage'
+    description: Publish integration values for ATS control points.
 
   receiveGeneratorValue:
     action: receive
@@ -2208,6 +2688,14 @@ operations:
       - $ref: '#/channels/generatorMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Generator points.
 
+  publishGeneratorIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/generatorIntegrationValue'
+    messages:
+      - $ref: '#/channels/generatorIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Generator control points.
+
   receiveShuntValue:
     action: receive
     channel:
@@ -2226,6 +2714,14 @@ operations:
       - $ref: '#/channels/shuntMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Shunt points.
 
+  publishShuntIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/shuntIntegrationValue'
+    messages:
+      - $ref: '#/channels/shuntIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Shunt control points.
+
   receiveBreakerValue:
     action: receive
     channel:
@@ -2243,6 +2739,14 @@ operations:
       - $ref: '#/channels/breakerMetadata/messages/available'
       - $ref: '#/channels/breakerMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Breaker points.
+
+  publishBreakerIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/breakerIntegrationValue'
+    messages:
+      - $ref: '#/channels/breakerIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Breaker control points.
 
   receiveCDUValue:
     action: receive
@@ -2317,6 +2821,14 @@ operations:
       - $ref: '#/channels/coolingTowerMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for CoolingTower points.
 
+  publishCoolingTowerIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/coolingTowerIntegrationValue'
+    messages:
+      - $ref: '#/channels/coolingTowerIntegrationValue/messages/valueMessage'
+    description: Publish integration values for CoolingTower control points.
+
   receiveHXValue:
     action: receive
     channel:
@@ -2348,6 +2860,14 @@ operations:
       - $ref: '#/channels/hxMetadata/messages/leakDetect'
       - $ref: '#/channels/hxMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for HX points.
+
+  publishHXIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/hxIntegrationValue'
+    messages:
+      - $ref: '#/channels/hxIntegrationValue/messages/valueMessage'
+    description: Publish integration values for HX control points.
 
   receiveCRAHValue:
     action: receive
@@ -2381,6 +2901,14 @@ operations:
       - $ref: '#/channels/crahMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for CRAH points.
 
+  publishCRAHIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/crahIntegrationValue'
+    messages:
+      - $ref: '#/channels/crahIntegrationValue/messages/valueMessage'
+    description: Publish integration values for CRAH control points.
+
   receiveCRACValue:
     action: receive
     channel:
@@ -2412,6 +2940,14 @@ operations:
       - $ref: '#/channels/cracMetadata/messages/leakDetect'
       - $ref: '#/channels/cracMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for CRAC points.
+
+  publishCRACIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/cracIntegrationValue'
+    messages:
+      - $ref: '#/channels/cracIntegrationValue/messages/valueMessage'
+    description: Publish integration values for CRAC control points.
 
   receiveAHUValue:
     action: receive
@@ -2445,6 +2981,14 @@ operations:
       - $ref: '#/channels/ahuMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for AHU points.
 
+  publishAHUIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/ahuIntegrationValue'
+    messages:
+      - $ref: '#/channels/ahuIntegrationValue/messages/valueMessage'
+    description: Publish integration values for AHU control points.
+
   receiveChillerValue:
     action: receive
     channel:
@@ -2477,6 +3021,14 @@ operations:
       - $ref: '#/channels/chillerMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Chiller points.
 
+  publishChillerIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/chillerIntegrationValue'
+    messages:
+      - $ref: '#/channels/chillerIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Chiller control points.
+
   receiveValveValue:
     action: receive
     channel:
@@ -2494,6 +3046,14 @@ operations:
       - $ref: '#/channels/valveMetadata/messages/available'
       - $ref: '#/channels/valveMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Valve points.
+
+  publishValveIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/valveIntegrationValue'
+    messages:
+      - $ref: '#/channels/valveIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Valve control points.
 
   receivePumpValue:
     action: receive
@@ -2513,6 +3073,14 @@ operations:
       - $ref: '#/channels/pumpMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Pump points.
 
+  publishPumpIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/pumpIntegrationValue'
+    messages:
+      - $ref: '#/channels/pumpIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Pump control points.
+
   receiveFanValue:
     action: receive
     channel:
@@ -2531,6 +3099,14 @@ operations:
       - $ref: '#/channels/fanMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Fan points.
 
+  publishFanIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/fanIntegrationValue'
+    messages:
+      - $ref: '#/channels/fanIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Fan control points.
+
   receiveDamperValue:
     action: receive
     channel:
@@ -2548,6 +3124,14 @@ operations:
       - $ref: '#/channels/damperMetadata/messages/available'
       - $ref: '#/channels/damperMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Damper points.
+
+  publishDamperIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/damperIntegrationValue'
+    messages:
+      - $ref: '#/channels/damperIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Damper control points.
 
   receiveSensorValue:
     action: receive
@@ -2577,6 +3161,14 @@ operations:
       - $ref: '#/channels/sensorMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Sensor points.
 
+
+  publishSensorIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/sensorIntegrationValue'
+    messages:
+      - $ref: '#/channels/sensorIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Sensor control points.
 
   receiveTankValue:
     action: receive
@@ -2609,6 +3201,14 @@ operations:
       - $ref: '#/channels/tankMetadata/messages/leakDetect'
       - $ref: '#/channels/tankMetadata/messages/genericPoint'
     description: Subscribe to BMS-published metadata for Tank points.
+
+  publishTankIntegrationValue:
+    action: send
+    channel:
+      $ref: '#/channels/tankIntegrationValue'
+    messages:
+      - $ref: '#/channels/tankIntegrationValue/messages/valueMessage'
+    description: Publish integration values for Tank control points.
 
   receiveGenericObjectValue:
     action: receive
@@ -2669,6 +3269,9 @@ operations:
       - $ref: '#/channels/systemMetadata/messages/heartbeatEchoBms'
       - $ref: '#/channels/systemMetadata/messages/heartbeatTimestampIntegration'
       - $ref: '#/channels/systemMetadata/messages/heartbeatEchoIntegration'
+      - $ref: '#/channels/systemMetadata/messages/status'
+      - $ref: '#/channels/systemMetadata/messages/available'
+      - $ref: '#/channels/systemMetadata/messages/genericPoint'
     description: Subscribe to System metadata for all System point types.
 
   publishSystemIntegrationValue:
@@ -4436,6 +5039,7 @@ components:
       description: Valid pointType values for Integration-published generic equipment points.
       enum:
         - LiquidTemperatureSpRequest
+        - GenericPoint
 
     EquipmentObjectType:
       type: string
@@ -4478,6 +5082,9 @@ components:
       enum:
         - HeartbeatTimestampIntegration
         - HeartbeatEchoIntegration
+        - Status
+        - Available
+        - GenericPoint
 
 
     # =========================================================================

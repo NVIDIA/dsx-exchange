@@ -1,30 +1,30 @@
-# System Integration — Value
+# Generator Integration — Value
 
-Publish integration System values to topics derived from BMS metadata.
+Publish integration values for Generator control points.
 
 **Direction:** Publish (send)
 
 ## Channel
 
 ```text
-BMS/v1/{integration}/Value/System/{pointType}/{tagPath}
+BMS/v1/{integration}/Value/Generator/{pointType}/{tagPath}
 ```
 
-Values published by integrations for System points (Integration heartbeats, Status, Available, and GenericPoint).
-Subscribe to `BMS/v1/PUB/Metadata/System/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+Values published by integrations for Generator control points.
+Subscribe to `BMS/v1/PUB/Metadata/Generator/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
 That matching metadata payload indicates the integration can publish values to this topic.
 
 **MQTT wildcard examples**
 
-- All integration System values: `BMS/v1/+/Value/System/#`
+- All integration Generator values: `BMS/v1/+/Value/Generator/#`
 
 ### Parameters
 
 | Parameter | Description |
 |-----------|-------------|
 | `integration` | Integration identifier. |
-| `pointType` | Integration-published System point type. Values: `HeartbeatTimestampIntegration`, `HeartbeatEchoIntegration`, `Status`, `Available`, `GenericPoint` |
-| `tagPath` | Vendor-defined hierarchical tag path. |
+| `pointType` | Integration-published Generator point type. Values: `GenericPoint` |
+| `tagPath` | Must match the tagPath from the corresponding BMS metadata exactly. |
 
 ## Message: Point Value
 

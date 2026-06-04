@@ -77,6 +77,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-ahu-value.mdx
                     slug: ahu-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-ahu-integration-value.mdx
+                    slug: ahu-integration-value
               - section: ATS
                 contents:
                   - page: Metadata
@@ -85,6 +88,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-ats-value.mdx
                     slug: ats-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-ats-integration-value.mdx
+                    slug: ats-integration-value
               - section: BESS
                 contents:
                   - page: Metadata
@@ -93,6 +99,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-bess-value.mdx
                     slug: bess-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-bess-integration-value.mdx
+                    slug: bess-integration-value
               - section: Breaker
                 contents:
                   - page: Metadata
@@ -101,17 +110,20 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-breaker-value.mdx
                     slug: breaker-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-breaker-integration-value.mdx
+                    slug: breaker-integration-value
               - section: CDU
                 contents:
-                  - page: Integration Value
-                    path: ../docs/schema-bms-cdu-integration-value.mdx
-                    slug: cdu-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-cdu-metadata.mdx
                     slug: cdu-metadata
                   - page: Value
                     path: ../docs/schema-bms-cdu-value.mdx
                     slug: cdu-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-cdu-integration-value.mdx
+                    slug: cdu-integration-value
               - section: Chiller
                 contents:
                   - page: Metadata
@@ -120,6 +132,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-chiller-value.mdx
                     slug: chiller-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-chiller-integration-value.mdx
+                    slug: chiller-integration-value
               - section: Cooling Tower
                 contents:
                   - page: Metadata
@@ -128,6 +143,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-coolingtower-value.mdx
                     slug: coolingtower-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-coolingtower-integration-value.mdx
+                    slug: coolingtower-integration-value
               - section: CRAC
                 contents:
                   - page: Metadata
@@ -136,6 +154,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-crac-value.mdx
                     slug: crac-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-crac-integration-value.mdx
+                    slug: crac-integration-value
               - section: CRAH
                 contents:
                   - page: Metadata
@@ -144,6 +165,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-crah-value.mdx
                     slug: crah-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-crah-integration-value.mdx
+                    slug: crah-integration-value
               - section: Damper
                 contents:
                   - page: Metadata
@@ -152,6 +176,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-damper-value.mdx
                     slug: damper-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-damper-integration-value.mdx
+                    slug: damper-integration-value
               - section: Fan
                 contents:
                   - page: Metadata
@@ -160,6 +187,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-fan-value.mdx
                     slug: fan-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-fan-integration-value.mdx
+                    slug: fan-integration-value
               - section: Generator
                 contents:
                   - page: Metadata
@@ -168,17 +198,20 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-generator-value.mdx
                     slug: generator-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-generator-integration-value.mdx
+                    slug: generator-integration-value
               - section: Generic Object
                 contents:
-                  - page: Integration Value
-                    path: ../docs/schema-bms-genericobject-integration-value.mdx
-                    slug: genericobject-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-genericobject-metadata.mdx
                     slug: genericobject-metadata
                   - page: Value
                     path: ../docs/schema-bms-genericobject-value.mdx
                     slug: genericobject-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-genericobject-integration-value.mdx
+                    slug: genericobject-integration-value
               - section: HX
                 contents:
                   - page: Metadata
@@ -187,6 +220,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-hx-value.mdx
                     slug: hx-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-hx-integration-value.mdx
+                    slug: hx-integration-value
               - section: Power Meter
                 contents:
                   - page: Metadata
@@ -195,6 +231,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-powermeter-value.mdx
                     slug: powermeter-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-powermeter-integration-value.mdx
+                    slug: powermeter-integration-value
               - section: Pump
                 contents:
                   - page: Metadata
@@ -203,17 +242,20 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-pump-value.mdx
                     slug: pump-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-pump-integration-value.mdx
+                    slug: pump-integration-value
               - section: Rack
                 contents:
-                  - page: Integration Value
-                    path: ../docs/schema-bms-rack-integration-value.mdx
-                    slug: rack-integration-value
                   - page: Metadata
                     path: ../docs/schema-bms-rack-metadata.mdx
                     slug: rack-metadata
                   - page: Value
                     path: ../docs/schema-bms-rack-value.mdx
                     slug: rack-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-rack-integration-value.mdx
+                    slug: rack-integration-value
               - section: Sensor
                 contents:
                   - page: Metadata
@@ -222,6 +264,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-sensor-value.mdx
                     slug: sensor-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-sensor-integration-value.mdx
+                    slug: sensor-integration-value
               - section: Shunt
                 contents:
                   - page: Metadata
@@ -230,17 +275,20 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-shunt-value.mdx
                     slug: shunt-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-shunt-integration-value.mdx
+                    slug: shunt-integration-value
               - section: System
                 contents:
+                  - page: Metadata
+                    path: ../docs/schema-bms-system-metadata.mdx
+                    slug: system-metadata
                   - page: BMS Value
                     path: ../docs/schema-bms-system-bms-value.mdx
                     slug: system-bms-value
                   - page: Integration Value
                     path: ../docs/schema-bms-system-integration-value.mdx
                     slug: system-integration-value
-                  - page: Metadata
-                    path: ../docs/schema-bms-system-metadata.mdx
-                    slug: system-metadata
               - section: Tank
                 contents:
                   - page: Metadata
@@ -249,6 +297,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-tank-value.mdx
                     slug: tank-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-tank-integration-value.mdx
+                    slug: tank-integration-value
               - section: UPS
                 contents:
                   - page: Metadata
@@ -257,6 +308,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-ups-value.mdx
                     slug: ups-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-ups-integration-value.mdx
+                    slug: ups-integration-value
               - section: Valve
                 contents:
                   - page: Metadata
@@ -265,6 +319,9 @@ navigation:
                   - page: Value
                     path: ../docs/schema-bms-valve-value.mdx
                     slug: valve-value
+                  - page: Integration Value
+                    path: ../docs/schema-bms-valve-integration-value.mdx
+                    slug: valve-integration-value
           - page: Messages
             path: ../docs/schema-bms-messages.mdx
             slug: messages
