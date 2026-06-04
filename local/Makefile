@@ -1,12 +1,10 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: help install-e2e-prereqs test test-serial test-dev
-.PHONY: skaffold-run skaffold-run-serial skaffold-dev
+.PHONY: help install-e2e-prereqs test test-dev
+.PHONY: skaffold-run skaffold-dev
 .PHONY: clean status validate dummy-bms benchmark benchmark-full
 .PHONY: setup-clusters
-.PHONY: skaffold-build-artifacts
-.PHONY: skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
 
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 FUNCTIONAL_E2E_TIMEOUT ?= 3m
@@ -15,22 +13,12 @@ CSC_BROKER_URL ?= tcp://172.18.200.1:1883
 SKAFFOLD ?= skaffold
 SKAFFOLD_CACHE_FILE ?= $(HOME)/.skaffold/cache
 SKAFFOLD_REMOTE_CACHE_DIR ?= $(HOME)/.skaffold/remote-cache
-SKAFFOLD_BUILD_ARTIFACTS ?= $(CURDIR)/.skaffold-build-artifacts.json
 SKAFFOLD_RUN_LABEL ?= skaffold.dev/run-id=local-e2e
-SKAFFOLD_BUILD_FLAGS ?= --cache-artifacts=true --sync-remote-cache=missing
-SKAFFOLD_DEPLOY_FLAGS ?= --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
-SKAFFOLD_DEV_FLAGS ?= --cleanup=false --cache-artifacts=false --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
-SKAFFOLD_CSC_MODULES := infra-csc nats-csc
-SKAFFOLD_CPC_1_MODULES := infra-cpc-1 nats-cpc-1
-SKAFFOLD_CPC_2_MODULES := infra-cpc-2 nats-cpc-2
+SKAFFOLD_FLAGS ?= --cleanup=false --cache-artifacts=true --sync-remote-cache=missing --label="$(SKAFFOLD_RUN_LABEL)"
 GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
 GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
 E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
 export PATH := $(E2E_PREREQS_BIN):$(PATH)
-
-define skaffold_module_args
-$(foreach module,$(1),--module "$(module)")
-endef
 
 help: ## Show this help message
 	@echo "DSX Event Bus - Evaluation Framework"
@@ -49,10 +37,6 @@ test: ## Run the full local Kind e2e suite
 	$(MAKE) skaffold-run
 	$(MAKE) test-dev
 
-test-serial: ## Run the full local Kind e2e suite with serial deploy
-	$(MAKE) skaffold-run-serial
-	$(MAKE) test-dev
-
 test-dev: ## Run the local e2e tests against an already running local stack
 	cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout $(FUNCTIONAL_E2E_TIMEOUT)
 	cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
@@ -62,35 +46,15 @@ setup-clusters:
 
 skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
 	$(MAKE) setup-clusters
-	$(MAKE) skaffold-build-artifacts
-	$(MAKE) -j3 skaffold-deploy-csc skaffold-deploy-cpc-1 skaffold-deploy-cpc-2
-
-skaffold-run-serial: install-e2e-prereqs ## Deploy the complete local dev stack serially
-	$(MAKE) setup-clusters
-	$(MAKE) skaffold-build-artifacts
-	$(MAKE) skaffold-deploy-csc
-	$(MAKE) skaffold-deploy-cpc-1
-	$(MAKE) skaffold-deploy-cpc-2
-
-skaffold-build-artifacts:
-	cd .. && "$(SKAFFOLD)" build -f skaffold.yaml $(SKAFFOLD_BUILD_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).build" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/build" --build-concurrency=1 --file-output="$(SKAFFOLD_BUILD_ARTIFACTS)"
-
-skaffold-deploy-csc:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CSC_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
-
-skaffold-deploy-cpc-1:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_1_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
-
-skaffold-deploy-cpc-2:
-	cd .. && "$(SKAFFOLD)" deploy -f skaffold.yaml $(call skaffold_module_args,$(SKAFFOLD_CPC_2_MODULES)) $(SKAFFOLD_DEPLOY_FLAGS) --build-artifacts="$(SKAFFOLD_BUILD_ARTIFACTS)" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/$@"
+	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml $(SKAFFOLD_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).run" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/run" --build-concurrency=1
 
 skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
 	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(SKAFFOLD_DEV_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).dev" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/dev" --build-concurrency=1
+	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(SKAFFOLD_FLAGS) --cache-file="$(SKAFFOLD_CACHE_FILE).dev" --remote-cache-dir="$(SKAFFOLD_REMOTE_CACHE_DIR)/dev" --build-concurrency=1
 
 clean: ## Delete Kind clusters and generated local e2e artifacts
 	./infra/scripts/cleanup.sh
-	rm -rf .skaffold-build-artifacts.json nats/keys nats/nsc nats/certs nats/secrets mqtt-client/tests/performance/reports
+	rm -rf nats/keys nats/nsc nats/certs nats/secrets mqtt-client/tests/performance/reports
 	rm -rf ../deploy/nats-event-bus/charts ../deploy/nats-event-bus/Chart.lock
 
 # ============================================================================

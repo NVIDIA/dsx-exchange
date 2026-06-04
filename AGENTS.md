@@ -38,8 +38,6 @@ outside the sandbox and record what passed or failed:
 - [ ] Run `make -C local skaffold-run` from a clean Kind state.
 - [ ] Run `make -C local skaffold-run` again against the same state; confirm
       image builds are cached and unchanged services are not rolled.
-- [ ] Run `make -C local skaffold-run-serial`; confirm the serial deploy path
-      completes and leaves CSC, CPC-1, and CPC-2 healthy.
 - [ ] Run `make -C local test`; confirm deploy, functional tests, and
       performance tests pass.
 - [ ] Run `make -C local test-dev` against the deployed stack; confirm it only

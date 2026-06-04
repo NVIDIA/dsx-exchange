@@ -100,12 +100,9 @@ For the testing strategy (functional and performance coverage), see
 
 ## Targets
 
-- `make test`: deploy the stack in parallel, then run functional and
-  performance tests.
-- `make test-serial`: deploy the stack serially, then run the same tests.
+- `make test`: deploy the stack, then run functional and performance tests.
 - `make test-dev`: run the same tests against an already running local stack.
-- `make skaffold-run`: deploy the stack in parallel without running tests.
-- `make skaffold-run-serial`: deploy the stack serially without running tests.
+- `make skaffold-run`: deploy the stack without running tests.
 - `make skaffold-dev`: run Skaffold dev for the complete local stack.
 - `make validate`: check the deployed stack's cluster, Gateway, NATS, and
   Keycloak readiness.
