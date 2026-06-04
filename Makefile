@@ -12,7 +12,7 @@ check-license-headers: ## Verify SPDX license headers across repository sources
 check: ## Run static validation checks
 	bash scripts/license.sh check
 	helm lint auth-callout/deploy
-	helm template --dependency-update nats-event-bus deploy/nats-event-bus >/dev/null
+	helm template --dependency-update --repository-config local/helm/repositories.yaml nats-event-bus deploy/nats-event-bus >/dev/null
 	helm lint deploy/nats-event-bus
 
 clean-e2e: ## Delete local Kind clusters and generated e2e artifacts

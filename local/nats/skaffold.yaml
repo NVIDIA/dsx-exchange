@@ -36,6 +36,9 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    flags:
+      depBuild:
+        - --repository-config=local/helm/repositories.yaml
     hooks:
       before:
         - host:
@@ -55,7 +58,6 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -73,6 +75,9 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    flags:
+      depBuild:
+        - --repository-config=local/helm/repositories.yaml
     hooks:
       before:
         - host:
@@ -93,7 +98,6 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -111,6 +115,9 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
+    flags:
+      depBuild:
+        - --repository-config=local/helm/repositories.yaml
     hooks:
       before:
         - host:
@@ -131,4 +138,3 @@ deploy:
           auth-callout.image.repository: localhost:5001/auth-callout
           auth-callout.image.tag: local
           auth-callout.image.pullPolicy: Always
-        upgradeOnChange: true

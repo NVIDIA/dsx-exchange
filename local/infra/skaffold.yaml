@@ -158,7 +158,7 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600
   helm:
-    concurrency: 4
+    concurrency: 0
     releases:
       - name: metallb
         remoteChart: metallb
@@ -166,13 +166,11 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
-        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
-        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -181,7 +179,6 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
-        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
@@ -190,7 +187,6 @@ deploy:
         createNamespace: true
         valuesFiles:
           - prometheus/values.yaml
-        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -204,7 +200,7 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600
   helm:
-    concurrency: 4
+    concurrency: 0
     releases:
       - name: metallb
         remoteChart: metallb
@@ -212,13 +208,11 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
-        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
-        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -227,7 +221,6 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
-        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
@@ -236,7 +229,6 @@ deploy:
         createNamespace: true
         valuesFiles:
           - prometheus/values.yaml
-        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -250,7 +242,7 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600
   helm:
-    concurrency: 4
+    concurrency: 0
     releases:
       - name: metallb
         remoteChart: metallb
@@ -258,13 +250,11 @@ deploy:
         version: 0.15.2
         namespace: metallb-system
         createNamespace: true
-        upgradeOnChange: true
       - name: eg
         remoteChart: oci://docker.io/envoyproxy/gateway-helm
         version: v1.5.4
         namespace: envoy-gateway-system
         createNamespace: true
-        upgradeOnChange: true
       - name: metrics-server
         remoteChart: metrics-server
         repo: https://kubernetes-sigs.github.io/metrics-server/
@@ -273,7 +263,6 @@ deploy:
         setValues:
           image.tag: v0.8.1
           args[0]: --kubelet-insecure-tls
-        upgradeOnChange: true
       - name: prometheus
         remoteChart: kube-prometheus-stack
         repo: https://prometheus-community.github.io/helm-charts
@@ -282,7 +271,6 @@ deploy:
         createNamespace: true
         valuesFiles:
           - prometheus/values.yaml
-        upgradeOnChange: true
 ---
 apiVersion: skaffold/v4beta14
 kind: Config

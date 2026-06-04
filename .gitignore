@@ -1,5 +1,6 @@
 /deploy/nats-event-bus/Chart.lock
 /deploy/nats-event-bus/charts/
+/local/.skaffold-build-artifacts.json
 /local/mqtt-client/tests/performance/reports/
 /local/nats/certs/
 /local/nats/keys/

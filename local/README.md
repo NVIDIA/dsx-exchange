@@ -71,10 +71,10 @@ The root `skaffold.yaml` imports the local infra and NATS modules:
 - `local/nats/skaffold.yaml`: auth-callout image build and the NATS event-bus
   chart for CSC, CPC-1, and CPC-2.
 
-Use the Make targets for local runs. `make skaffold-run` deploys the three
-clusters in parallel with cluster-scoped `skaffold run` commands. `make
-skaffold-run-serial` runs the same modules in one `skaffold run` for comparison
-or debugging.
+Use the Make targets for local runs. `make skaffold-run` builds the
+auth-callout image once, then deploys the CSC, CPC-1, and CPC-2 module groups in
+parallel with the saved Skaffold build artifact. `make skaffold-run-serial`
+uses the same build artifact with one serial Skaffold deploy.
 
 The full e2e targets follow the same default:
 
@@ -98,10 +98,11 @@ make test-dev
 Host scripts still handle local prerequisites, Kind cluster creation, the local
 Docker registry, and generated NATS secret material. Skaffold builds the
 auth-callout image, deploys chart releases with Helm, applies raw local
-manifests, and watches local changes in dev mode. It keeps resources after a run
-so follow-up tests can use the deployed environment. Its artifact cache lives
-under `~/.skaffold` unless `SKAFFOLD_CACHE_FILE` or
-`SKAFFOLD_REMOTE_CACHE_DIR` is overridden.
+manifests, and watches local changes in dev mode. `make skaffold-dev` runs the
+whole stack through one Skaffold process. Skaffold keeps resources after a run so
+follow-up tests can use the deployed environment. Its artifact cache lives under
+`~/.skaffold` unless `SKAFFOLD_CACHE_FILE` or `SKAFFOLD_REMOTE_CACHE_DIR` is
+overridden.
 
 CI uses the existing `DOCKERHUB_MIRROR` value for Docker daemon and Kind image
 pulls.
@@ -132,8 +133,8 @@ For the testing strategy (functional and performance coverage), see
 make test                    # Deploy local stack and run the e2e suite
 make test-serial             # Run the same e2e suite with serial deploy
 make test-dev                # Run the e2e suite against the current stack
-make skaffold-run            # Deploy required infra and NATS
-make skaffold-run-serial     # Deploy required infra and NATS in one Skaffold run
+make skaffold-run            # Build once, then deploy required infra and NATS in parallel
+make skaffold-run-serial     # Build once, then deploy required infra and NATS serially
 make skaffold-dev            # Run Skaffold dev for the complete local dev stack
 
 # Benchmarks and demos
