@@ -21,3 +21,12 @@ build:
         dockerfile: build/package/Dockerfile
         cliFlags:
           - --provenance=false
+profiles:
+  - name: ci-dockerhub-mirror
+    activation:
+      - env: SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY=.+
+    patches:
+      - op: add
+        path: /build/artifacts/0/docker/buildArgs
+        value:
+          BUILDER_IMG: "{{.SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY}}/library/golang"

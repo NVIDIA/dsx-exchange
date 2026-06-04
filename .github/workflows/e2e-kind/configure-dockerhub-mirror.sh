@@ -37,6 +37,13 @@ require_command() {
   fi
 }
 
+require_github_env() {
+  if [ -z "${GITHUB_ENV:-}" ]; then
+    echo "::error::GITHUB_ENV is required to pass e2e environment to later CI steps"
+    exit 1
+  fi
+}
+
 restart_docker() {
   if command -v systemctl >/dev/null 2>&1; then
     sudo systemctl restart docker
@@ -76,6 +83,14 @@ configure_host_docker_mirror() {
   sudo install -m 0644 "${merged_config}" "${daemon_config}"
   restart_docker
   docker info >/dev/null
+}
+
+configure_skaffold_build_mirror() {
+  local registry
+
+  registry="${mirror#http://}"
+  registry="${registry#https://}"
+  echo "SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY=${registry}" >> "${GITHUB_ENV}"
 }
 
 configure_kind_containerd_mirror() {
@@ -120,19 +135,16 @@ EOF
     fi
   done
 
-  if [ -z "${GITHUB_ENV:-}" ]; then
-    echo "::error::GITHUB_ENV is required to pass KIND_CONFIG_DIR to later CI steps"
-    exit 1
-  fi
-
   echo "KIND_CONFIG_DIR=${kind_config_dir}" >> "${GITHUB_ENV}"
 }
 
 require_command "docker"
 require_command "jq"
 require_command "sudo"
+require_github_env
 
 configure_host_docker_mirror
+configure_skaffold_build_mirror
 
 echo "Writing CI Kind configs with Docker Hub containerd mirrors..."
 configure_kind_containerd_mirror

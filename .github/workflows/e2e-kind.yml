@@ -46,7 +46,7 @@ jobs:
             ~/.local/share/helm
             ~/.skaffold/cache
             ~/.skaffold/remote-cache
-          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh', 'skaffold.yaml', 'local/infra/skaffold.yaml', 'local/nats/skaffold.yaml') }}
+          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh', 'skaffold.yaml', 'local/infra/**/skaffold.yaml', 'local/nats/skaffold*.yaml') }}
           restore-keys: |
             e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-
 
