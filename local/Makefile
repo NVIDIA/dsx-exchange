@@ -42,7 +42,7 @@ setup-clusters:
 
 skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
 	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml
+	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml --cleanup=false
 
 skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
 	$(MAKE) setup-clusters
