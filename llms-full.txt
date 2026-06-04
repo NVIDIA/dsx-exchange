@@ -298,7 +298,7 @@ Each Kubernetes cluster (one CSC, one or more CPCs) runs its own event bus insta
 ```bash
 make -C local install-e2e-prereqs
 make -C local skaffold-run
-make test-e2e
+make test-dev
 ```
 
 ## Install Order
