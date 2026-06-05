@@ -128,6 +128,16 @@ info:
 
         Naming convention: the `Bms`/`Integration` suffix indicates the publisher of the point. The party whose timestamp is being echoed is encoded in `objectId`, not in the point name.
 
+        All four heartbeat pointTypes require `objectName` and `objectId` in metadata to identify which System the heartbeat belongs to. By convention, an integration's `objectId` matches the same string used as its `integration` metadata field on its other points (so MEPAI1's System object has `objectId: "MEPAI1"`).
+
+        - **HeartbeatTimestampBms** — Publisher: BMS. The BMS publishes its own timestamp every 10 seconds. One instance globally. `objectId` identifies the BMS (e.g., `"BMS"`). `integration` field: not used.
+
+        - **HeartbeatTimestampIntegration** — Publisher: Integration. Each integration publishes its own timestamp every 10 seconds, one per integration. `objectId` identifies the integration publishing (e.g., `"MEPAI1"`). `integration` field: required (drives topic).
+
+        - **HeartbeatEchoBms** — Publisher: BMS. The BMS reads each integration's `HeartbeatTimestampIntegration` value and re-publishes it on this point type, allowing each integration to confirm round-trip. One instance per connected integration. `objectId` identifies the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). `integration` field: not used.
+
+        - **HeartbeatEchoIntegration** — Publisher: Integration. Each integration reads the BMS's `HeartbeatTimestampBms` value and re-publishes it on this point type, allowing the BMS to confirm round-trip with that integration. One per connected integration. `objectId` identifies the BMS being echoed (e.g., `"BMS"`). `integration` field: required (drives topic).
+
       - **Rack**: A Rack is a special object type and has specific point types that can only be used with a Rack object type. Many integrations and MQTT Clients will only ingest data from the Rack object type. Other integrations will consider Rack data as the most important or interesting data in the AI Factory. Mechanical and Electrical design (and therefore BMS Data) at the rack is also more standardized than mechanical and electrical systems as you move out of the white space and to the gray space of the AI Factory. For these reasons, the point types associated with a Rack object type are generally more specific than any other object type, making ingesting and understanding rack data more straight-forward.
 
       - **PowerMeter**: A PowerMeter is a special object type and has specific point types that can only be used with a PowerMeter object type. PowerMeter point types contain the metadata needed to understand electrical power path. This data is used by integrations / MQTT Clients for power management strategies.
