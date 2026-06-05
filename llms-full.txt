@@ -296,9 +296,9 @@ Each Kubernetes cluster (one CSC, one or more CPCs) runs its own event bus insta
 ## Evaluation Install (~10 minutes)
 
 ```bash
-make -C local setup-infra      # Kind clusters + MetalLB + Envoy Gateway + cert-manager + Keycloak
-make -C local deploy-nats       # Deploy NATS event bus to all clusters
-make -C local validate-nats     # Verify connectivity
+make -C local install-e2e-prereqs
+make -C local skaffold-run
+make test-dev
 ```
 
 ## Install Order
@@ -551,9 +551,14 @@ kubectl delete ns dsx --ignore-not-found
 ## Local Benchmark Tooling
 
 **Prerequisite:** Performance and benchmark targets require MetalLB or an
-equivalent LoadBalancer installed by `make setup-infra`. On macOS, start
+equivalent LoadBalancer from the local stack. On macOS, start
 `docker-mac-net-connect` so the host can reach the MetalLB IPs. Linux hosts
 normally reach the Docker bridge IPs directly.
+
+Full benchmark targets are sensitive to local host capacity. When they report
+EOFs, readloop stalls, or success-rate misses, capture host CPU and Kubernetes
+pod metrics with the run; the smoke targets are the portable local validation
+path.
 
 The MQTT performance suite exercises combinations of QoS level, retention, and deployment topology (local and federated, both directions).
 

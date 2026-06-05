@@ -1,0 +1,13 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats
+requires:
+  - path: skaffold.releases.yaml
+    configs:
+      - nats-csc
+      - nats-cpc-1
+      - nats-cpc-2

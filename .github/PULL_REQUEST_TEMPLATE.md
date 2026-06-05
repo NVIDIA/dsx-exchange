@@ -9,7 +9,7 @@ Reference any issues closed by this PR with `closes #1234`.
 List the commands you ran.
 
 ```bash
-make check
+make test
 ```
 
 ## Checklist

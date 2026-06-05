@@ -26,10 +26,6 @@ case "${mirror}" in
   *) mirror="https://${mirror}" ;;
 esac
 
-mirror_host="${mirror#http://}"
-mirror_host="${mirror_host#https://}"
-mirror_host="${mirror_host%/}"
-
 cd "${repo_root}"
 
 require_command() {
@@ -37,6 +33,13 @@ require_command() {
 
   if ! command -v "${command_name}" >/dev/null 2>&1; then
     echo "::error::required command not found: ${command_name}"
+    exit 1
+  fi
+}
+
+require_github_env() {
+  if [ -z "${GITHUB_ENV:-}" ]; then
+    echo "::error::GITHUB_ENV is required to pass e2e environment to later CI steps"
     exit 1
   fi
 }
@@ -82,10 +85,19 @@ configure_host_docker_mirror() {
   docker info >/dev/null
 }
 
+configure_skaffold_build_mirror() {
+  local registry
+
+  registry="${mirror#http://}"
+  registry="${registry#https://}"
+  echo "SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY=${registry}" >> "${GITHUB_ENV}"
+}
+
 configure_kind_containerd_mirror() {
   local source_config
   local config
   local kind_config_dir
+  local tmp_config
 
   kind_config_dir="${RUNNER_TEMP:-/tmp}/dsx-e2e-kind-config"
   mkdir -p "${kind_config_dir}"
@@ -94,45 +106,45 @@ configure_kind_containerd_mirror() {
     config="${kind_config_dir}/$(basename "${source_config}")"
     cp "${source_config}" "${config}"
 
-    if grep -q '^containerdConfigPatches:' "${config}"; then
-      echo "::error::${source_config} already defines containerdConfigPatches; update the CI mirror override"
-      exit 1
+    if grep -q 'registry\.mirrors\."docker\.io"' "${config}"; then
+      echo "Kind config already contains docker.io mirror patch: ${config}"
+      continue
     fi
 
-    cat >> "${config}" <<EOF
+    if grep -q '^containerdConfigPatches:' "${config}"; then
+      tmp_config="$(mktemp)"
+      awk -v mirror="${mirror}" '
+        /^containerdConfigPatches:/ {
+          print
+          print "  - |-"
+          print "    [plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"docker.io\"]"
+          print "      endpoint = [\"" mirror "\"]"
+          next
+        }
+        { print }
+      ' "${config}" > "${tmp_config}"
+      mv "${tmp_config}" "${config}"
+    else
+      cat >> "${config}" <<EOF
 
 containerdConfigPatches:
-- |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-    endpoint = ["${mirror}"]
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["${mirror}"]
 EOF
+    fi
   done
 
-  if [ -z "${GITHUB_ENV:-}" ]; then
-    echo "::error::GITHUB_ENV is required to pass KIND_CONFIG_DIR to later CI steps"
-    exit 1
-  fi
-
   echo "KIND_CONFIG_DIR=${kind_config_dir}" >> "${GITHUB_ENV}"
-}
-
-configure_envoy_gateway_mirror() {
-  if [ -z "${GITHUB_ENV:-}" ]; then
-    echo "::error::GITHUB_ENV is required to pass ENVOY_GATEWAY_OCI_REGISTRY to later CI steps"
-    exit 1
-  fi
-
-  echo "ENVOY_GATEWAY_OCI_REGISTRY=${mirror_host}" >> "${GITHUB_ENV}"
 }
 
 require_command "docker"
 require_command "jq"
 require_command "sudo"
+require_github_env
 
 configure_host_docker_mirror
+configure_skaffold_build_mirror
 
-echo "Writing CI Kind configs with Docker Hub containerd mirror patches..."
+echo "Writing CI Kind configs with Docker Hub containerd mirrors..."
 configure_kind_containerd_mirror
-
-echo "Routing Envoy Gateway OCI chart pulls through Docker Hub mirror..."
-configure_envoy_gateway_mirror

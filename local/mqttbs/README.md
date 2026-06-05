@@ -11,9 +11,9 @@ go build -o mqttbs ./cmd/mqttbs
 ## Usage
 
 For the DSX local Kind environment, run benchmarks from `local/` with
-`make benchmark-basic` or `make benchmark-basic-full`. Those targets use the CSC
+`make benchmark` or `make benchmark-full`. Those targets use the CSC
 Envoy Gateway LoadBalancer endpoint, `tcp://172.18.200.1:1883`, by default.
-The full 10k/1k suite is host-sensitive; use `make benchmark-basic` for a
+The full 10k/1k suite is host-sensitive; use `make benchmark` for a
 smoke-sized run, and check host CPU plus pod metrics when full runs report EOFs
 or low success rates.
 
@@ -54,7 +54,10 @@ or low success rates.
 
 All scenarios use MQTT 3.1.1 with QoS 1.
 
-The scenario names preserve the Open MQTT Benchmark Suite shape, but the CLI scale flags can reduce the counts for local smoke validation. The `local` Makefile uses those flags for `make benchmark-basic`; use `make benchmark-basic-full` for the full 10k/1k suite.
+The scenario names preserve the Open MQTT Benchmark Suite shape, but the CLI
+scale flags can reduce the counts for local smoke validation. The `local`
+Makefile uses those flags for `make benchmark`; use `make benchmark-full` for
+the full 10k/1k suite.
 
 ## Metrics
 

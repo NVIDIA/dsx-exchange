@@ -1,0 +1,158 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-crds-csc
+.envoyGatewayCrdsManifests: &envoy_gateway_crds_manifests
+  helm:
+    releases:
+      - name: eg-crds
+        remoteChart: oci://docker.io/envoyproxy/gateway-crds-helm
+        version: v1.5.4
+        namespace: envoy-gateway-system
+        setValues:
+          crds.gatewayAPI.enabled: true
+          crds.gatewayAPI.channel: experimental
+          crds.envoyGateway.enabled: true
+.envoyGatewayHelm: &envoy_gateway_helm
+  releases:
+    - name: eg
+      remoteChart: oci://docker.io/envoyproxy/gateway-helm
+      version: v1.5.4
+      namespace: envoy-gateway-system
+      createNamespace: true
+      valuesFiles:
+        - values.yaml
+.envoyGatewayConfigManifests: &envoy_gateway_config_manifests
+  rawYaml:
+    - gatewayclass.yaml
+    - gateway.yaml
+manifests: *envoy_gateway_crds_manifests
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-csc
+requires:
+  - path: ../metallb/skaffold.yaml
+    configs:
+      - metallb-config-csc
+  - configs:
+      - envoy-gateway-crds-csc
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *envoy_gateway_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-config-csc
+requires:
+  - configs:
+      - envoy-gateway-csc
+manifests: *envoy_gateway_config_manifests
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-crds-cpc-1
+manifests: *envoy_gateway_crds_manifests
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-1
+requires:
+  - path: ../metallb/skaffold.yaml
+    configs:
+      - metallb-config-cpc-1
+  - configs:
+      - envoy-gateway-crds-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *envoy_gateway_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-config-cpc-1
+requires:
+  - configs:
+      - envoy-gateway-cpc-1
+manifests: *envoy_gateway_config_manifests
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-crds-cpc-2
+manifests: *envoy_gateway_crds_manifests
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-cpc-2
+requires:
+  - path: ../metallb/skaffold.yaml
+    configs:
+      - metallb-config-cpc-2
+  - configs:
+      - envoy-gateway-crds-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *envoy_gateway_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-config-cpc-2
+requires:
+  - configs:
+      - envoy-gateway-cpc-2
+manifests: *envoy_gateway_config_manifests
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}

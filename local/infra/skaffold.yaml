@@ -1,0 +1,69 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: infra
+requires:
+  - configs:
+      - infra-csc
+      - infra-cpc-1
+      - infra-cpc-2
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: infra-csc
+requires:
+  - path: cert-manager/skaffold.yaml
+    configs:
+      - cert-manager-csc
+  - path: envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-config-csc
+  - path: metrics-server/skaffold.yaml
+    configs:
+      - metrics-server-csc
+  - path: prometheus/skaffold.yaml
+    configs:
+      - prometheus-csc
+  - path: keycloak/skaffold.yaml
+    configs:
+      - keycloak
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: infra-cpc-1
+requires:
+  - path: cert-manager/skaffold.yaml
+    configs:
+      - cert-manager-cpc-1
+  - path: envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-config-cpc-1
+  - path: metrics-server/skaffold.yaml
+    configs:
+      - metrics-server-cpc-1
+  - path: prometheus/skaffold.yaml
+    configs:
+      - prometheus-cpc-1
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: infra-cpc-2
+requires:
+  - path: cert-manager/skaffold.yaml
+    configs:
+      - cert-manager-cpc-2
+  - path: envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-config-cpc-2
+  - path: metrics-server/skaffold.yaml
+    configs:
+      - metrics-server-cpc-2
+  - path: prometheus/skaffold.yaml
+    configs:
+      - prometheus-cpc-2

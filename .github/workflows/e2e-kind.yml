@@ -42,6 +42,8 @@ jobs:
         with:
           path: ~/go/bin
           key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh') }}
+          restore-keys: |
+            e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Install e2e tools
         run: |
@@ -64,7 +66,7 @@ jobs:
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
       - name: Run Kind e2e
-        run: make e2e-kind
+        run: make -C local test
 
       - name: Collect e2e diagnostics
         if: failure()

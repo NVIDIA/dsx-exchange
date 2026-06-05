@@ -1,0 +1,88 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-csc
+.metallbHelm: &metallb_helm
+  releases:
+    - name: metallb
+      remoteChart: metallb
+      repo: https://metallb.github.io/metallb
+      version: 0.15.2
+      namespace: metallb-system
+      createNamespace: true
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metallb_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-config-csc
+requires:
+  - configs:
+      - metallb-csc
+manifests:
+  rawYaml:
+    - csc-pool.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-1
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metallb_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-config-cpc-1
+requires:
+  - configs:
+      - metallb-cpc-1
+manifests:
+  rawYaml:
+    - cpc-1-pool.yaml
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-cpc-2
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metallb_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-config-cpc-2
+requires:
+  - configs:
+      - metallb-cpc-2
+manifests:
+  rawYaml:
+    - cpc-2-pool.yaml
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}

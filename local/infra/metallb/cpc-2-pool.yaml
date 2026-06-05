@@ -1,0 +1,38 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: envoy-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    # Reserved for the shared Envoy Gateway; docs and tests use this address.
+    - 172.18.202.1/32
+  autoAssign: false
+  avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    # Keep room for future LoadBalancer services without stealing Envoy's IP.
+    - 172.18.202.2-172.18.202.254
+  autoAssign: true
+  avoidBuggyIPs: false
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: envoy-l2-advert
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - envoy-pool
+    - default-pool
+  interfaces:
+    - eth0

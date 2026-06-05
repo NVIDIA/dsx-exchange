@@ -49,7 +49,6 @@ fi
 
 echo "Creating clusters in parallel..."
 
-# Function to create a cluster
 create_cluster() {
   local cluster_name=$1
   local config_file=$2
@@ -97,3 +96,5 @@ for pid in "${pids[@]}"; do
 done
 
 echo "Clusters created successfully"
+
+"${SCRIPT_DIR}/setup-local-registry.sh"

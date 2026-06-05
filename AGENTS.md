@@ -9,21 +9,18 @@ DSX Exchange is a monorepo for the DSX event bus: AsyncAPI schemas, NATS auth-ca
 ## Build and test
 
 ```bash
-make check                     # license headers + unit tests + helm lint
-make test                      # unit tests only (no cluster required)
-make test-e2e                  # requires Kind clusters (see local/)
+make test                      # full validation, including local Kind e2e
+make check                     # license headers + helm lint
 make -C auth-callout test      # auth-callout unit tests
-helm lint deploy/nats-event-bus
 helm lint auth-callout/deploy
 ```
 
 Local Kind e2e deploys and functional tests must run outside the sandbox. The
 local e2e path builds Docker images, updates Docker buildx state under
-`~/.docker`, loads images into Kind, and starts `kubectl port-forward` processes
-for NATS and Keycloak. In the sandbox this has failed with Docker buildx
-permission errors and host-side Keycloak timeouts. Use the local Make targets
-with unsandboxed execution, for example `make -C local deploy-nats` and
-`make -C local test-functional`.
+`~/.docker`, uses a local registry, and deploys the local stack with Skaffold.
+In the sandbox this has failed with Docker buildx permission errors and
+host-side networking timeouts. Use the local Make targets with unsandboxed
+execution, for example `make -C local skaffold-run` and `make -C local test`.
 
 For local deploy and infrastructure scripts, prefer direct validation over
 meta-level tests. Do not add shell tests whose main purpose is to inspect deploy
@@ -31,6 +28,35 @@ script text or mock/assert exact command sequences such as Helm repo updates,
 Kind image loads, timeouts, or Gateway YAML fields. Validate these changes with
 syntax checks, Helm rendering/linting when applicable, and the real affected
 local Make target outside the sandbox.
+
+## Skaffold validation checklist
+
+When changing the local Skaffold or Makefile flow, validate the affected paths
+outside the sandbox and record what passed or failed:
+
+- [ ] Run `make check` from the repo root.
+- [ ] Run `make -C local skaffold-run` from a clean Kind state.
+- [ ] Run `make -C local skaffold-run` again against the same state; confirm
+      image builds are cached and unchanged services are not rolled.
+- [ ] Run `make -C local test`; confirm deploy, functional tests, and
+      performance tests pass.
+- [ ] Run `make -C local test-dev` against the deployed stack; confirm it only
+      runs the functional and performance tests.
+- [ ] Run `make -C local skaffold-dev`; confirm exactly one Skaffold dev
+      process reaches watch mode and keeps the stack deployed after exit.
+- [ ] While `skaffold-dev` is running, edit an event-bus chart/value file;
+      confirm the NATS release updates in CSC, CPC-1, and CPC-2. If only one
+      cluster updates, this check failed.
+- [ ] While `skaffold-dev` is running, edit an infra manifest/value file;
+      confirm the affected resource updates in the expected clusters. If the
+      changed cluster is not reconciled, this check failed.
+- [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
+      image rebuilds once, is pushed to the local registry, and the event-bus
+      pods use it.
+
+Verify each observed rollout or resource update with `kubectl` using the
+`kind-csc`, `kind-cpc-1`, and `kind-cpc-2` contexts. Leave the local stack
+deployed when the user asks to inspect it.
 
 ## Commit conventions
 

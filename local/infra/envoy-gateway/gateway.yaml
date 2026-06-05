@@ -8,6 +8,11 @@ metadata:
   namespace: envoy-gateway-system
 spec:
   gatewayClassName: eg
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: shared-gateway
   listeners:
     # NATS listeners
     - name: mqtt
@@ -69,3 +74,30 @@ spec:
     maxConnections: 32768
     maxPendingRequests: 32768
     maxRequestsPerConnection: 32768
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: shared-gateway
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        # Envoy data plane for shared-gateway. Controller resources are set in
+        # envoy-gateway/values.yaml.
+        replicas: 1
+        container:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+      envoyService:
+        annotations:
+          # Keep Envoy on the documented .1 address; other LoadBalancer
+          # services use the auto-assigned default-pool.
+          metallb.universe.tf/address-pool: envoy-pool

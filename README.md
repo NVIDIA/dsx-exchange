@@ -11,7 +11,7 @@ DSX Exchange provides the repository pieces needed to describe, deploy, and vali
 - `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
 - `deploy`: Helm chart for the NATS event bus deployment.
-- `local`: Kind-based local evaluation environment, NATS deployment scripts, MQTT tests, and benchmark tooling.
+- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT tests, and benchmark tooling.
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
@@ -22,21 +22,12 @@ Clone the repository and run the local validation checks:
 ```bash
 git clone https://github.com/NVIDIA/dsx-exchange.git
 cd dsx-exchange
-make check
+make test
 ```
 
 If you already have a DSX Exchange broker and need to build or test an MQTT
 integration application, start with the
 [Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
-
-For local end-to-end validation, create the Kind environment and deploy NATS:
-
-```bash
-make -C local setup-infra
-make -C local deploy-nats
-make -C local validate-nats
-make test-e2e
-```
 
 Publish looping dummy BMS data into the local CSC MQTT broker:
 
@@ -59,19 +50,15 @@ Use the top-level Makefile for common validation:
 
 ```bash
 make help
-make check-license-headers
 make test
-make test-helm
-make check
 ```
 
-Run component-specific targets from the directory you are changing:
+Run component-specific targets from the directory you are changing, and use
+`make check` for repo-level license and chart validation:
 
 ```bash
 make -C auth-callout test
-make -C deploy check
-make -C local test-functional
-make -C local test-performance
+make check
 ```
 
 After the local Kind environment is deployed, run the dummy BMS demo with
@@ -81,17 +68,18 @@ The local evaluation environment uses the top-level `auth-callout` and `deploy` 
 
 ## Performance
 
-The local performance target is an e2e smoke profile sized for repeatable Kind validation:
+The full local e2e target includes a performance smoke profile sized for
+repeatable Kind validation:
 
 ```bash
-make -C local test-performance
+make test
 ```
 
 Full benchmark runs are available separately:
 
 ```bash
-make -C local benchmark-performance
-make -C local benchmark-basic-full
+make -C local benchmark
+make -C local benchmark-full
 ```
 
 ## Releases & Roadmap
@@ -123,7 +111,7 @@ Development quickstart:
 ```bash
 git clone https://github.com/NVIDIA/dsx-exchange.git
 cd dsx-exchange
-make check
+make test
 ```
 
 ## Governance & Maintainers

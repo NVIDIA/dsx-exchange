@@ -1,12 +1,6 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# Envoy Gateway Helm Chart Values
-# https://github.com/envoyproxy/gateway
-
-# Gateway API CRDs are installed separately
-# This controls the Envoy Gateway controller deployment
-
 config:
   envoyGateway:
     gateway:
@@ -17,17 +11,10 @@ config:
       level:
         default: info
 
-# Controller deployment settings
 deployment:
-  replicas: 1
-  pod:
-    annotations: {}
-    labels: {}
-  container:
-    image:
-      repository: envoyproxy/gateway
-      tag: latest
-      pullPolicy: IfNotPresent
+  envoyGateway:
+    # Envoy Gateway controller. The shared Gateway's Envoy proxy resources are
+    # set in gateway.yaml through EnvoyProxy.
     resources:
       requests:
         cpu: 100m
@@ -35,74 +22,3 @@ deployment:
       limits:
         cpu: 500m
         memory: 256Mi
-
-# Envoy proxy deployment settings (for data plane)
-envoyProxy:
-  replicaCount: 1
-  resources:
-    requests:
-      cpu: 100m
-      memory: 64Mi
-    limits:
-      cpu: 1000m
-      memory: 256Mi
-
-# Enable prometheus metrics
-telemetry:
-  metrics:
-    prometheus:
-      enabled: true
-
-# Service settings
-service:
-  type: LoadBalancer
-  annotations:
-    # MetalLB annotations
-    metallb.universe.tf/address-pool: default-pool
-
-# GatewayClass configuration
-gatewayClass:
-  enabled: true
-  name: envoy
-  controllerName: gateway.envoyproxy.io/gatewayclass-controller
-
-# Default Gateway (optional, can be created separately per namespace)
-gateway:
-  enabled: false  # Create via kubectl instead
-  name: default-gateway
-  namespace: default
-  listeners:
-  - name: http
-    protocol: HTTP
-    port: 80
-    allowedRoutes:
-      namespaces:
-        from: All
-  - name: https
-    protocol: HTTPS
-    port: 443
-    tls:
-      mode: Terminate
-      certificateRefs:
-      - kind: Secret
-        name: gateway-tls
-    allowedRoutes:
-      namespaces:
-        from: All
-
-# Rate limiting (optional)
-rateLimit:
-  enabled: false
-
-# Authentication/Authorization (optional)
-auth:
-  enabled: false
-  jwt:
-    providers: []
-
-# Observability
-observability:
-  accessLog:
-    enabled: true
-  tracing:
-    enabled: false
