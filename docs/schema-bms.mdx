@@ -107,6 +107,8 @@ The same contract governs all other integration-published points, including `Rac
 
   - **System**: A System can be the BMS or an Integration to the BMS. Heartbeat points and system-to-system communication point types are typically defined inside of a System object type. System Heartbeat point types are expected to operate as follows. An integration may choose to use the Echo points or not.
 
+    Naming convention: the `BMS`/`Integration` suffix indicates the publisher of the point.
+
     All four heartbeat pointTypes require `objectName` and `objectId` in metadata to identify which System the heartbeat belongs to. By convention, an integration's `objectId` matches the same string used as its `integration` metadata field on its other points (so MEPAI1's System object has `objectId: "MEPAI1"`).
 
     - **HeartbeatTimestampBms** — Publisher: BMS. The BMS publishes its own timestamp every 10 seconds. One instance globally. `objectId` identifies the BMS (e.g., `"BMS"`). `integration` field: not used.
@@ -116,8 +118,6 @@ The same contract governs all other integration-published points, including `Rac
     - **HeartbeatEchoBms** — Publisher: BMS. The BMS reads each integration's `HeartbeatTimestampIntegration` value and re-publishes it on this point type, allowing each integration to confirm round-trip. One instance per connected integration. `objectId` identifies the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). `integration` field: not used.
 
     - **HeartbeatEchoIntegration** — Publisher: Integration. Each integration reads the BMS's `HeartbeatTimestampBms` value and re-publishes it on this point type, allowing the BMS to confirm round-trip with that integration. One per connected integration. `objectId` identifies the BMS being echoed (e.g., `"BMS"`). `integration` field: required (drives topic).
-
-    Naming convention: the `Bms`/`Integration` suffix indicates the publisher of the point. The party whose timestamp is being echoed is encoded in `objectId`, not in the point name.
 
   - **Rack**: A Rack is a special object type and has specific point types that can only be used with a Rack object type. Many integrations and MQTT Clients will only ingest data from the Rack object type. Other integrations will consider Rack data as the most important or interesting data in the AI Factory. Mechanical and Electrical design (and therefore BMS Data) at the rack is also more standardized than mechanical and electrical systems as you move out of the white space and to the gray space of the AI Factory. For these reasons, the point types associated with a Rack object type are generally more specific than any other object type, making ingesting and understanding rack data more straight-forward.
 
@@ -278,6 +278,8 @@ info:
 
       - **System**: A System can be the BMS or an Integration to the BMS. Heartbeat points and system-to-system communication point types are typically defined inside of a System object type. System Heartbeat point types are expected to operate as follows. An integration may choose to use the Echo points or not.
 
+        Naming convention: the `BMS`/`Integration` suffix indicates the publisher of the point.
+
         All four heartbeat pointTypes require `objectName` and `objectId` in metadata to identify which System the heartbeat belongs to. By convention, an integration's `objectId` matches the same string used as its `integration` metadata field on its other points (so MEPAI1's System object has `objectId: "MEPAI1"`).
 
         - **HeartbeatTimestampBms** — Publisher: BMS. The BMS publishes its own timestamp every 10 seconds. One instance globally. `objectId` identifies the BMS (e.g., `"BMS"`). `integration` field: not used.
@@ -287,8 +289,6 @@ info:
         - **HeartbeatEchoBms** — Publisher: BMS. The BMS reads each integration's `HeartbeatTimestampIntegration` value and re-publishes it on this point type, allowing each integration to confirm round-trip. One instance per connected integration. `objectId` identifies the integration whose timestamp is being echoed (e.g., `"MEPAI1"`). `integration` field: not used.
 
         - **HeartbeatEchoIntegration** — Publisher: Integration. Each integration reads the BMS's `HeartbeatTimestampBms` value and re-publishes it on this point type, allowing the BMS to confirm round-trip with that integration. One per connected integration. `objectId` identifies the BMS being echoed (e.g., `"BMS"`). `integration` field: required (drives topic).
-
-        Naming convention: the `Bms`/`Integration` suffix indicates the publisher of the point. The party whose timestamp is being echoed is encoded in `objectId`, not in the point name.
 
       - **Rack**: A Rack is a special object type and has specific point types that can only be used with a Rack object type. Many integrations and MQTT Clients will only ingest data from the Rack object type. Other integrations will consider Rack data as the most important or interesting data in the AI Factory. Mechanical and Electrical design (and therefore BMS Data) at the rack is also more standardized than mechanical and electrical systems as you move out of the white space and to the gray space of the AI Factory. For these reasons, the point types associated with a Rack object type are generally more specific than any other object type, making ingesting and understanding rack data more straight-forward.
 
