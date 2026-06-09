@@ -11,7 +11,8 @@ BMS/v1/{integration}/Value/GenericObject/{pointType}/{tagPath}
 ```
 
 Values published by integrations for GenericObject control points.
-Subscribe to `genericObjectMetadata` first and read `integration` for the exact topic.
+Subscribe to `BMS/v1/PUB/Metadata/GenericObject/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+That matching metadata payload indicates the integration can publish values to this topic.
 
 **MQTT wildcard examples**
 
@@ -22,7 +23,7 @@ Subscribe to `genericObjectMetadata` first and read `integration` for the exact 
 | Parameter | Description |
 |-----------|-------------|
 | `integration` | Integration identifier. |
-| `pointType` | Integration-published GenericObject point type. Values: `LiquidTemperatureSpRequest` |
+| `pointType` | Integration-published GenericObject point type. Values: `LiquidTemperatureSpRequest`, `GenericPoint` |
 | `tagPath` | Must match the tagPath from the corresponding BMS metadata exactly. |
 
 ## Message: Point Value

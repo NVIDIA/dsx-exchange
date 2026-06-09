@@ -11,7 +11,8 @@ BMS/v1/{integration}/Value/CDU/{pointType}/{tagPath}
 ```
 
 Values published by integrations for CDU control points.
-Subscribe to `cduMetadata` first and read `integration` for the exact topic.
+Subscribe to `BMS/v1/PUB/Metadata/CDU/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+That matching metadata payload indicates the integration can publish values to this topic.
 
 **MQTT wildcard examples**
 
@@ -22,7 +23,7 @@ Subscribe to `cduMetadata` first and read `integration` for the exact topic.
 | Parameter | Description |
 |-----------|-------------|
 | `integration` | Integration identifier. |
-| `pointType` | Integration-published CDU point type. Values: `LiquidTemperatureSpRequest` |
+| `pointType` | Integration-published CDU point type. Values: `LiquidTemperatureSpRequest`, `GenericPoint` |
 | `tagPath` | Must match the tagPath from the corresponding BMS metadata exactly. |
 
 ## Message: Point Value
