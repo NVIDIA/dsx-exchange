@@ -66,7 +66,92 @@ jobs:
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
       - name: Run Kind e2e
-        run: make -C local test
+        run: |
+          set -euo pipefail
+
+          collect_diagnostics() {
+            local label=$1
+
+            set +e
+            echo "::group::e2e diagnostics: ${label}"
+            command -v kubectl >/dev/null 2>&1 || {
+              echo "kubectl is not installed"
+              echo "::endgroup::"
+              set -e
+              return 0
+            }
+
+            for context in kind-csc kind-cpc-1 kind-cpc-2; do
+              echo "== ${context}: nodes =="
+              kubectl get nodes --context "${context}" -o wide
+
+              echo "== ${context}: pods =="
+              kubectl get pods -A --context "${context}" -o wide
+
+              echo "== ${context}: event-bus services and endpoints =="
+              kubectl get services,endpoints,endpointslices.discovery.k8s.io \
+                -n event-bus --context "${context}" -o wide
+
+              echo "== ${context}: envoy services and endpoints =="
+              kubectl get services,endpoints,endpointslices.discovery.k8s.io \
+                -n envoy-gateway-system --context "${context}" -o wide
+
+              echo "== ${context}: gateway api resources =="
+              kubectl get gateways.gateway.networking.k8s.io,tcproutes.gateway.networking.k8s.io,tlsroutes.gateway.networking.k8s.io,httproutes.gateway.networking.k8s.io \
+                -A --context "${context}" -o wide
+
+              echo "== ${context}: gateway api resource yaml =="
+              kubectl get gateways.gateway.networking.k8s.io,tcproutes.gateway.networking.k8s.io,tlsroutes.gateway.networking.k8s.io,httproutes.gateway.networking.k8s.io \
+                -A --context "${context}" -o yaml
+
+              echo "== ${context}: shared gateway description =="
+              kubectl describe gateway shared-gateway \
+                -n envoy-gateway-system --context "${context}"
+
+              echo "== ${context}: nats mqtt TCPRoute description =="
+              kubectl describe tcproute nats-mqtt \
+                -n event-bus --context "${context}"
+
+              echo "== ${context}: envoy controller logs =="
+              kubectl logs -n envoy-gateway-system deploy/envoy-gateway \
+                --context "${context}" --tail=200
+
+              echo "== ${context}: envoy dataplane logs =="
+              for pod in $(kubectl get pods -n envoy-gateway-system --context "${context}" -o name | grep 'envoy-envoy-gateway-system-shared-gateway' || true); do
+                kubectl logs -n envoy-gateway-system "${pod}" \
+                  --context "${context}" -c envoy --tail=200
+              done
+
+              echo "== ${context}: nats logs =="
+              for pod in nats-0 nats-1 nats-2 nats-mtls-0; do
+                kubectl logs -n event-bus "${pod}" \
+                  --context "${context}" -c nats --tail=200
+              done
+
+              echo "== ${context}: recent events =="
+              kubectl get events -A --context "${context}" --sort-by=.lastTimestamp | tail -200
+            done
+
+            echo "== cpc-2 host tcp probe =="
+            nc -vz -w 2 172.18.202.1 1883
+
+            echo "::endgroup::"
+            set -e
+          }
+
+          make -C local skaffold-run
+          collect_diagnostics "after skaffold-run before tests"
+
+          cd local/mqtt-client
+          go test -count=1 -failfast -v ./tests/functional/ -timeout 3m || {
+            collect_diagnostics "after functional failure"
+            exit 1
+          }
+          PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99 \
+            go test -count=1 -v ./tests/performance/ -timeout 10m || {
+              collect_diagnostics "after performance failure"
+              exit 1
+            }
 
       - name: Collect e2e diagnostics
         if: failure()
