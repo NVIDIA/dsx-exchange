@@ -10,6 +10,7 @@ metadata:
   chartPath: ../../deploy/nats-event-bus
   namespace: event-bus
   createNamespace: true
+  wait: true
   setValues:
     auth-callout.image.repository: localhost:5001/auth-callout
     auth-callout.image.tag: local
