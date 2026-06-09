@@ -45,6 +45,43 @@ func TestApplyLimitsDefaultsAndCaps(t *testing.T) {
 	}
 }
 
+func TestCollectToolAdmissionLimitFailsFast(t *testing.T) {
+	cfg := Config{
+		DefaultMaxMessages: 10,
+		MaxMessages:        20,
+		DefaultDurationS:   5,
+		MaxDurationS:       30,
+	}
+	normalizeConfig(&cfg)
+	cfg.collectAdmission = newAdmissionLimiter(1)
+	if !cfg.collectAdmission.tryAcquire() {
+		t.Fatal("pre-acquire collect admission failed")
+	}
+	ctx := auth.WithCaller(context.Background(), auth.Caller{
+		Bearer:    "token",
+		SessionID: "session-1",
+	})
+
+	result, _, err := collectTool(ctx, cfg, toolSubscribe, "BMS/v1/PUB/Value/Rack/RackPower/#", 1, 1, false)
+	if err != nil {
+		t.Fatalf("collectTool returned transport error: %v", err)
+	}
+	if result == nil || !result.IsError {
+		t.Fatalf("collectTool IsError = %v, want true", result != nil && result.IsError)
+	}
+	text, ok := result.Content[0].(*mcp.TextContent)
+	if !ok {
+		t.Fatalf("error content type = %T, want *mcp.TextContent", result.Content[0])
+	}
+	var body structuredError
+	if err := json.Unmarshal([]byte(text.Text), &body); err != nil {
+		t.Fatalf("decode error body: %v", err)
+	}
+	if body.Error.Code != mqttbus.CodeMQTTAdmissionLimited || body.Error.RetryAfterSeconds != 1 {
+		t.Fatalf("error body = %#v, want mqtt_admission_limited with retry_after_seconds=1", body.Error)
+	}
+}
+
 func TestDescribeTopicToolMatchesSchema(t *testing.T) {
 	_, out, err := describeTopicTool(context.Background(), describeTopicInput{
 		TopicFilter: "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#",
@@ -142,11 +179,21 @@ func TestToolCallExpectationFixtures(t *testing.T) {
 	}
 
 	cfg := Config{
-		DefaultMaxMessages: 100,
-		MaxMessages:        1000,
-		DefaultDurationS:   30,
-		MaxDurationS:       30,
+		DefaultMaxMessages:         100,
+		MaxMessages:                1000,
+		DefaultDurationS:           30,
+		MaxDurationS:               30,
+		WatchDefaultTTLS:           300,
+		WatchMaxTTLS:               900,
+		WatchDefaultBufferMessages: 100,
+		WatchMaxBufferMessages:     1000,
+		WatchDefaultBufferBytes:    262144,
+		WatchMaxBufferBytes:        1048576,
+		WatchMaxPerSession:         10,
+		WatchMaxPerPod:             1000,
 	}
+	normalizeConfig(&cfg)
+	watches := newWatchManager(cfg)
 
 	for _, fixture := range fixtures {
 		t.Run(fixture.ID, func(t *testing.T) {
@@ -201,6 +248,17 @@ func TestToolCallExpectationFixtures(t *testing.T) {
 					maxDurationS := intArg(t, fixture.ID, i, call.Arguments, "max_duration_s")
 					if _, _, err := applyLimits(cfg, maxMessages, maxDurationS); err != nil {
 						t.Fatalf("subscribe limits invalid for %q: %v", topicFilter, err)
+					}
+				case toolStartSubscription:
+					ttlS := intArg(t, fixture.ID, i, call.Arguments, "ttl_seconds")
+					bufferMaxMessages := intArg(t, fixture.ID, i, call.Arguments, "buffer_max_messages")
+					bufferMaxBytes := intArg(t, fixture.ID, i, call.Arguments, "buffer_max_bytes")
+					if _, _, _, err := watches.applyStartLimits(watchStartRequest{
+						TTLS:              ttlS,
+						BufferMaxMessages: bufferMaxMessages,
+						BufferMaxBytes:    bufferMaxBytes,
+					}); err != nil {
+						t.Fatalf("start_subscription limits invalid for %q: %v", topicFilter, err)
 					}
 				default:
 					t.Fatalf("call %d has unknown tool %q", i, call.Tool)

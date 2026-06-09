@@ -32,6 +32,7 @@ const (
 	CodeTopicACLDenied          = "topic_acl_denied"
 	CodeMQTTAuthorizationFailed = "mqtt_authorization_failed"
 	CodeMQTTSubscribeFailed     = "mqtt_subscribe_failed"
+	CodeMQTTAdmissionLimited    = "mqtt_admission_limited"
 	CodeInternalError           = "internal_error"
 )
 
@@ -51,12 +52,18 @@ type Config struct {
 	ConnectTimeout   time.Duration
 	SubscribeTimeout time.Duration
 	MaxResultBytes   int
+	Metrics          MetricsRecorder
 }
 
 type TLSConfig struct {
 	CAFile             string
 	ServerName         string
 	InsecureSkipVerify bool
+}
+
+type MetricsRecorder interface {
+	BeginMQTTConnection()
+	EndMQTTConnection()
 }
 
 // Message is a single MQTT message captured from the bus.
@@ -90,9 +97,10 @@ type StreamResult struct {
 }
 
 type BusError struct {
-	Code    string
-	Message string
-	Err     error
+	Code              string
+	Message           string
+	Err               error
+	RetryAfterSeconds int
 }
 
 func (e *BusError) Error() string {
@@ -229,6 +237,10 @@ func Collect(
 		return out, &BusError{Code: CodeBusUnavailable, Message: "mqtt connect timeout"}
 	} else if tok.Error() != nil {
 		return out, classifyConnectError(tok.Error())
+	}
+	if cfg.Metrics != nil {
+		cfg.Metrics.BeginMQTTConnection()
+		defer cfg.Metrics.EndMQTTConnection()
 	}
 	defer c.Disconnect(250)
 
@@ -415,6 +427,10 @@ func Stream(
 		return out, &BusError{Code: CodeBusUnavailable, Message: "mqtt connect timeout"}
 	} else if tok.Error() != nil {
 		return out, classifyConnectError(tok.Error())
+	}
+	if cfg.Metrics != nil {
+		cfg.Metrics.BeginMQTTConnection()
+		defer cfg.Metrics.EndMQTTConnection()
 	}
 	defer c.Disconnect(250)
 

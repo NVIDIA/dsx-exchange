@@ -75,8 +75,9 @@ type structuredError struct {
 }
 
 type errorBody struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code              string `json:"code"`
+	Message           string `json:"message"`
+	RetryAfterSeconds int    `json:"retry_after_seconds,omitempty"`
 }
 
 func registerTools(s *mcp.Server, cfg Config, watches *watchManager) {
@@ -112,7 +113,16 @@ func registerTools(s *mcp.Server, cfg Config, watches *watchManager) {
 			"Returns the schema channel, payload shape, retained/live behavior, examples, and related metadata/value topics. " +
 			"Use this before subscribing when the caller knows roughly which MQTT path they want but needs schema context.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in describeTopicInput) (*mcp.CallToolResult, describeTopicOutput, error) {
-		return describeTopicTool(ctx, in)
+		start := time.Now()
+		if cfg.Metrics != nil {
+			cfg.Metrics.BeginToolCall()
+			defer cfg.Metrics.EndToolCall()
+		}
+		result, out, err := describeTopicTool(ctx, in)
+		if cfg.Metrics != nil {
+			cfg.Metrics.RecordToolCall(toolDescribeTopic, toolResultErrorCode(result, err), "", time.Since(start), out.Count)
+		}
+		return result, out, err
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -121,7 +131,16 @@ func registerTools(s *mcp.Server, cfg Config, watches *watchManager) {
 			"Use this before starting a long-running subscription when the caller describes a domain or signal but does not know the raw MQTT topic path. " +
 			"Returned topic filters still require broker ACL approval when used by MQTT tools.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in findTopicsInput) (*mcp.CallToolResult, findTopicsOutput, error) {
-		return findTopicsTool(ctx, cfg, in)
+		start := time.Now()
+		if cfg.Metrics != nil {
+			cfg.Metrics.BeginToolCall()
+			defer cfg.Metrics.EndToolCall()
+		}
+		result, out, err := findTopicsTool(ctx, cfg, in)
+		if cfg.Metrics != nil {
+			cfg.Metrics.RecordToolCall(toolFindTopics, toolResultErrorCode(result, err), "", time.Since(start), out.Count)
+		}
+		return result, out, err
 	})
 
 	registerWatchTools(s, cfg, watches)
@@ -251,6 +270,11 @@ func collectTool(
 		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, err, cfg)
 	}
 
+	if !cfg.collectAdmission.tryAcquire() {
+		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, admissionLimitedError(), cfg)
+	}
+	defer cfg.collectAdmission.release()
+
 	result, err := mqttbus.Collect(ctx, cfg.MQTT, caller.Bearer, topicFilter, maxMessages, time.Duration(durationS)*time.Second, retainedOnly)
 	out := collectOutput{
 		Messages:      append([]mqttbus.Message{}, result.Messages...),
@@ -285,7 +309,7 @@ func finishTool(
 	auditToolCall(tool, caller, topicFilter, maxMessages, durationS, out, duration, code)
 
 	if err != nil {
-		body := structuredError{Error: errorBody{Code: code, Message: publicMessage(err)}}
+		body := structuredError{Error: errorBody{Code: code, Message: publicMessage(err), RetryAfterSeconds: retryAfterSeconds(err)}}
 		raw, _ := json.Marshal(body)
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -314,6 +338,12 @@ func normalizeConfig(cfg *Config) {
 	}
 	if cfg.MaxDurationS <= 0 {
 		cfg.MaxDurationS = 30
+	}
+	if cfg.MQTTCollectMaxConcurrent <= 0 {
+		cfg.MQTTCollectMaxConcurrent = 100
+	}
+	if cfg.MQTTWatchStartMaxConcurrent <= 0 {
+		cfg.MQTTWatchStartMaxConcurrent = 500
 	}
 	if cfg.WatchDefaultTTLS <= 0 {
 		cfg.WatchDefaultTTLS = 300
@@ -407,6 +437,26 @@ func errorCode(err error) string {
 	return mqttbus.ErrorCode(err)
 }
 
+func toolResultErrorCode(result *mcp.CallToolResult, err error) string {
+	if err != nil {
+		return errorCode(err)
+	}
+	if result == nil || !result.IsError {
+		return ""
+	}
+	for _, item := range result.Content {
+		text, ok := item.(*mcp.TextContent)
+		if !ok || text.Text == "" {
+			continue
+		}
+		var body structuredError
+		if json.Unmarshal([]byte(text.Text), &body) == nil && body.Error.Code != "" {
+			return body.Error.Code
+		}
+	}
+	return mqttbus.CodeInternalError
+}
+
 func publicMessage(err error) string {
 	var busErr *mqttbus.BusError
 	if errors.As(err, &busErr) {
@@ -419,6 +469,22 @@ func publicMessage(err error) string {
 		return "request deadline exceeded"
 	}
 	return "tool call failed"
+}
+
+func admissionLimitedError() error {
+	return &mqttbus.BusError{
+		Code:              mqttbus.CodeMQTTAdmissionLimited,
+		Message:           "too many MQTT-backed tool calls are starting; retry later",
+		RetryAfterSeconds: 1,
+	}
+}
+
+func retryAfterSeconds(err error) int {
+	var busErr *mqttbus.BusError
+	if errors.As(err, &busErr) && busErr.RetryAfterSeconds > 0 {
+		return busErr.RetryAfterSeconds
+	}
+	return 0
 }
 
 func auditToolCall(

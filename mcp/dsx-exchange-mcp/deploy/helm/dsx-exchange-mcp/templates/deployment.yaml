@@ -80,6 +80,10 @@ spec:
               value: {{ .Values.limits.defaultMaxDurationSeconds | int | quote }}
             - name: MCP_MAX_DURATION_S
               value: {{ .Values.limits.maxDurationSeconds | int | quote }}
+            - name: MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD
+              value: {{ .Values.limits.mqtt.collectMaxConcurrentPerPod | int | quote }}
+            - name: MCP_MQTT_WATCH_START_MAX_CONCURRENT_PER_POD
+              value: {{ .Values.limits.mqtt.watchStartMaxConcurrentPerPod | int | quote }}
             - name: MCP_WATCH_DEFAULT_TTL_S
               value: {{ .Values.limits.watch.defaultTTLSeconds | int | quote }}
             - name: MCP_WATCH_MAX_TTL_S

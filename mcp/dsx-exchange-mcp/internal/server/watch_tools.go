@@ -56,7 +56,8 @@ func registerWatchTools(s *mcp.Server, cfg Config, watches *watchManager) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: toolReadSubscription,
-		Description: "Read a bounded batch of messages from a pod-local background watch by cursor. " +
+		Description: "Read a bounded raw batch of messages from a pod-local background watch by cursor. " +
+			"Use this as a debug or detail path when raw payloads are needed; prefer dsx_exchange_subscription_status for scalable update summaries. " +
 			"This reads only the owning pod's in-memory ring buffer; if the session or pod-local state was lost, the tool returns subscription_not_found or session_lost.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in readSubscriptionInput) (*mcp.CallToolResult, watchReadOutput, error) {
 		return readSubscriptionTool(ctx, cfg, watches, in)
@@ -64,7 +65,7 @@ func registerWatchTools(s *mcp.Server, cfg Config, watches *watchManager) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        toolStatusSubscription,
-		Description: "Return pod-local status, counters, watermarks, expiry, and last error for a background watch owned by the current Mcp-Session-Id.",
+		Description: "Return pod-local status, counters, watermarks, expiry, last error, and bounded per-topic update summaries for a background watch owned by the current Mcp-Session-Id.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in subscriptionIDInput) (*mcp.CallToolResult, watchStatusOutput, error) {
 		return statusSubscriptionTool(ctx, cfg, watches, in)
 	})
@@ -88,7 +89,7 @@ func startSubscriptionTool(ctx context.Context, cfg Config, watches *watchManage
 	topicFilter, err := resolveSubscriptionTopic(cfg, in)
 	if err != nil {
 		recordWatchAudit(toolStartSubscription, caller, "", "", 0, start, err, cfg)
-		return toolError[watchStartOutput](mqttbus.ErrorCode(err), publicMessage(err))
+		return toolErrorFromErr[watchStartOutput](err)
 	}
 
 	out, err := watches.start(watchStartRequest{
@@ -100,7 +101,7 @@ func startSubscriptionTool(ctx context.Context, cfg Config, watches *watchManage
 	})
 	recordWatchAudit(toolStartSubscription, caller, out.SubscriptionID, topicFilter, 0, start, err, cfg)
 	if err != nil {
-		return toolError[watchStartOutput](mqttbus.ErrorCode(err), publicMessage(err))
+		return toolErrorFromErr[watchStartOutput](err)
 	}
 	return toolOK("started subscription "+out.SubscriptionID, out)
 }
@@ -121,7 +122,7 @@ func readSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager
 	})
 	recordWatchAudit(toolReadSubscription, caller, in.SubscriptionID, "", out.Count, start, err, cfg)
 	if err != nil {
-		return toolError[watchReadOutput](mqttbus.ErrorCode(err), publicMessage(err))
+		return toolErrorFromErr[watchReadOutput](err)
 	}
 	return toolOK(fmt.Sprintf("read %d subscription messages", out.Count), out)
 }
@@ -139,7 +140,7 @@ func statusSubscriptionTool(ctx context.Context, cfg Config, watches *watchManag
 	})
 	recordWatchAudit(toolStatusSubscription, caller, in.SubscriptionID, out.TopicFilter, 0, start, err, cfg)
 	if err != nil {
-		return toolError[watchStatusOutput](mqttbus.ErrorCode(err), publicMessage(err))
+		return toolErrorFromErr[watchStatusOutput](err)
 	}
 	return toolOK("subscription status "+out.Status, out)
 }
@@ -157,7 +158,7 @@ func stopSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager
 	})
 	recordWatchAudit(toolStopSubscription, caller, in.SubscriptionID, "", 0, start, err, cfg)
 	if err != nil {
-		return toolError[watchStopOutput](mqttbus.ErrorCode(err), publicMessage(err))
+		return toolErrorFromErr[watchStopOutput](err)
 	}
 	return toolOK("stopped subscription "+out.SubscriptionID, out)
 }
@@ -222,11 +223,19 @@ func toolOK[T any](summary string, out T) (*mcp.CallToolResult, T, error) {
 }
 
 func toolError[T any](code, message string) (*mcp.CallToolResult, T, error) {
+	return toolErrorWithRetry[T](code, message, 0)
+}
+
+func toolErrorFromErr[T any](err error) (*mcp.CallToolResult, T, error) {
+	return toolErrorWithRetry[T](mqttbus.ErrorCode(err), publicMessage(err), retryAfterSeconds(err))
+}
+
+func toolErrorWithRetry[T any](code, message string, retryAfter int) (*mcp.CallToolResult, T, error) {
 	var zero T
 	if code == "" {
 		code = mqttbus.CodeInternalError
 	}
-	body := structuredError{Error: errorBody{Code: code, Message: message}}
+	body := structuredError{Error: errorBody{Code: code, Message: message, RetryAfterSeconds: retryAfter}}
 	raw, _ := json.Marshal(body)
 	return &mcp.CallToolResult{
 		IsError: true,

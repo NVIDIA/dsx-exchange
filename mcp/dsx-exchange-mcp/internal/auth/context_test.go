@@ -17,6 +17,7 @@ func TestMiddlewareStoresCaller(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
 	req.Header.Set("Authorization", "Bearer token-123")
+	req.Header.Set("Mcp-Session-Id", "session-123")
 	req.Header.Set("x-mcp-tenant", "tenant-a")
 	req.Header.Set("x-mcp-issuer", "https://issuer")
 	req.Header.Set("x-mcp-sub", "tenant-a/agent")
@@ -26,6 +27,9 @@ func TestMiddlewareStoresCaller(t *testing.T) {
 
 	if got.Bearer != "token-123" {
 		t.Fatalf("Bearer = %q, want token-123", got.Bearer)
+	}
+	if got.SessionID != "session-123" {
+		t.Fatalf("SessionID = %q, want session-123", got.SessionID)
 	}
 	if got.Tenant != "tenant-a" || got.Issuer != "https://issuer" || got.Subject != "tenant-a/agent" {
 		t.Fatalf("caller identity not propagated: %+v", got)
@@ -46,5 +50,24 @@ func TestBearerSchemeIsCaseInsensitive(t *testing.T) {
 
 	if got != "token-123" {
 		t.Fatalf("Bearer = %q, want token-123", got)
+	}
+}
+
+func TestWithSessionIDPreservesCaller(t *testing.T) {
+	ctx := WithCaller(t.Context(), Caller{
+		Bearer:   "token-123",
+		Tenant:   "tenant-a",
+		Issuer:   "https://issuer",
+		Subject:  "tenant-a/agent",
+		SpiffeID: "spiffe://tenant-a/agent/tenant-a%2Fagent",
+	})
+
+	got := FromContext(WithSessionID(ctx, "session-123"))
+
+	if got.Bearer != "token-123" || got.Tenant != "tenant-a" || got.Subject != "tenant-a/agent" {
+		t.Fatalf("caller fields not preserved: %+v", got)
+	}
+	if got.SessionID != "session-123" {
+		t.Fatalf("SessionID = %q, want session-123", got.SessionID)
 	}
 }

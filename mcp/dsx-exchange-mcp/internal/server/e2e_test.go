@@ -144,6 +144,260 @@ func TestStagedMCPSchemaDescribeThroughEndpoint(t *testing.T) {
 	}
 }
 
+func TestStagedMCPWatchThroughEndpoint(t *testing.T) {
+	if os.Getenv("RUN_EXCHANGE_MCP_WATCH_E2E") != "1" {
+		t.Skip("set RUN_EXCHANGE_MCP_WATCH_E2E=1 to run staged MCP background watch e2e")
+	}
+
+	endpoint := requiredEnv(t, "DSX_EXCHANGE_MCP_URL")
+	bearer := requiredEnv(t, "DSX_EXCHANGE_E2E_BEARER")
+	allowedTopic := requiredEnv(t, "DSX_EXCHANGE_E2E_ALLOWED_TOPIC")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	client := &mcpHTTPClient{
+		endpoint: endpoint,
+		bearer:   bearer,
+		httpc:    &http.Client{Timeout: 30 * time.Second},
+	}
+
+	sessionID, err := client.initialize(ctx)
+	if err != nil {
+		t.Fatalf("initialize through MCP endpoint failed: %v", err)
+	}
+	if sessionID == "" {
+		t.Fatal("initialize returned empty MCP session ID")
+	}
+	if err := client.initialized(ctx, sessionID); err != nil {
+		t.Fatalf("notifications/initialized failed: %v", err)
+	}
+
+	tools, err := client.listTools(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("tools/list failed: %v", err)
+	}
+	startTool := chooseStartSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_START_TOOL_NAME"))
+	readTool := chooseReadSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_READ_TOOL_NAME"))
+	statusTool := chooseStatusSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_STATUS_TOOL_NAME"))
+	stopTool := chooseStopSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_STOP_TOOL_NAME"))
+	if startTool == "" || readTool == "" || statusTool == "" || stopTool == "" {
+		t.Fatalf("tools/list missing watch tool(s): start=%q read=%q status=%q stop=%q tools=%v", startTool, readTool, statusTool, stopTool, tools)
+	}
+
+	started, err := client.callTool(ctx, sessionID, startTool, map[string]any{
+		"topic_filter":        allowedTopic,
+		"ttl_seconds":         30,
+		"buffer_max_messages": 10,
+		"buffer_max_bytes":    32768,
+	})
+	if err != nil {
+		t.Fatalf("tools/call(%q start watch) failed: %v", startTool, err)
+	}
+	if started.IsError {
+		t.Fatalf("tools/call(%q start watch) returned MCP tool error: %s", startTool, started.textSummary())
+	}
+	var startOut watchStartOutput
+	if err := json.Unmarshal([]byte(started.lastText()), &startOut); err != nil {
+		t.Fatalf("decode watch start response: %v; content=%s", err, started.textSummary())
+	}
+	if startOut.SubscriptionID == "" {
+		t.Fatalf("watch start response missing subscription_id: %#v", startOut)
+	}
+	t.Logf("started watch %s with status %s on %s", startOut.SubscriptionID, startOut.Status, startOut.TopicFilter)
+
+	status, err := client.callTool(ctx, sessionID, statusTool, map[string]any{
+		"subscription_id": startOut.SubscriptionID,
+	})
+	if err != nil {
+		t.Fatalf("tools/call(%q status watch) failed: %v", statusTool, err)
+	}
+	if status.IsError {
+		t.Fatalf("tools/call(%q status watch) returned MCP tool error: %s", statusTool, status.textSummary())
+	}
+	var statusOut watchStatusOutput
+	if err := json.Unmarshal([]byte(status.lastText()), &statusOut); err != nil {
+		t.Fatalf("decode watch status response: %v; content=%s", err, status.textSummary())
+	}
+	if statusOut.SubscriptionID != startOut.SubscriptionID {
+		t.Fatalf("watch status subscription_id = %q, want %q", statusOut.SubscriptionID, startOut.SubscriptionID)
+	}
+
+	read, err := client.callTool(ctx, sessionID, readTool, map[string]any{
+		"subscription_id": startOut.SubscriptionID,
+		"cursor":          startOut.Cursor,
+		"max_messages":    10,
+		"max_bytes":       32768,
+	})
+	if err != nil {
+		t.Fatalf("tools/call(%q read watch) failed: %v", readTool, err)
+	}
+	if read.IsError {
+		t.Fatalf("tools/call(%q read watch) returned MCP tool error: %s", readTool, read.textSummary())
+	}
+	var readOut watchReadOutput
+	if err := json.Unmarshal([]byte(read.lastText()), &readOut); err != nil {
+		t.Fatalf("decode watch read response: %v; content=%s", err, read.textSummary())
+	}
+	if readOut.SubscriptionID != startOut.SubscriptionID {
+		t.Fatalf("watch read subscription_id = %q, want %q", readOut.SubscriptionID, startOut.SubscriptionID)
+	}
+
+	stopped, err := client.callTool(ctx, sessionID, stopTool, map[string]any{
+		"subscription_id": startOut.SubscriptionID,
+	})
+	if err != nil {
+		t.Fatalf("tools/call(%q stop watch) failed: %v", stopTool, err)
+	}
+	if stopped.IsError {
+		t.Fatalf("tools/call(%q stop watch) returned MCP tool error: %s", stopTool, stopped.textSummary())
+	}
+	var stopOut watchStopOutput
+	if err := json.Unmarshal([]byte(stopped.lastText()), &stopOut); err != nil {
+		t.Fatalf("decode watch stop response: %v; content=%s", err, stopped.textSummary())
+	}
+	if stopOut.SubscriptionID != startOut.SubscriptionID || stopOut.Status != watchStatusStopped {
+		t.Fatalf("watch stop response = %#v, want stopped %q", stopOut, startOut.SubscriptionID)
+	}
+}
+
+func TestStagedMCPQualityFixturesThroughEndpoint(t *testing.T) {
+	if os.Getenv("RUN_EXCHANGE_MCP_QUALITY_E2E") != "1" {
+		t.Skip("set RUN_EXCHANGE_MCP_QUALITY_E2E=1 to run staged MCP quality fixture replay")
+	}
+
+	executeLiveTools := os.Getenv("DSX_EXCHANGE_MCP_QUALITY_EXECUTE_LIVE_TOOLS") == "1"
+	if executeLiveTools && os.Getenv("DSX_EXCHANGE_MCP_URL") == "" {
+		t.Fatal("DSX_EXCHANGE_MCP_URL is required when DSX_EXCHANGE_MCP_QUALITY_EXECUTE_LIVE_TOOLS=1")
+	}
+	liveMaxDurationS := envIntDefault("DSX_EXCHANGE_MCP_QUALITY_MAX_DURATION_S", 1)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	client, cleanup, endpointLabel := newLLMEvalMCPClient(t)
+	defer cleanup()
+	t.Logf("replaying quality fixtures through %s", endpointLabel)
+
+	sessionID, err := client.initialize(ctx)
+	if err != nil {
+		t.Fatalf("initialize through MCP endpoint failed: %v", err)
+	}
+	if sessionID == "" {
+		t.Fatal("initialize returned empty MCP session ID")
+	}
+	if err := client.initialized(ctx, sessionID); err != nil {
+		t.Fatalf("notifications/initialized failed: %v", err)
+	}
+
+	tools, err := client.listTools(ctx, sessionID)
+	if err != nil {
+		t.Fatalf("tools/list failed: %v", err)
+	}
+	fixtures := selectQualityFixtures(t, loadToolCallFixtures(t))
+
+	for _, fixture := range fixtures {
+		t.Run(fixture.ID, func(t *testing.T) {
+			seenChannels := map[string]bool{}
+			seenRelatedTopics := map[string]bool{}
+			described := false
+
+			for i, call := range fixture.ExpectedToolCalls {
+				toolName := chooseToolName(tools, call.Tool, "")
+				if toolName == "" {
+					t.Fatalf("tools/list missing expected tool %q; saw %v", call.Tool, tools)
+				}
+
+				switch call.Tool {
+				case toolDescribeTopic:
+					described = true
+					res, err := client.callTool(ctx, sessionID, toolName, call.Arguments)
+					if err != nil {
+						t.Fatalf("tools/call(%q fixture call %d) failed: %v", toolName, i, err)
+					}
+					if res.IsError {
+						t.Fatalf("tools/call(%q fixture call %d) returned MCP tool error: %s", toolName, i, res.textSummary())
+					}
+					out := decodeDescribeTopicResponse(t, res, fixture.ID, i)
+					if out.TopicFilter != stringArg(t, fixture.ID, i, call.Arguments, "topic_filter") {
+						t.Fatalf("schema response topic_filter = %q, want fixture call %d topic_filter", out.TopicFilter, i)
+					}
+					if out.Count == 0 {
+						t.Fatalf("schema response for fixture call %d returned no matches", i)
+					}
+					for _, match := range out.Matches {
+						if match.Domain == fixture.ExpectedSchema.Domain {
+							seenChannels[match.Channel] = true
+						}
+						for _, related := range match.RelatedTopics {
+							seenRelatedTopics[related.TopicFilter] = true
+						}
+					}
+				case toolReadRetained, toolSubscribe:
+					if !executeLiveTools {
+						t.Logf("skipping live fixture call %d %s; set DSX_EXCHANGE_MCP_QUALITY_EXECUTE_LIVE_TOOLS=1 to execute", i, call.Tool)
+						continue
+					}
+					args := qualityLiveArguments(call, liveMaxDurationS)
+					res, err := client.callTool(ctx, sessionID, toolName, args)
+					if err != nil {
+						t.Fatalf("tools/call(%q fixture call %d) failed: %v", toolName, i, err)
+					}
+					if res.IsError {
+						t.Fatalf("tools/call(%q fixture call %d) returned MCP tool error: %s", toolName, i, res.textSummary())
+					}
+					validateCollectResponseShape(t, res, fixture.ID, i)
+				case toolStartSubscription:
+					if !executeLiveTools {
+						t.Logf("skipping live fixture call %d %s; set DSX_EXCHANGE_MCP_QUALITY_EXECUTE_LIVE_TOOLS=1 to execute", i, call.Tool)
+						continue
+					}
+					args := qualityLiveArguments(call, liveMaxDurationS)
+					res, err := client.callTool(ctx, sessionID, toolName, args)
+					if err != nil {
+						t.Fatalf("tools/call(%q fixture call %d) failed: %v", toolName, i, err)
+					}
+					if res.IsError {
+						t.Fatalf("tools/call(%q fixture call %d) returned MCP tool error: %s", toolName, i, res.textSummary())
+					}
+					startOut := validateWatchStartResponseShape(t, res, fixture.ID, i)
+					stopTool := chooseStopSubscriptionToolName(tools, "")
+					if stopTool == "" {
+						t.Fatalf("tools/list missing %s needed to clean up fixture watch", toolStopSubscription)
+					}
+					stopped, err := client.callTool(ctx, sessionID, stopTool, map[string]any{"subscription_id": startOut.SubscriptionID})
+					if err != nil {
+						t.Fatalf("cleanup tools/call(%q) failed for fixture watch %q: %v", stopTool, startOut.SubscriptionID, err)
+					}
+					if stopped.IsError {
+						t.Fatalf("cleanup tools/call(%q) returned MCP tool error for fixture watch %q: %s", stopTool, startOut.SubscriptionID, stopped.textSummary())
+					}
+				default:
+					t.Fatalf("fixture call %d has unsupported tool %q", i, call.Tool)
+				}
+			}
+
+			if !described {
+				t.Fatal("quality fixture must include at least one schema describe call")
+			}
+			for _, channel := range fixture.ExpectedSchema.Channels {
+				if !seenChannels[channel] {
+					t.Fatalf("expected schema channel %q was not observed; saw %#v", channel, seenChannels)
+				}
+			}
+			for _, topic := range fixture.ExpectedSchema.RelatedTopics {
+				if !seenRelatedTopics[topic] {
+					t.Fatalf("expected related topic %q was not observed; saw %#v", topic, seenRelatedTopics)
+				}
+			}
+		})
+	}
+
+	if executeLiveTools {
+		assertOptionalDeniedSubscribe(t, ctx, client, sessionID, tools)
+	}
+}
+
 type mcpHTTPClient struct {
 	endpoint string
 	bearer   string
@@ -329,6 +583,22 @@ func chooseDescribeTopicToolName(names []string, explicit string) string {
 	return chooseToolName(names, toolDescribeTopic, explicit)
 }
 
+func chooseStartSubscriptionToolName(names []string, explicit string) string {
+	return chooseToolName(names, toolStartSubscription, explicit)
+}
+
+func chooseReadSubscriptionToolName(names []string, explicit string) string {
+	return chooseToolName(names, toolReadSubscription, explicit)
+}
+
+func chooseStatusSubscriptionToolName(names []string, explicit string) string {
+	return chooseToolName(names, toolStatusSubscription, explicit)
+}
+
+func chooseStopSubscriptionToolName(names []string, explicit string) string {
+	return chooseToolName(names, toolStopSubscription, explicit)
+}
+
 func chooseToolName(names []string, baseName string, explicit string) string {
 	if explicit != "" {
 		for _, name := range names {
@@ -349,6 +619,154 @@ func chooseToolName(names []string, baseName string, explicit string) string {
 		}
 	}
 	return ""
+}
+
+func selectQualityFixtures(t *testing.T, fixtures []toolCallFixture) []toolCallFixture {
+	t.Helper()
+	requested := os.Getenv("DSX_EXCHANGE_MCP_QUALITY_CASES")
+	if requested == "" {
+		return fixtures
+	}
+	wanted := map[string]bool{}
+	for _, id := range strings.Split(requested, ",") {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			wanted[id] = true
+		}
+	}
+	var selected []toolCallFixture
+	for _, fixture := range fixtures {
+		if wanted[fixture.ID] {
+			selected = append(selected, fixture)
+			delete(wanted, fixture.ID)
+		}
+	}
+	if len(wanted) > 0 {
+		t.Fatalf("unknown DSX_EXCHANGE_MCP_QUALITY_CASES fixture id(s): %v", wanted)
+	}
+	return selected
+}
+
+func qualityLiveArguments(call fixtureToolCall, maxDurationS int) map[string]any {
+	args := copyArguments(call.Arguments)
+	switch call.Tool {
+	case toolSubscribe:
+		args["max_duration_s"] = maxDurationS
+		args["max_messages"] = minPositiveIntArg(args, "max_messages", 10)
+	case toolReadRetained:
+		args["max_messages"] = minPositiveIntArg(args, "max_messages", 10)
+	case toolStartSubscription:
+		args["ttl_seconds"] = minPositiveIntArg(args, "ttl_seconds", 30)
+		args["buffer_max_messages"] = minPositiveIntArg(args, "buffer_max_messages", 10)
+		args["buffer_max_bytes"] = minPositiveIntArg(args, "buffer_max_bytes", 32768)
+	}
+	return args
+}
+
+func copyArguments(in map[string]any) map[string]any {
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func minPositiveIntArg(args map[string]any, key string, limit int) int {
+	got := limit
+	switch v := args[key].(type) {
+	case int:
+		got = v
+	case int64:
+		got = int(v)
+	case float64:
+		got = int(v)
+	}
+	if got <= 0 || got > limit {
+		return limit
+	}
+	return got
+}
+
+func decodeDescribeTopicResponse(t *testing.T, res toolCallResult, fixtureID string, callIndex int) describeTopicOutput {
+	t.Helper()
+	var out describeTopicOutput
+	if err := json.Unmarshal([]byte(res.lastText()), &out); err != nil {
+		t.Fatalf("%s call %d decode schema response: %v; content=%s", fixtureID, callIndex, err, res.textSummary())
+	}
+	return out
+}
+
+func validateCollectResponseShape(t *testing.T, res toolCallResult, fixtureID string, callIndex int) {
+	t.Helper()
+	var out collectOutput
+	if err := json.Unmarshal([]byte(res.lastText()), &out); err != nil {
+		t.Fatalf("%s call %d decode collect response: %v; content=%s", fixtureID, callIndex, err, res.textSummary())
+	}
+	if out.Messages == nil {
+		t.Fatalf("%s call %d collect response messages is nil; want JSON array", fixtureID, callIndex)
+	}
+	if out.Count != len(out.Messages) {
+		t.Fatalf("%s call %d collect response count = %d, want len(messages) %d", fixtureID, callIndex, out.Count, len(out.Messages))
+	}
+	if out.DurationMS < 0 {
+		t.Fatalf("%s call %d collect response duration_ms = %d, want non-negative", fixtureID, callIndex, out.DurationMS)
+	}
+	if out.StoppedReason == "" {
+		t.Fatalf("%s call %d collect response stopped_reason is empty", fixtureID, callIndex)
+	}
+}
+
+func validateWatchStartResponseShape(t *testing.T, res toolCallResult, fixtureID string, callIndex int) watchStartOutput {
+	t.Helper()
+	var out watchStartOutput
+	if err := json.Unmarshal([]byte(res.lastText()), &out); err != nil {
+		t.Fatalf("%s call %d decode watch start response: %v; content=%s", fixtureID, callIndex, err, res.textSummary())
+	}
+	if out.SubscriptionID == "" {
+		t.Fatalf("%s call %d watch start response missing subscription_id: %#v", fixtureID, callIndex, out)
+	}
+	if out.TopicFilter == "" {
+		t.Fatalf("%s call %d watch start response missing topic_filter: %#v", fixtureID, callIndex, out)
+	}
+	if out.Status == "" {
+		t.Fatalf("%s call %d watch start response missing status: %#v", fixtureID, callIndex, out)
+	}
+	return out
+}
+
+func assertOptionalDeniedSubscribe(t *testing.T, ctx context.Context, client *mcpHTTPClient, sessionID string, tools []string) {
+	t.Helper()
+	deniedTopic := os.Getenv("DSX_EXCHANGE_E2E_DENIED_TOPIC")
+	if deniedTopic == "" {
+		return
+	}
+	subscribeTool := chooseSubscribeToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_TOOL_NAME"))
+	if subscribeTool == "" {
+		t.Fatalf("tools/list missing %s needed for denied-topic quality check", toolSubscribe)
+	}
+	res, err := client.callTool(ctx, sessionID, subscribeTool, map[string]any{
+		"topic_filter":   deniedTopic,
+		"max_messages":   1,
+		"max_duration_s": 1,
+	})
+	if err != nil {
+		t.Fatalf("denied-topic tools/call(%q) failed at protocol level: %v", subscribeTool, err)
+	}
+	if !res.IsError {
+		t.Fatalf("denied-topic tools/call(%q, %q) unexpectedly succeeded: %s", subscribeTool, deniedTopic, res.textSummary())
+	}
+	validateStructuredToolError(t, res, "denied-topic")
+}
+
+func validateStructuredToolError(t *testing.T, res toolCallResult, label string) {
+	t.Helper()
+	var out structuredError
+	if err := json.Unmarshal([]byte(res.lastText()), &out); err != nil {
+		t.Fatalf("%s decode structured tool error: %v; content=%s", label, err, res.textSummary())
+	}
+	if out.Error.Code == "" || out.Error.Message == "" {
+		t.Fatalf("%s structured tool error missing code/message: %#v", label, out)
+	}
 }
 
 func requiredEnv(t *testing.T, key string) string {

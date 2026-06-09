@@ -1,4 +1,5 @@
 /bin/
+/reports/
 *.test
 *.out
 .env
