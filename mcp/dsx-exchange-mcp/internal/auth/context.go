@@ -27,17 +27,35 @@ type Caller struct {
 // from the HTTP request and stores them on the request context.
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		caller := Caller{
-			Bearer:    bearerFromHeader(r.Header.Get("Authorization")),
-			SessionID: r.Header.Get("Mcp-Session-Id"),
-			Tenant:    r.Header.Get("x-mcp-tenant"),
-			Issuer:    r.Header.Get("x-mcp-issuer"),
-			Subject:   r.Header.Get("x-mcp-sub"),
-			SpiffeID:  r.Header.Get("x-mcp-spiffe-id"),
-		}
-		r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, caller))
+		r = r.WithContext(WithCaller(r.Context(), CallerFromHeaders(r.Header)))
 		next.ServeHTTP(w, r)
 	})
+}
+
+// CallerFromHeaders extracts caller identity material from gateway-projected
+// HTTP headers.
+func CallerFromHeaders(h http.Header) Caller {
+	return Caller{
+		Bearer:    bearerFromHeader(h.Get("Authorization")),
+		SessionID: h.Get("Mcp-Session-Id"),
+		Tenant:    h.Get("x-mcp-tenant"),
+		Issuer:    h.Get("x-mcp-issuer"),
+		Subject:   h.Get("x-mcp-sub"),
+		SpiffeID:  h.Get("x-mcp-spiffe-id"),
+	}
+}
+
+// WithCaller stores caller identity material on ctx.
+func WithCaller(ctx context.Context, caller Caller) context.Context {
+	return context.WithValue(ctx, ctxKey{}, caller)
+}
+
+// WithSessionID returns a context whose caller includes sessionID. Other caller
+// fields already present on ctx are preserved.
+func WithSessionID(ctx context.Context, sessionID string) context.Context {
+	caller := FromContext(ctx)
+	caller.SessionID = sessionID
+	return WithCaller(ctx, caller)
 }
 
 func bearerFromHeader(h string) string {

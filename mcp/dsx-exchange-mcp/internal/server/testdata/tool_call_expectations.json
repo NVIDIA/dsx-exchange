@@ -201,6 +201,33 @@
     }
   },
   {
+    "id": "bms-rack-power-background-watch",
+    "domain": "bms",
+    "question": "Start a background watch for rack power telemetry for 5 minutes. Keep up to 100 messages and 262144 bytes in the buffer.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_start_subscription",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#",
+          "ttl_seconds": 300,
+          "buffer_max_messages": 100,
+          "buffer_max_bytes": 262144
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "bms",
+      "channels": ["rackBmsValue"],
+      "related_topics": ["BMS/v1/PUB/Metadata/Rack/RackPower/#"]
+    }
+  },
+  {
     "id": "nico-machine-state",
     "domain": "nico",
     "question": "Subscribe to NICO machine state changes.",

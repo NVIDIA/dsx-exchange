@@ -2,14 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 BINARY := dsx-exchange-mcp
+LOAD_BINARY := dsx-exchange-mcp-load
 PKG    := github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp
 SCHEMA_SRC  ?= ../../schemas
 GOFLAGS    ?= -mod=vendor
 
-.PHONY: build run test tidy vendor lint sync-specs verify-specs image clean
+.PHONY: build build-load run test tidy vendor lint sync-specs verify-specs image load-image clean
 
 build:
 	go build $(GOFLAGS) -o bin/$(BINARY) ./cmd/$(BINARY)
+
+build-load:
+	go build $(GOFLAGS) -o bin/$(LOAD_BINARY) ./cmd/$(LOAD_BINARY)
 
 run: sync-specs build
 	./bin/$(BINARY)
@@ -37,6 +41,9 @@ verify-specs: sync-specs
 
 image:
 	docker build -t $(BINARY):dev .
+
+load-image:
+	docker build -f Dockerfile.load -t $(LOAD_BINARY):dev .
 
 clean:
 	rm -rf bin

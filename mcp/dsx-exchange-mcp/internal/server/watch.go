@@ -7,12 +7,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/auth"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/mqttbus"
@@ -33,7 +36,11 @@ const (
 	codeBufferOverflow          = "buffer_overflow"
 )
 
-const finishedWatchRetention = 5 * time.Minute
+const (
+	finishedWatchRetention     = 5 * time.Minute
+	maxWatchStatusUpdates      = 50
+	maxWatchStatusPayloadBytes = 4096
+)
 
 type streamRunner func(context.Context, mqttbus.Config, string, string, mqttbus.StreamOptions, func(mqttbus.Message) error) (mqttbus.StreamResult, error)
 
@@ -62,11 +69,13 @@ type watch struct {
 	lastMessage time.Time
 	lastError   *errorBody
 
-	cursor       int64
-	droppedCount int64
-	messageCount int64
-	bufferBytes  int
-	buffer       []bufferedWatchMessage
+	cursor         int64
+	droppedCount   int64
+	messageCount   int64
+	bufferBytes    int
+	buffer         []bufferedWatchMessage
+	updates        map[string]*watchTopicUpdate
+	updatesDropped int64
 
 	maxMessages int
 	maxBytes    int
@@ -129,6 +138,50 @@ type watchMessageOutput struct {
 	ReceivedAt      time.Time `json:"received_at"`
 }
 
+type watchTopicUpdate struct {
+	topic                  string
+	count                  int64
+	latestCursor           string
+	latestPayload          string
+	latestPayloadEncoding  string
+	latestPayloadTruncated bool
+	retained               bool
+	qos                    byte
+	latestReceivedAt       time.Time
+	numeric                *watchNumericAggregate
+}
+
+type watchTopicUpdateOutput struct {
+	Topic                  string              `json:"topic"`
+	Count                  int64               `json:"count"`
+	LatestCursor           string              `json:"latest_cursor"`
+	LatestPayload          string              `json:"latest_payload,omitempty"`
+	LatestPayloadEncoding  string              `json:"latest_payload_encoding,omitempty"`
+	LatestPayloadTruncated bool                `json:"latest_payload_truncated,omitempty"`
+	Retained               bool                `json:"retained"`
+	QoS                    byte                `json:"qos"`
+	LatestReceivedAt       time.Time           `json:"latest_received_at"`
+	Numeric                *watchNumericOutput `json:"numeric,omitempty"`
+}
+
+type watchNumericAggregate struct {
+	field  string
+	count  int64
+	min    float64
+	max    float64
+	sum    float64
+	latest float64
+}
+
+type watchNumericOutput struct {
+	Field  string  `json:"field"`
+	Count  int64   `json:"count"`
+	Min    float64 `json:"min"`
+	Max    float64 `json:"max"`
+	Mean   float64 `json:"mean"`
+	Latest float64 `json:"latest"`
+}
+
 type watchStartOutput struct {
 	SubscriptionID              string            `json:"subscription_id"`
 	Status                      string            `json:"status"`
@@ -152,17 +205,21 @@ type watchReadOutput struct {
 }
 
 type watchStatusOutput struct {
-	SubscriptionID  string         `json:"subscription_id"`
-	Status          string         `json:"status"`
-	TopicFilter     string         `json:"topic_filter"`
-	MessageCount    int64          `json:"message_count"`
-	DroppedCount    int64          `json:"dropped_count"`
-	OldestCursor    string         `json:"oldest_cursor"`
-	NewestCursor    string         `json:"newest_cursor"`
-	ExpiresAt       time.Time      `json:"expires_at"`
-	LastMessageAt   *time.Time     `json:"last_message_at,omitempty"`
-	LastError       *errorBody     `json:"last_error,omitempty"`
-	BufferWatermark watchWatermark `json:"buffer_watermark"`
+	SubscriptionID   string                   `json:"subscription_id"`
+	Status           string                   `json:"status"`
+	TopicFilter      string                   `json:"topic_filter"`
+	MessageCount     int64                    `json:"message_count"`
+	DroppedCount     int64                    `json:"dropped_count"`
+	UpdateCount      int                      `json:"update_count"`
+	UpdatesDropped   int64                    `json:"updates_dropped"`
+	UpdatesTruncated bool                     `json:"updates_truncated"`
+	Updates          []watchTopicUpdateOutput `json:"updates,omitempty"`
+	OldestCursor     string                   `json:"oldest_cursor"`
+	NewestCursor     string                   `json:"newest_cursor"`
+	ExpiresAt        time.Time                `json:"expires_at"`
+	LastMessageAt    *time.Time               `json:"last_message_at,omitempty"`
+	LastError        *errorBody               `json:"last_error,omitempty"`
+	BufferWatermark  watchWatermark           `json:"buffer_watermark"`
 }
 
 type watchStopOutput struct {
@@ -211,6 +268,7 @@ func (m *watchManager) start(req watchStartRequest) (watchStartOutput, error) {
 		status:      watchStatusStarting,
 		createdAt:   started,
 		expiresAt:   started.Add(time.Duration(ttlS) * time.Second),
+		updates:     map[string]*watchTopicUpdate{},
 		maxMessages: bufferMessages,
 		maxBytes:    bufferBytes,
 		cancel:      cancel,
@@ -220,15 +278,23 @@ func (m *watchManager) start(req watchStartRequest) (watchStartOutput, error) {
 	ready := make(chan struct{}, 1)
 	finished := make(chan streamFinished, 1)
 
+	if !m.cfg.watchStartAdmission.tryAcquire() {
+		cancel()
+		return watchStartOutput{}, admissionLimitedError()
+	}
+	releaseStartup := sync.OnceFunc(m.cfg.watchStartAdmission.release)
+
 	m.mu.Lock()
 	if m.activeTotal >= m.cfg.WatchMaxPerPod {
 		m.mu.Unlock()
+		releaseStartup()
 		cancel()
 		return watchStartOutput{}, &mqttbus.BusError{Code: mqttbus.CodeInvalidArgument, Message: fmt.Sprintf("active watch count exceeds per-pod cap %d", m.cfg.WatchMaxPerPod)}
 	}
 	sessionWatches := m.watches[w.sessionID]
 	if activeSessionCount(sessionWatches) >= m.cfg.WatchMaxPerSession {
 		m.mu.Unlock()
+		releaseStartup()
 		cancel()
 		return watchStartOutput{}, &mqttbus.BusError{Code: mqttbus.CodeInvalidArgument, Message: fmt.Sprintf("active watch count exceeds per-session cap %d", m.cfg.WatchMaxPerSession)}
 	}
@@ -250,6 +316,7 @@ func (m *watchManager) start(req watchStartRequest) (watchStartOutput, error) {
 			MaxMessages: math.MaxInt32,
 			MaxDuration: time.Duration(ttlS) * time.Second,
 			OnSubscribed: func() {
+				releaseStartup()
 				m.markRunning(w.sessionID, w.id)
 				select {
 				case ready <- struct{}{}:
@@ -260,6 +327,7 @@ func (m *watchManager) start(req watchStartRequest) (watchStartOutput, error) {
 			m.recordMessage(w.sessionID, w.id, msg)
 			return nil
 		})
+		releaseStartup()
 		m.finish(w.sessionID, w.id, result, err)
 		select {
 		case finished <- streamFinished{result: result, err: err}:
@@ -352,17 +420,22 @@ func (m *watchManager) status(req watchStatusRequest) (watchStatusOutput, error)
 	if err != nil {
 		return watchStatusOutput{}, err
 	}
+	updates, updatesTruncated := w.statusUpdates()
 	out := watchStatusOutput{
-		SubscriptionID:  w.id,
-		Status:          w.status,
-		TopicFilter:     w.topicFilter,
-		MessageCount:    w.messageCount,
-		DroppedCount:    w.droppedCount,
-		OldestCursor:    w.oldestCursor(),
-		NewestCursor:    strconv.FormatInt(w.cursor, 10),
-		ExpiresAt:       w.expiresAt,
-		LastError:       w.lastError,
-		BufferWatermark: w.watermark(),
+		SubscriptionID:   w.id,
+		Status:           w.status,
+		TopicFilter:      w.topicFilter,
+		MessageCount:     w.messageCount,
+		DroppedCount:     w.droppedCount,
+		UpdateCount:      len(w.updates),
+		UpdatesDropped:   w.updatesDropped,
+		UpdatesTruncated: updatesTruncated || w.updatesDropped > 0,
+		Updates:          updates,
+		OldestCursor:     w.oldestCursor(),
+		NewestCursor:     strconv.FormatInt(w.cursor, 10),
+		ExpiresAt:        w.expiresAt,
+		LastError:        w.lastError,
+		BufferWatermark:  w.watermark(),
 	}
 	if !w.lastMessage.IsZero() {
 		last := w.lastMessage
@@ -508,9 +581,11 @@ func (m *watchManager) recordMessage(sessionID, subscriptionID string, msg mqttb
 	w.cursor++
 	w.messageCount++
 	w.lastMessage = msg.ReceivedAt
+	cursor := strconv.FormatInt(w.cursor, 10)
+	w.recordTopicUpdate(cursor, msg)
 	size := len(msg.Topic) + len(msg.Payload)
 	w.buffer = append(w.buffer, bufferedWatchMessage{
-		cursor: strconv.FormatInt(w.cursor, 10),
+		cursor: cursor,
 		size:   size,
 		msg:    msg,
 	})
@@ -527,6 +602,162 @@ func (m *watchManager) recordMessage(sessionID, subscriptionID string, msg mqttb
 		m.cfg.Metrics.RecordWatchMessage()
 		m.cfg.Metrics.RecordWatchDrop(droppedCount)
 	}
+}
+
+func (w *watch) recordTopicUpdate(cursor string, msg mqttbus.Message) {
+	if w.updates == nil {
+		w.updates = map[string]*watchTopicUpdate{}
+	}
+	update := w.updates[msg.Topic]
+	if update == nil {
+		if len(w.updates) >= maxWatchStatusUpdates {
+			w.evictOldestTopicUpdate()
+		}
+		update = &watchTopicUpdate{topic: msg.Topic}
+		w.updates[msg.Topic] = update
+	}
+	payload, truncated := truncatePayloadSample(msg.Payload, maxWatchStatusPayloadBytes)
+	update.count++
+	update.latestCursor = cursor
+	update.latestPayload = payload
+	update.latestPayloadEncoding = msg.PayloadEncoding
+	update.latestPayloadTruncated = truncated
+	update.retained = msg.Retained
+	update.qos = msg.QoS
+	update.latestReceivedAt = msg.ReceivedAt
+	if field, value, ok := extractNumericPayloadValue(msg.Payload); ok {
+		update.recordNumeric(field, value)
+	}
+}
+
+func (w *watch) evictOldestTopicUpdate() {
+	var oldest *watchTopicUpdate
+	oldestTopic := ""
+	for topic, update := range w.updates {
+		if oldest == nil ||
+			update.latestReceivedAt.Before(oldest.latestReceivedAt) ||
+			(update.latestReceivedAt.Equal(oldest.latestReceivedAt) && topic < oldestTopic) {
+			oldest = update
+			oldestTopic = topic
+		}
+	}
+	if oldestTopic == "" {
+		return
+	}
+	delete(w.updates, oldestTopic)
+	w.updatesDropped++
+}
+
+func (w *watch) statusUpdates() ([]watchTopicUpdateOutput, bool) {
+	updates := make([]watchTopicUpdateOutput, 0, len(w.updates))
+	for _, update := range w.updates {
+		var numeric *watchNumericOutput
+		if update.numeric != nil {
+			numeric = update.numeric.output()
+		}
+		updates = append(updates, watchTopicUpdateOutput{
+			Topic:                  update.topic,
+			Count:                  update.count,
+			LatestCursor:           update.latestCursor,
+			LatestPayload:          update.latestPayload,
+			LatestPayloadEncoding:  update.latestPayloadEncoding,
+			LatestPayloadTruncated: update.latestPayloadTruncated,
+			Retained:               update.retained,
+			QoS:                    update.qos,
+			LatestReceivedAt:       update.latestReceivedAt,
+			Numeric:                numeric,
+		})
+	}
+	sort.Slice(updates, func(i, j int) bool {
+		left := updates[i]
+		right := updates[j]
+		if !left.LatestReceivedAt.Equal(right.LatestReceivedAt) {
+			return left.LatestReceivedAt.After(right.LatestReceivedAt)
+		}
+		return left.Topic < right.Topic
+	})
+	if len(updates) <= maxWatchStatusUpdates {
+		return updates, false
+	}
+	return updates[:maxWatchStatusUpdates], true
+}
+
+func (u *watchTopicUpdate) recordNumeric(field string, value float64) {
+	if u.numeric == nil || u.numeric.field != field {
+		u.numeric = &watchNumericAggregate{
+			field:  field,
+			count:  1,
+			min:    value,
+			max:    value,
+			sum:    value,
+			latest: value,
+		}
+		return
+	}
+	u.numeric.count++
+	u.numeric.sum += value
+	u.numeric.latest = value
+	if value < u.numeric.min {
+		u.numeric.min = value
+	}
+	if value > u.numeric.max {
+		u.numeric.max = value
+	}
+}
+
+func (a *watchNumericAggregate) output() *watchNumericOutput {
+	if a == nil || a.count == 0 {
+		return nil
+	}
+	return &watchNumericOutput{
+		Field:  a.field,
+		Count:  a.count,
+		Min:    a.min,
+		Max:    a.max,
+		Mean:   a.sum / float64(a.count),
+		Latest: a.latest,
+	}
+}
+
+func extractNumericPayloadValue(payload string) (string, float64, bool) {
+	var body map[string]any
+	if err := json.Unmarshal([]byte(payload), &body); err != nil {
+		return "", 0, false
+	}
+	if value, ok := numericJSONValue(body["value"]); ok {
+		return "value", value, true
+	}
+	data, ok := body["data"].(map[string]any)
+	if !ok {
+		return "", 0, false
+	}
+	if value, ok := numericJSONValue(data["value"]); ok {
+		return "data.value", value, true
+	}
+	return "", 0, false
+}
+
+func numericJSONValue(v any) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		if math.IsNaN(n) || math.IsInf(n, 0) {
+			return 0, false
+		}
+		return n, true
+	default:
+		return 0, false
+	}
+}
+
+func truncatePayloadSample(payload string, maxBytes int) (string, bool) {
+	if maxBytes <= 0 || len(payload) <= maxBytes {
+		return payload, false
+	}
+	sample := payload[:maxBytes]
+	for len(sample) > 0 && !utf8.ValidString(sample) {
+		sample = sample[:len(sample)-1]
+	}
+	return sample, true
 }
 
 func (m *watchManager) finish(sessionID, subscriptionID string, result mqttbus.StreamResult, err error) {

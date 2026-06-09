@@ -38,6 +38,9 @@ limits:
   maxMessages: 1000
   defaultMaxDurationSeconds: 30
   maxDurationSeconds: 30
+  mqtt:
+    collectMaxConcurrentPerPod: 100
+    watchStartMaxConcurrentPerPod: 500
   watch:
     defaultTTLSeconds: 300
     maxTTLSeconds: 900

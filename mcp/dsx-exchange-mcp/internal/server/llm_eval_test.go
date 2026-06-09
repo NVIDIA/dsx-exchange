@@ -230,11 +230,13 @@ func llmEvalSystemPrompt(allowLiveTools bool) string {
 Use the available MCP tools before answering. Prefer dsx_exchange_describe_topic, or the gateway-prefixed equivalent, to discover matching AsyncAPI schema channels and related metadata/value topics.
 For "most recent" or snapshot-style requests, plan a retained metadata read before sampling live values when the schema exposes related metadata and value topics.
 For live stream requests, plan dsx_exchange_subscribe with bounded max_messages and max_duration_s.
+For background watch requests, plan dsx_exchange_start_subscription with a concrete topic_filter plus bounded ttl_seconds, buffer_max_messages, and buffer_max_bytes.
 ` + liveToolInstruction + `
 
 Final response requirements:
 - Return one strict JSON object and no markdown.
 - JSON shape: {"answer":"brief user-facing summary","planned_tool_calls":[{"tool":"dsx_exchange_describe_topic","arguments":{"topic_filter":"..."}},{"tool":"dsx_exchange_read_retained","arguments":{"topic_filter":"...","max_messages":1000}},{"tool":"dsx_exchange_subscribe","arguments":{"topic_filter":"...","max_messages":100,"max_duration_s":30}}],"notes":["optional caveat"]}
+- For background-watch requests, include {"tool":"dsx_exchange_start_subscription","arguments":{"topic_filter":"...","ttl_seconds":300,"buffer_max_messages":100,"buffer_max_bytes":262144}} in planned_tool_calls.
 - Use unprefixed canonical tool names in planned_tool_calls even if the MCP endpoint exposes gateway-prefixed names.
 - Do not invent raw data values. This eval is about choosing the right tools and topic filters.`
 }
@@ -447,7 +449,16 @@ func traceIncludesExpectedDescribe(trace []llmToolTrace, expected []fixtureToolC
 }
 
 func normalizeToolName(name string) string {
-	for _, canonical := range []string{toolDescribeTopic, toolReadRetained, toolSubscribe} {
+	for _, canonical := range []string{
+		toolDescribeTopic,
+		toolFindTopics,
+		toolReadRetained,
+		toolSubscribe,
+		toolStartSubscription,
+		toolReadSubscription,
+		toolStatusSubscription,
+		toolStopSubscription,
+	} {
 		if name == canonical || strings.HasSuffix(name, "_"+canonical) {
 			return canonical
 		}

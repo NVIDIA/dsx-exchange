@@ -1,0 +1,19 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BUILDER_IMG=golang
+ARG BUILDER_TAG=1.25.5
+ARG FINAL_IMG=gcr.io/distroless/static-debian12
+ARG FINAL_TAG=nonroot
+
+FROM ${BUILDER_IMG}:${BUILDER_TAG} AS build
+WORKDIR /src
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -mod=vendor -o /out/dsx-exchange-mcp-load ./cmd/dsx-exchange-mcp-load
+
+FROM ${FINAL_IMG}:${FINAL_TAG}
+COPY --from=build /out/dsx-exchange-mcp-load /dsx-exchange-mcp-load
+USER nonroot:nonroot
+ENTRYPOINT ["/dsx-exchange-mcp-load"]
