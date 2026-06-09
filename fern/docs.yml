@@ -39,6 +39,9 @@ navigation:
       - page: Architecture
         path: ../docs/architecture.md
         slug: architecture
+      - page: Stateless Async Bus
+        path: ../docs/stateless-async-bus.md
+        slug: stateless-async-bus
       - page: Pre-Deployment
         path: ../docs/pre-deployment.md
         slug: pre-deployment
