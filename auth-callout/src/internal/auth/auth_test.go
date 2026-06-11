@@ -5,6 +5,8 @@ package auth
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -35,6 +37,51 @@ const testServiceName = "auth-callout-test"
 func testLogger() *otelzap.Logger {
 	zapLogger, _ := zap.NewDevelopment()
 	return otelzap.New(zapLogger)
+}
+
+func TestValidateOAuth2SigningAlgorithms(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []string
+		expectErr string
+	}{
+		{
+			name:      "rejects missing algorithms",
+			expectErr: "OAuth2 signing algorithms are required",
+		},
+		{
+			name:  "accepts configured algorithms",
+			input: []string{"RS256", "ES256", "RS256"},
+		},
+		{
+			name:      "rejects algorithms with whitespace",
+			input:     []string{"RS256", " ES256"},
+			expectErr: `unsupported OAuth2 signing algorithm " ES256"`,
+		},
+		{
+			name:      "rejects empty algorithm",
+			input:     []string{"RS256", ""},
+			expectErr: `unsupported OAuth2 signing algorithm ""`,
+		},
+		{
+			name:      "rejects unsupported algorithm",
+			input:     []string{"HS256"},
+			expectErr: `unsupported OAuth2 signing algorithm "HS256"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateOAuth2SigningAlgorithms(tt.input)
+			if tt.expectErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectErr)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
 }
 
 // TestOAuth2Authentication tests OAuth2/JWKS authentication with mock server
@@ -88,6 +135,7 @@ func TestOAuth2Authentication(t *testing.T) {
 		jwksServer.URL,
 		"https://auth.example.com/",
 		"test-audience",
+		[]string{gojwt.SigningMethodRS256.Alg()},
 		pm,
 		testLogger(),
 		testServiceName,
@@ -287,6 +335,7 @@ func TestOAuth2RejectsUnexpectedSigningMethod(t *testing.T) {
 		jwksServer.URL,
 		"https://auth.example.com/",
 		"test-audience",
+		[]string{gojwt.SigningMethodRS256.Alg()},
 		pm,
 		testLogger(),
 		testServiceName,
@@ -308,6 +357,68 @@ func TestOAuth2RejectsUnexpectedSigningMethod(t *testing.T) {
 	_, err = oauth2Auth.Authenticate(context.Background(), tokenString)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "signing method HS256 is invalid")
+}
+
+func TestOAuth2AllowsConfiguredES256SigningMethod(t *testing.T) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	jwkSet := jwkset.NewMemoryStorage()
+	jwk, err := jwkset.NewJWKFromKey(privateKey, jwkset.JWKOptions{
+		Metadata: jwkset.JWKMetadataOptions{
+			KID: "test-key-1",
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, jwkSet.KeyWrite(context.Background(), jwk))
+
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		jwks, err := jwkSet.JSONPublic(context.Background())
+		if err != nil {
+			http.Error(w, "Failed to get JWKS", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write(jwks); err != nil {
+			http.Error(w, "Failed to write JWKS", http.StatusInternalServerError)
+		}
+	}))
+	defer jwksServer.Close()
+
+	permFile := createTestPermissionsFile(t)
+	defer os.Remove(permFile)
+
+	pm, err := config.NewPermissionsManager(permFile, testLogger())
+	require.NoError(t, err)
+	defer pm.Close()
+
+	oauth2Auth, err := NewOAuth2Authenticator(
+		jwksServer.URL,
+		"https://auth.example.com/",
+		"test-audience",
+		[]string{gojwt.SigningMethodRS256.Alg(), gojwt.SigningMethodES256.Alg()},
+		pm,
+		testLogger(),
+		testServiceName,
+	)
+	require.NoError(t, err)
+	defer oauth2Auth.Close()
+
+	token := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims{
+		"iss":   "https://auth.example.com/",
+		"sub":   "user@example.com",
+		"aud":   "test-audience",
+		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+		"scope": "mqtt",
+	})
+	token.Header["kid"] = "test-key-1"
+	tokenString, err := token.SignedString(privateKey)
+	require.NoError(t, err)
+
+	profile, err := oauth2Auth.Authenticate(context.Background(), tokenString)
+	require.NoError(t, err)
+	require.NotNil(t, profile)
+	assert.Equal(t, "APP1", profile.Account)
 }
 
 // TestOAuth2RequiredScope tests per-client required scope validation
@@ -382,6 +493,7 @@ func TestOAuth2RequiredScope(t *testing.T) {
 		jwksServer.URL,
 		"https://auth.example.com/",
 		"test-audience",
+		[]string{gojwt.SigningMethodRS256.Alg()},
 		pm,
 		testLogger(),
 		testServiceName,
