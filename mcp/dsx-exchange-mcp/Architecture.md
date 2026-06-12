@@ -373,7 +373,7 @@ This repo's Helm Service advertises the MCP port:
 ports:
   - name: {{ .Values.service.portName }}
     port: {{ .Values.service.port }}
-    targetPort: http
+    targetPort: mcp
     protocol: TCP
     appProtocol: agentgateway.dev/mcp
 ```
