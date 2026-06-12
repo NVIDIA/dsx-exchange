@@ -203,7 +203,7 @@
   {
     "id": "bms-rack-power-background-watch",
     "domain": "bms",
-    "question": "Start a background watch for rack power telemetry for 5 minutes. Keep up to 100 messages and 262144 bytes in the buffer.",
+    "question": "Run a background subscription for rack power telemetry using a 30 second sampling window. Collect up to 100 messages.",
     "expected_tool_calls": [
       {
         "tool": "dsx_exchange_describe_topic",
@@ -212,12 +212,11 @@
         }
       },
       {
-        "tool": "dsx_exchange_start_subscription",
+        "tool": "dsx_exchange_subscribe",
         "arguments": {
           "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#",
-          "ttl_seconds": 300,
-          "buffer_max_messages": 100,
-          "buffer_max_bytes": 262144
+          "max_messages": 100,
+          "max_duration_s": 30
         }
       }
     ],

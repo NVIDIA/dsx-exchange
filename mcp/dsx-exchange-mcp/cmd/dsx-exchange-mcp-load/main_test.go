@@ -121,6 +121,29 @@ func TestRecorderCountsContextFailures(t *testing.T) {
 	}
 }
 
+func TestMeasureSkipsParentDeadlineCancellation(t *testing.T) {
+	rec := &recorder{
+		startedAt:    time.Now(),
+		byOperation:  map[string]*operationStats{},
+		errors:       map[string]uint64{},
+		errorSamples: map[string][]string{},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+	<-ctx.Done()
+
+	if _, err := measure(ctx, rec, "subscribe", func(context.Context) error {
+		return context.DeadlineExceeded
+	}); err == nil {
+		t.Fatal("measure returned nil error, want deadline")
+	}
+
+	report := rec.snapshot(time.Now())
+	if report.TotalRequests != 0 || report.Failures != 0 {
+		t.Fatalf("parent deadline cancellation was recorded: total=%d failures=%d", report.TotalRequests, report.Failures)
+	}
+}
+
 func TestClassifyErrorExtractsStructuredToolCode(t *testing.T) {
 	err := errors.New(`unexpected_tool_error:{"error":{"code":"mqtt_admission_limited","message":"retry later","retry_after_seconds":1}}`)
 	if got := classifyError(err); got != "tool_error_mqtt_admission_limited" {

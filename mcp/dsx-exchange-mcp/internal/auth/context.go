@@ -23,7 +23,7 @@ type Caller struct {
 	SpiffeID  string
 }
 
-// Middleware extracts the caller bearer and gateway-projected identity headers
+// Middleware extracts the caller bearer and identity headers
 // from the HTTP request and stores them on the request context.
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

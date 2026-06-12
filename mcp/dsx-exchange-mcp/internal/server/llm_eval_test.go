@@ -125,7 +125,10 @@ func newLLMEvalMCPClient(t *testing.T) (*mcpHTTPClient, func(), string) {
 	})
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return srv
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{
+		Stateless:    true,
+		JSONResponse: true,
+	})
 
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", auth.Middleware(handler))
@@ -230,13 +233,13 @@ func llmEvalSystemPrompt(allowLiveTools bool) string {
 Use the available MCP tools before answering. Prefer dsx_exchange_describe_topic, or the gateway-prefixed equivalent, to discover matching AsyncAPI schema channels and related metadata/value topics.
 For "most recent" or snapshot-style requests, plan a retained metadata read before sampling live values when the schema exposes related metadata and value topics.
 For live stream requests, plan dsx_exchange_subscribe with bounded max_messages and max_duration_s.
-For background watch requests, plan dsx_exchange_start_subscription with a concrete topic_filter plus bounded ttl_seconds, buffer_max_messages, and buffer_max_bytes.
+For background watch/listen/monitor requests, plan dsx_exchange_subscribe with a concrete topic_filter plus bounded max_messages and max_duration_s; use max_duration_s=30 unless the deployment documents a higher cap, and invoke it as a native background MCP tool call in Cursor (not a subagent); the host should run the tool while the chat stays usable, like long make targets.
 ` + liveToolInstruction + `
 
 Final response requirements:
 - Return one strict JSON object and no markdown.
 - JSON shape: {"answer":"brief user-facing summary","planned_tool_calls":[{"tool":"dsx_exchange_describe_topic","arguments":{"topic_filter":"..."}},{"tool":"dsx_exchange_read_retained","arguments":{"topic_filter":"...","max_messages":1000}},{"tool":"dsx_exchange_subscribe","arguments":{"topic_filter":"...","max_messages":100,"max_duration_s":30}}],"notes":["optional caveat"]}
-- For background-watch requests, include {"tool":"dsx_exchange_start_subscription","arguments":{"topic_filter":"...","ttl_seconds":300,"buffer_max_messages":100,"buffer_max_bytes":262144}} in planned_tool_calls.
+- For background-watch requests, include {"tool":"dsx_exchange_subscribe","arguments":{"topic_filter":"...","max_messages":100,"max_duration_s":30}} in planned_tool_calls.
 - Use unprefixed canonical tool names in planned_tool_calls even if the MCP endpoint exposes gateway-prefixed names.
 - Do not invent raw data values. This eval is about choosing the right tools and topic filters.`
 }

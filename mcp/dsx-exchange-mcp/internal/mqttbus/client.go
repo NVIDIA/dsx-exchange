@@ -21,6 +21,7 @@ import (
 
 const (
 	DefaultUsername = "oauthtoken"
+	DefaultAuthMode = AuthModeJWTPassthrough
 
 	CodeMissingBearer           = "missing_bearer"
 	CodeInvalidTopicFilter      = "invalid_topic_filter"
@@ -45,25 +46,27 @@ const (
 	StoppedResultTooLarge = "result_too_large"
 )
 
+type AuthMode string
+
+const (
+	AuthModeJWTPassthrough AuthMode = "jwt_passthrough"
+	AuthModeNoAuth         AuthMode = "noauth"
+)
+
 type Config struct {
 	BrokerURL        string
 	Username         string
+	AuthMode         AuthMode
 	TLS              TLSConfig
 	ConnectTimeout   time.Duration
 	SubscribeTimeout time.Duration
 	MaxResultBytes   int
-	Metrics          MetricsRecorder
 }
 
 type TLSConfig struct {
 	CAFile             string
 	ServerName         string
 	InsecureSkipVerify bool
-}
-
-type MetricsRecorder interface {
-	BeginMQTTConnection()
-	EndMQTTConnection()
 }
 
 // Message is a single MQTT message captured from the bus.
@@ -131,10 +134,53 @@ func ErrorCode(err error) string {
 	return CodeInternalError
 }
 
+func NormalizeAuthMode(mode AuthMode) (AuthMode, error) {
+	switch mode {
+	case "":
+		return DefaultAuthMode, nil
+	case AuthModeJWTPassthrough, AuthModeNoAuth:
+		return mode, nil
+	default:
+		return "", &BusError{
+			Code:    CodeInvalidArgument,
+			Message: fmt.Sprintf("unsupported MQTT auth mode %q; use %q or %q", mode, AuthModeJWTPassthrough, AuthModeNoAuth),
+		}
+	}
+}
+
+func (cfg Config) Validate() error {
+	_, err := NormalizeAuthMode(cfg.AuthMode)
+	return err
+}
+
+func configureClientAuth(opts *mqtt.ClientOptions, cfg Config, bearer string) error {
+	mode, err := NormalizeAuthMode(cfg.AuthMode)
+	if err != nil {
+		return err
+	}
+	switch mode {
+	case AuthModeJWTPassthrough:
+		if bearer == "" {
+			return &BusError{Code: CodeMissingBearer, Message: "missing Authorization bearer for jwt_passthrough MQTT auth mode"}
+		}
+		username := cfg.Username
+		if username == "" {
+			username = DefaultUsername
+		}
+		opts.SetUsername(username)
+		opts.SetPassword(bearer)
+	case AuthModeNoAuth:
+		// Intentionally omit username/password. Event Bus noauth matches only
+		// when no OAuth2, mTLS, or NKey credentials are present.
+	}
+	return nil
+}
+
 // Collect opens a one-shot MQTT connection, subscribes to topicFilter, and
 // returns up to maxMessages messages or until maxDuration elapses. The caller's
-// bearer is passed as the MQTT password; DSX Exchange auth-callout owns token
-// validation and topic ACL enforcement.
+// bearer is passed as the MQTT password in jwt_passthrough mode; noauth mode
+// sends no MQTT username/password. DSX Exchange auth-callout owns token
+// validation, anonymous profile matching, and topic ACL enforcement.
 func Collect(
 	ctx context.Context,
 	cfg Config,
@@ -146,9 +192,6 @@ func Collect(
 	start := time.Now()
 	out := CollectResult{}
 
-	if bearer == "" {
-		return out, &BusError{Code: CodeMissingBearer, Message: "missing caller bearer; gateway should pass Authorization through"}
-	}
 	if err := ValidateTopicFilter(topicFilter); err != nil {
 		return out, err
 	}
@@ -170,19 +213,16 @@ func Collect(
 	if subscribeTimeout <= 0 {
 		subscribeTimeout = 5 * time.Second
 	}
-	username := cfg.Username
-	if username == "" {
-		username = DefaultUsername
-	}
 
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.BrokerURL).
 		SetClientID(fmt.Sprintf("dsx-exchange-mcp-%d", time.Now().UnixNano())).
-		SetUsername(username).
-		SetPassword(bearer).
 		SetCleanSession(true).
 		SetAutoReconnect(false).
 		SetConnectTimeout(connectTimeout)
+	if err := configureClientAuth(opts, cfg, bearer); err != nil {
+		return out, err
+	}
 
 	if usesTLS(cfg.BrokerURL) || cfg.TLS.CAFile != "" || cfg.TLS.ServerName != "" || cfg.TLS.InsecureSkipVerify {
 		tlsCfg, err := buildTLSConfig(cfg.TLS)
@@ -237,10 +277,6 @@ func Collect(
 		return out, &BusError{Code: CodeBusUnavailable, Message: "mqtt connect timeout"}
 	} else if tok.Error() != nil {
 		return out, classifyConnectError(tok.Error())
-	}
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginMQTTConnection()
-		defer cfg.Metrics.EndMQTTConnection()
 	}
 	defer c.Disconnect(250)
 
@@ -330,9 +366,6 @@ func Stream(
 	start := time.Now()
 	out := StreamResult{}
 
-	if bearer == "" {
-		return out, &BusError{Code: CodeMissingBearer, Message: "missing caller bearer; gateway should pass Authorization through"}
-	}
 	if err := ValidateTopicFilter(topicFilter); err != nil {
 		return out, err
 	}
@@ -357,10 +390,6 @@ func Stream(
 	if subscribeTimeout <= 0 {
 		subscribeTimeout = 5 * time.Second
 	}
-	username := cfg.Username
-	if username == "" {
-		username = DefaultUsername
-	}
 	clientID := opts.ClientID
 	if clientID == "" {
 		clientID = fmt.Sprintf("dsx-exchange-mcp-task-%d", time.Now().UnixNano())
@@ -384,8 +413,6 @@ func Stream(
 	optsMQTT := mqtt.NewClientOptions().
 		AddBroker(cfg.BrokerURL).
 		SetClientID(clientID).
-		SetUsername(username).
-		SetPassword(bearer).
 		SetCleanSession(true).
 		SetAutoReconnect(false).
 		SetConnectTimeout(connectTimeout).
@@ -396,6 +423,9 @@ func Stream(
 			}
 			finish(StoppedBrokerError)
 		})
+	if err := configureClientAuth(optsMQTT, cfg, bearer); err != nil {
+		return out, err
+	}
 
 	if usesTLS(cfg.BrokerURL) || cfg.TLS.CAFile != "" || cfg.TLS.ServerName != "" || cfg.TLS.InsecureSkipVerify {
 		tlsCfg, err := buildTLSConfig(cfg.TLS)
@@ -427,10 +457,6 @@ func Stream(
 		return out, &BusError{Code: CodeBusUnavailable, Message: "mqtt connect timeout"}
 	} else if tok.Error() != nil {
 		return out, classifyConnectError(tok.Error())
-	}
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginMQTTConnection()
-		defer cfg.Metrics.EndMQTTConnection()
 	}
 	defer c.Disconnect(250)
 

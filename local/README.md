@@ -59,13 +59,14 @@ Use `make skaffold-run` for deploy-only local setup.
 
 ### Skaffold
 
-The root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
-`local/nats/skaffold.yaml`. Skaffold deploys the cluster infrastructure, builds
-the auth-callout image, and installs the event-bus chart. Host scripts still
-handle prerequisites, Kind cluster creation, the local registry, and generated
-NATS secret material. The local Skaffold entrypoints import smaller domain files
-for MetalLB, Envoy Gateway, cert-manager, metrics-server, Prometheus, Keycloak,
-auth-callout image build, secret manifests, and NATS releases.
+The root `skaffold.yaml` imports `local/infra/skaffold.yaml`,
+`local/nats/skaffold.yaml`, and `mcp/dsx-exchange-mcp/skaffold.yaml`. Skaffold
+deploys the cluster infrastructure, builds the auth-callout and MCP images, and
+installs the event-bus and MCP charts. Host scripts still handle prerequisites,
+Kind cluster creation, the local registry, and generated NATS secret material.
+The local Skaffold entrypoints import smaller domain files for MetalLB, Envoy
+Gateway, cert-manager, metrics-server, Prometheus, Keycloak, auth-callout image
+build, secret manifests, NATS releases, and the MCP backend.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -164,3 +165,23 @@ make dummy-bms
 The dummy BMS target uses the same local e2e environment and Envoy Gateway
 LoadBalancer path as the functional and performance tests. It publishes to the
 CSC broker at `tcp://172.18.200.1:1883` unless `CSC_BROKER_URL` is overridden.
+
+### DSX Exchange MCP
+
+The local stack also deploys `dsx-exchange-mcp` into the CSC Kind cluster. This
+is a direct backend deployment, not an MCP gateway deployment. It is intended
+for manual MCP client checks against the same local Event Bus services used by
+the e2e tests.
+
+After `make skaffold-run`, expose the MCP backend locally:
+
+```bash
+cd ../mcp/dsx-exchange-mcp
+make port-forward-kind
+```
+
+Configure the MCP client with `http://127.0.0.1:18080/mcp`. The local MCP Kind
+deployment uses the Event Bus noauth path by default, so do not configure an
+MCP bearer token and do not send a dummy token. Schema discovery tools do not
+connect to MQTT. Broker-backed tools connect to the local Event Bus without
+MQTT username/password, matching the local evaluation noauth setup.

@@ -6,17 +6,31 @@ LOAD_BINARY := dsx-exchange-mcp-load
 PKG    := github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp
 SCHEMA_SRC  ?= ../../schemas
 GOFLAGS    ?= -mod=vendor
+SKAFFOLD   ?= skaffold
+KUBECTL    ?= kubectl
+KIND_CONTEXT ?= kind-csc
+MCP_NAMESPACE ?= mcp-backends
+MCP_RELEASE ?= dsx-exchange-mcp
+MCP_LOCAL_PORT ?= 18080
 
-.PHONY: build build-load run test tidy vendor lint sync-specs verify-specs image load-image clean
+.PHONY: build build-load run skaffold-run-kind port-forward-kind test tidy vendor lint sync-specs verify-specs image load-image clean
 
 build:
+	mkdir -p bin
 	go build $(GOFLAGS) -o bin/$(BINARY) ./cmd/$(BINARY)
 
 build-load:
+	mkdir -p bin
 	go build $(GOFLAGS) -o bin/$(LOAD_BINARY) ./cmd/$(LOAD_BINARY)
 
 run: sync-specs build
 	./bin/$(BINARY)
+
+skaffold-run-kind:
+	"$(SKAFFOLD)" run -f skaffold.yaml --cleanup=false
+
+port-forward-kind:
+	"$(KUBECTL)" --context "$(KIND_CONTEXT)" -n "$(MCP_NAMESPACE)" port-forward "svc/$(MCP_RELEASE)" "$(MCP_LOCAL_PORT):8080"
 
 test:
 	go test $(GOFLAGS) ./...

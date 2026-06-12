@@ -10,7 +10,8 @@ natsURL: tls://event-bus-ytl-dev2.dev.dsx.nvidia.com:1883
 runtimeClassName: ""
 
 mqtt:
-  username: oauth
+  authMode: jwt_passthrough
+  username: oauthtoken
   tls:
     caCertSecret:
       name: dsx-exchange-broker-ca

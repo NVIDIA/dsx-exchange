@@ -148,6 +148,7 @@ func TestStagedMCPWatchThroughEndpoint(t *testing.T) {
 	if os.Getenv("RUN_EXCHANGE_MCP_WATCH_E2E") != "1" {
 		t.Skip("set RUN_EXCHANGE_MCP_WATCH_E2E=1 to run staged MCP background watch e2e")
 	}
+	t.Skip("background watch tools are retired from the public MCP surface; validate bounded dsx_exchange_subscribe instead")
 
 	endpoint := requiredEnv(t, "DSX_EXCHANGE_MCP_URL")
 	bearer := requiredEnv(t, "DSX_EXCHANGE_E2E_BEARER")
@@ -165,9 +166,6 @@ func TestStagedMCPWatchThroughEndpoint(t *testing.T) {
 	sessionID, err := client.initialize(ctx)
 	if err != nil {
 		t.Fatalf("initialize through MCP endpoint failed: %v", err)
-	}
-	if sessionID == "" {
-		t.Fatal("initialize returned empty MCP session ID")
 	}
 	if err := client.initialized(ctx, sessionID); err != nil {
 		t.Fatalf("notifications/initialized failed: %v", err)

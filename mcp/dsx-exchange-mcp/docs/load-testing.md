@@ -5,16 +5,18 @@ SPDX-License-Identifier: Apache-2.0
 
 # DSX Exchange MCP Load Testing
 
-This note explains how to reproduce the current load-test methodology and
-records the stable findings from local gateway-backed experiments. Raw report
-bundles are intentionally not committed; they belong under ignored `reports/`.
+This note explains how to reproduce the current load-test methodology and keeps
+the stable findings from local experiments. Raw report bundles are intentionally
+not committed; they belong under ignored `reports/`.
 
 ## What The Harness Tests
 
 `cmd/dsx-exchange-mcp-load` creates many independent MCP clients. Each client
-performs its own MCP initialize flow, keeps its own `Mcp-Session-Id`, lists
-tools, and then runs one workload scenario. This is not an LLM test; it is a
-protocol and backend-capacity test.
+performs its own MCP initialize flow, lists tools, and then runs one workload
+scenario. Current `dsx-exchange-mcp` uses stateless JSON Streamable HTTP, so a
+server may not return `Mcp-Session-Id`; the harness handles both stateless and
+stateful endpoints. This is not an LLM test; it is a protocol and
+backend-capacity test.
 
 Scenarios:
 
@@ -23,11 +25,12 @@ Scenarios:
 | `discovery` | Exercise schema tools only: `find_topics` and `describe_topic`. |
 | `schema-resources` | Exercise MCP resources: `resources/list` and `resources/read`. |
 | `bounded-read` | Exercise broker-facing bounded reads: retained reads and short live subscribes. |
-| `watch` | Start, read, status-check, and stop background watches. |
-| `watch-hold` | Start watches and hold them open to measure startup and active-watch pressure. |
-| `watch-status-hold` | Start watches, then poll aggregated `subscription_status`. |
-| `sticky-check` | Verify a subscription can be read/statused/stopped on the same MCP session. |
-| `mixed` | Mix schema tools, bounded MQTT tools, and background watches. |
+| `mixed` | Mix schema tools and bounded MQTT tools. |
+| `mixed-stateless` | Alias-style scenario with the same public-surface intent as `mixed`. |
+
+Legacy watch scenarios (`watch`, `watch-hold`, `watch-status-hold`, and
+`sticky-check`) remain in the harness for historical report comparison, but
+current public v1 does not expose watch/listen/monitor lifecycle tools.
 
 `deploy/loadtest/run-kind-load-experiment.sh` wraps the load binary for local
 Kind/gateway experiments. It records the manifest, image IDs, token TTL
@@ -36,21 +39,23 @@ latency, and per-operation error attribution.
 
 ## Reproduction Requirements
 
-The load harness depends on systems outside this MCP repo. Before running it,
-the operator needs:
+The load harness depends on systems outside this MCP repo. Before running
+gateway-backed deployed-bus tests, the operator needs:
 
-- a reachable MCP gateway `/mcp` endpoint
-- the `dsx-exchange-mcp` backend deployed behind that gateway
-- stateful MCP session routing enabled when testing background watches
+- a reachable MCP `/mcp` endpoint, either direct backend or gateway
 - backend configuration for the target Event Bus MQTT endpoint through Helm
   `natsURL`
-- broker username configured through Helm `mqtt.username`
+- MQTT auth mode configured through Helm `mqtt.authMode`
+- broker username configured through Helm `mqtt.username` when using
+  `jwt_passthrough`
 - broker TLS trust configured through Helm `mqtt.tls.caCertSecret.name/key`
 - broker TLS server name configured through Helm `mqtt.tls.serverName` when the
   certificate requires it
-- a fresh caller JWT from the approved secret manager or Vault flow
+- a fresh caller JWT from the approved secret manager or Vault flow when using
+  `jwt_passthrough`
 - the JWT available to the load job as a Kubernetes secret named
-  `dsx-exchange-mcp-load-token` with key `bearer`
+  `dsx-exchange-mcp-load-token` with key `bearer` when using
+  `jwt_passthrough`
 - the MCP backend image and load-generator image available to the cluster
 
 Do not commit tokens, CA material, cluster snapshots, local endpoint names, or
@@ -89,19 +94,19 @@ Use this checklist before treating load-test failures as MCP bugs:
 
 | Check | Expected state |
 | --- | --- |
-| Gateway endpoint | MCP clients can reach the gateway `/mcp` endpoint. |
-| Gateway bearer passthrough | The caller bearer reaches `dsx-exchange-mcp` as `Authorization`. |
-| Stateful routing | Calls with the same `Mcp-Session-Id` route to the same backend pod. |
+| MCP endpoint | MCP clients can reach the direct backend or gateway `/mcp` endpoint. |
+| MQTT auth mode | Backend uses `jwt_passthrough` for deployed auth or `noauth` for local anonymous fallback. |
+| Bearer passthrough | In `jwt_passthrough`, the caller bearer reaches `dsx-exchange-mcp` as `Authorization`. |
 | Broker endpoint | Backend `NATS_URL` points at the intended MQTT endpoint. |
-| Broker username | Backend `MQTT_USERNAME` matches the broker OAuth profile. |
+| Broker username | In `jwt_passthrough`, backend `MQTT_USERNAME` matches the broker OAuth profile. |
 | Broker CA | Backend has a mounted CA file and `MQTT_TLS_CA_FILE` points to it. |
 | TLS server name | Backend server-name override matches the broker certificate when required. |
-| Load JWT secret | Load namespace has `dsx-exchange-mcp-load-token` with data key `bearer`. |
-| JWT freshness | Token TTL is long enough for the full experiment. |
+| Load JWT secret | In `jwt_passthrough`, load namespace has `dsx-exchange-mcp-load-token` with data key `bearer`. |
+| JWT freshness | In `jwt_passthrough`, token TTL is long enough for the full experiment. |
 | Topic ACLs | The load topics are authorized for the caller identity. |
 
-If `discovery` passes but `bounded-read`, `watch`, or `mixed` fail, the next
-checks are bearer freshness, broker CA/server-name settings, topic ACLs, broker
+If `discovery` passes but `bounded-read` or `mixed` fails, the next checks are
+auth mode, bearer freshness, broker CA/server-name settings, topic ACLs, broker
 availability, and MQTT admission limits.
 
 ## Important Knobs
@@ -110,7 +115,7 @@ Record these for every run so the result is reproducible:
 
 | Knob | Meaning |
 | --- | --- |
-| `SCENARIO` | Workload shape, such as `discovery`, `mixed`, or `watch-status-hold`. |
+| `SCENARIO` | Workload shape, such as `discovery`, `schema-resources`, `bounded-read`, or `mixed`. |
 | `SESSION_SWEEP` / `SESSIONS` | Concurrent MCP client/session counts. |
 | `STARTUP_RAMP` | Time window used to spread client startup. `0s` means an instant startup burst. |
 | `DURATION` | Total wall-clock runtime after the load job starts. |
@@ -120,7 +125,6 @@ Record these for every run so the result is reproducible:
 | `BACKEND_CONNECT_TIMEOUT_S` | Backend MQTT connect timeout. |
 | `BACKEND_SUBSCRIBE_TIMEOUT_S` | Backend MQTT subscribe timeout. |
 | `BACKEND_COLLECT_MAX_CONCURRENT` | Per-pod admission limit for bounded MQTT collectors. |
-| `BACKEND_WATCH_START_MAX_CONCURRENT` | Per-pod admission limit for watch startup. |
 | `TOPIC` / `RETAINED_TOPIC` | Allowed live and retained topic filters used by broker-facing scenarios. |
 | `RESET_BACKEND` | Whether the backend is restarted before the run. |
 
@@ -133,8 +137,10 @@ from an earlier experiment.
 ## Findings From Current Experiments
 
 These findings came from local Kind/gateway experiments using 100, 500, and
-1000 MCP sessions, 1-3 backend replicas, 30s/60s startup ramps, raised gateway
-RPS variants, and MQTT timeout/admission experiments.
+1000 MCP clients, 1-3 backend replicas, 30s/60s startup ramps, raised gateway
+RPS variants, and MQTT timeout/admission experiments. Some older experiments
+included watch lifecycle tools; those results are kept only as historical
+capacity evidence.
 
 ### Schema Discovery Is Mostly Healthy
 
@@ -172,7 +178,6 @@ calls. At high session counts, failures were dominated by:
 
 - bounded `subscribe`
 - `read_retained`
-- `start_subscription`
 - MQTT admission limiting
 - broker unavailable or MQTT subscribe/connect deadline errors
 
@@ -183,7 +188,7 @@ tool dispatch, JSON encode, and response path. When many MQTT calls are waiting
 on connect/subscribe or admission, they consume shared gateway/backend capacity
 and cheap calls can miss client deadlines.
 
-### Watch Status Scales Better Than Mixed Bounded MQTT
+### Historical Watch Status Result
 
 `watch-status-hold` performed much better than mixed load once watches were
 started and clients mostly polled `subscription_status`:
@@ -196,17 +201,19 @@ started and clients mostly polled `subscription_status`:
 | `watch-status-hold` | 2 | 1000 | 98.743% |
 | `watch-status-hold` | 3 | 1000 | 98.864% |
 
-This supports the v1 UX direction: prefer aggregated `subscription_status` for
-operator-facing follow-up rather than repeatedly returning raw buffered data.
+This was useful evidence that lightweight status polling is cheaper than
+repeated broker startup. The public v1 direction has since moved away from
+server-side watch state, so new UX validation should focus on finite
+`dsx_exchange_subscribe` calls that clients can run in the background when they
+support that primitive.
 
 ### Replicas Help Steady State, Not Broker Startup Storms
 
-Adding backend replicas helped the watch-status steady state, but it did not
-fix the mixed workload. The dominant mixed-load cost was concurrent MQTT
-connect/subscribe against the external broker, not pure CPU work inside one MCP
-pod. More pods can increase the number of simultaneous broker connection
-attempts, so scaling replicas without admission control can move the bottleneck
-to the broker/auth/network path faster.
+Adding backend replicas did not automatically fix mixed bounded MQTT load. The
+dominant cost was concurrent MQTT connect/subscribe against the external broker,
+not pure CPU work inside one MCP pod. More pods can increase the number of
+simultaneous broker connection attempts, so scaling replicas without admission
+control can move the bottleneck to the broker/auth/network path faster.
 
 ### Timeout Alone Is Not A Fix
 
@@ -222,10 +229,12 @@ For current v1, the MCP server is useful and bounded when:
 
 - schema discovery is used freely
 - retained/live bounded reads stay small
-- background watches are pod-local and session-pinned
-- `subscription_status` is the normal follow-up surface
-- raw `read_subscription` is treated as detail/debug, not the primary UX
+- long listen/watch/monitor prompts are implemented as finite
+  `dsx_exchange_subscribe` calls
+- MCP clients run long bounded calls in the background when they support that
+  UX primitive
 
-The next scale work should focus on gateway resource handling, sticky-session
-validation, MQTT startup backpressure, and pod-failure behavior before adding
-durable external watch state.
+The next scale work should focus on gateway resource handling, MQTT startup
+backpressure, and pod-failure behavior. Durable external watch state should stay
+out of scope unless product/load evidence shows bounded background tool calls
+are not enough.

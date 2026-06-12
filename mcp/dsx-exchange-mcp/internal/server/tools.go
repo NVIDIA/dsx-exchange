@@ -80,16 +80,31 @@ type errorBody struct {
 	RetryAfterSeconds int    `json:"retry_after_seconds,omitempty"`
 }
 
-func registerTools(s *mcp.Server, cfg Config, watches *watchManager) {
+func registerTools(s *mcp.Server, cfg Config) {
 	mcp.AddTool(s, &mcp.Tool{
-		Name: toolSubscribe,
-		Description: "Subscribe to a DSX Exchange MQTT topic filter and return live messages " +
-			"received within bounded limits. Use this for BMS Value channels; BMS live value paths " +
-			"are under BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}. Good discovery filters " +
-			"are BMS/v1/PUB/Value/# and BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#. " +
+		Meta: mcp.Meta{
+			"x-dsx-exchange-background-preferred": true,
+			"x-dsx-exchange-bounded-window":       true,
+		},
+		Name:        toolSubscribe,
+		Annotations: readOnlyOpenWorldAnnotations("Bounded MQTT subscribe"),
+		Description: "Background-friendly bounded MQTT subscribe. For watch/listen/monitor prompts, " +
+			"invoke this tool as a native MCP tool call and let the MCP client run it in the " +
+			"background (same UX as long-running shell/make targets): do not block the chat on the " +
+			"full max_duration_s window, do not delegate to a subagent, and do not shell out to " +
+			"mosquitto_sub. The call may take up to max_duration_s; the host keeps the conversation " +
+			"usable while it runs. Use this for BMS Value channels under " +
+			"BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}. Good discovery filters are " +
+			"BMS/v1/PUB/Value/# and BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#. " +
+			"This is a finite server request: one temporary MQTT client, subscribe, collect until " +
+			"max_messages or max_duration_s, disconnect, return bounded results. Prefer " +
+			"max_duration_s=30 and max_messages=100 unless the deployment documents a higher cap. " +
+			"Repeat the call for ongoing sampling; this does not keep MQTT open after the window ends. " +
+			"If background execution is unavailable, use short windows and repeat. " +
 			"Consult dsx-exchange://specs/* before inventing topic segments such as Data or Telemetry. " +
-			"The caller bearer is passed to MQTT as the configured OAuth username/password=<bearer>; " +
-			"DSX Exchange auth-callout enforces OAuth2 validity and topic ACLs.",
+			"In jwt_passthrough mode, the caller bearer is passed to MQTT as the configured OAuth " +
+			"username/password=<bearer>; in noauth mode, no MQTT username/password is sent. " +
+			"DSX Exchange auth-callout enforces token validity, anonymous fallback, and topic ACLs.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in subscribeInput) (*mcp.CallToolResult, collectOutput, error) {
 		maxMessages := in.MaxMessages
 		durationS := in.MaxDurationS
@@ -97,53 +112,47 @@ func registerTools(s *mcp.Server, cfg Config, watches *watchManager) {
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
-		Name: toolReadRetained,
+		Name:        toolReadRetained,
+		Annotations: readOnlyOpenWorldAnnotations("Read retained MQTT messages"),
 		Description: "Read currently-retained messages on a DSX Exchange MQTT topic filter. " +
 			"Use this for retained BMS Metadata, for example BMS/v1/PUB/Metadata/#, before " +
 			"deriving specific value topics. Do not use this tool for BMS live Value channels; " +
 			"a zero-count retained_idle result means no retained messages matched that filter. " +
-			"The caller bearer is passed to MQTT as the configured OAuth username/password=<bearer>.",
+			"In jwt_passthrough mode, the caller bearer is passed to MQTT as the configured OAuth " +
+			"username/password=<bearer>; in noauth mode, no MQTT username/password is sent.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in readRetainedInput) (*mcp.CallToolResult, collectOutput, error) {
 		return collectTool(ctx, cfg, toolReadRetained, in.TopicFilter, in.MaxMessages, cfg.DefaultDurationS, true)
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
-		Name: toolDescribeTopic,
+		Name:        toolDescribeTopic,
+		Annotations: readOnlyClosedWorldAnnotations("Describe Exchange schema topic"),
 		Description: "Schema Exploration: describe the AsyncAPI channel matching a DSX Exchange topic filter. " +
 			"Returns the schema channel, payload shape, retained/live behavior, examples, and related metadata/value topics. " +
 			"Use this before subscribing when the caller knows roughly which MQTT path they want but needs schema context.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in describeTopicInput) (*mcp.CallToolResult, describeTopicOutput, error) {
-		start := time.Now()
-		if cfg.Metrics != nil {
-			cfg.Metrics.BeginToolCall()
-			defer cfg.Metrics.EndToolCall()
-		}
-		result, out, err := describeTopicTool(ctx, in)
-		if cfg.Metrics != nil {
-			cfg.Metrics.RecordToolCall(toolDescribeTopic, toolResultErrorCode(result, err), "", time.Since(start), out.Count)
-		}
-		return result, out, err
+		return describeTopicTool(ctx, in)
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
-		Name: toolFindTopics,
+		Name:        toolFindTopics,
+		Annotations: readOnlyClosedWorldAnnotations("Find Exchange topics"),
 		Description: "Schema Exploration: find AsyncAPI-derived DSX Exchange MQTT topic filters by domain, text query, role, object type, point type, or operation action. " +
 			"Use this before starting a long-running subscription when the caller describes a domain or signal but does not know the raw MQTT topic path. " +
 			"Returned topic filters still require broker ACL approval when used by MQTT tools.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in findTopicsInput) (*mcp.CallToolResult, findTopicsOutput, error) {
-		start := time.Now()
-		if cfg.Metrics != nil {
-			cfg.Metrics.BeginToolCall()
-			defer cfg.Metrics.EndToolCall()
-		}
-		result, out, err := findTopicsTool(ctx, cfg, in)
-		if cfg.Metrics != nil {
-			cfg.Metrics.RecordToolCall(toolFindTopics, toolResultErrorCode(result, err), "", time.Since(start), out.Count)
-		}
-		return result, out, err
+		return findTopicsTool(ctx, cfg, in)
 	})
+}
 
-	registerWatchTools(s, cfg, watches)
+func readOnlyOpenWorldAnnotations(title string) *mcp.ToolAnnotations {
+	openWorld := true
+	return &mcp.ToolAnnotations{Title: title, ReadOnlyHint: true, OpenWorldHint: &openWorld}
+}
+
+func readOnlyClosedWorldAnnotations(title string) *mcp.ToolAnnotations {
+	openWorld := false
+	return &mcp.ToolAnnotations{Title: title, ReadOnlyHint: true, OpenWorldHint: &openWorld}
 }
 
 func describeTopicTool(ctx context.Context, in describeTopicInput) (*mcp.CallToolResult, describeTopicOutput, error) {
@@ -260,18 +269,14 @@ func collectTool(
 ) (*mcp.CallToolResult, collectOutput, error) {
 	start := time.Now()
 	caller := auth.FromContext(ctx)
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginToolCall()
-		defer cfg.Metrics.EndToolCall()
-	}
 
 	maxMessages, durationS, err := applyLimits(cfg, maxMessages, durationS)
 	if err != nil {
-		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, err, cfg)
+		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, err)
 	}
 
 	if !cfg.collectAdmission.tryAcquire() {
-		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, admissionLimitedError(), cfg)
+		return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, collectOutput{}, admissionLimitedError())
 	}
 	defer cfg.collectAdmission.release()
 
@@ -283,7 +288,7 @@ func collectTool(
 		StoppedReason: result.StoppedReason,
 		Truncated:     result.Truncated,
 	}
-	return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, out, err, cfg)
+	return finishTool(tool, caller, topicFilter, maxMessages, durationS, start, out, err)
 }
 
 func finishTool(
@@ -295,7 +300,6 @@ func finishTool(
 	start time.Time,
 	out collectOutput,
 	err error,
-	cfg Config,
 ) (*mcp.CallToolResult, collectOutput, error) {
 	duration := time.Since(start)
 	if out.DurationMS == 0 {
@@ -303,9 +307,6 @@ func finishTool(
 	}
 
 	code := errorCode(err)
-	if cfg.Metrics != nil {
-		cfg.Metrics.RecordToolCall(tool, code, out.StoppedReason, duration, out.Count)
-	}
 	auditToolCall(tool, caller, topicFilter, maxMessages, durationS, out, duration, code)
 
 	if err != nil {
@@ -435,26 +436,6 @@ func errorCode(err error) string {
 		return "deadline_exceeded"
 	}
 	return mqttbus.ErrorCode(err)
-}
-
-func toolResultErrorCode(result *mcp.CallToolResult, err error) string {
-	if err != nil {
-		return errorCode(err)
-	}
-	if result == nil || !result.IsError {
-		return ""
-	}
-	for _, item := range result.Content {
-		text, ok := item.(*mcp.TextContent)
-		if !ok || text.Text == "" {
-			continue
-		}
-		var body structuredError
-		if json.Unmarshal([]byte(text.Text), &body) == nil && body.Error.Code != "" {
-			return body.Error.Code
-		}
-	}
-	return mqttbus.CodeInternalError
 }
 
 func publicMessage(err error) string {

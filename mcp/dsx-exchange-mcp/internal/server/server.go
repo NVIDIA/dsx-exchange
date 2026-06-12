@@ -10,29 +10,28 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/auth"
-	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/metrics"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/mqttbus"
 )
 
 type Config struct {
-	MQTT                        mqttbus.Config
-	Metrics                     *metrics.Recorder
-	DefaultMaxMessages          int
-	MaxMessages                 int
-	DefaultDurationS            int
-	MaxDurationS                int
-	MQTTCollectMaxConcurrent    int
-	MQTTWatchStartMaxConcurrent int
-	WatchDefaultTTLS            int
-	WatchMaxTTLS                int
-	WatchDefaultBufferMessages  int
-	WatchMaxBufferMessages      int
-	WatchDefaultBufferBytes     int
-	WatchMaxBufferBytes         int
-	WatchMaxPerSession          int
-	WatchMaxPerPod              int
-	FindTopicsDefaultLimit      int
-	FindTopicsMaxLimit          int
+	MQTT                         mqttbus.Config
+	DefaultMaxMessages           int
+	MaxMessages                  int
+	DefaultDurationS             int
+	MaxDurationS                 int
+	MQTTCollectMaxConcurrent     int
+	MQTTWatchStartMaxConcurrent  int
+	WatchDefaultTTLS             int
+	WatchMaxTTLS                 int
+	WatchDefaultBufferMessages   int
+	WatchMaxBufferMessages       int
+	WatchDefaultBufferBytes      int
+	WatchMaxBufferBytes          int
+	WatchMaxPerSession           int
+	WatchMaxPerPod               int
+	FindTopicsDefaultLimit       int
+	FindTopicsMaxLimit           int
+	EnableExperimentalWatchTools bool
 
 	collectAdmission    *admissionLimiter
 	watchStartAdmission *admissionLimiter
@@ -51,17 +50,14 @@ func Build(cfg Config) *mcp.Server {
 	)
 
 	normalizeConfig(&cfg)
-	cfg.MQTT.Metrics = cfg.Metrics
 	cfg.collectAdmission = newAdmissionLimiter(cfg.MQTTCollectMaxConcurrent)
-	cfg.watchStartAdmission = newAdmissionLimiter(cfg.MQTTWatchStartMaxConcurrent)
-	srv.AddReceivingMiddleware(callerContextMiddleware(cfg.Metrics))
-	watches := newWatchManager(cfg)
-	registerTools(srv, cfg, watches)
+	srv.AddReceivingMiddleware(callerContextMiddleware())
+	registerTools(srv, cfg)
 	registerResources(srv)
 	return srv
 }
 
-func callerContextMiddleware(rec *metrics.Recorder) func(mcp.MethodHandler) mcp.MethodHandler {
+func callerContextMiddleware() func(mcp.MethodHandler) mcp.MethodHandler {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			sessionID := ""
@@ -76,9 +72,6 @@ func callerContextMiddleware(rec *metrics.Recorder) func(mcp.MethodHandler) mcp.
 				ctx = auth.WithCaller(ctx, caller)
 			} else if sessionID != "" {
 				ctx = auth.WithSessionID(ctx, sessionID)
-			}
-			if rec != nil {
-				rec.ObserveSession(sessionID)
 			}
 			return next(ctx, method, req)
 		}

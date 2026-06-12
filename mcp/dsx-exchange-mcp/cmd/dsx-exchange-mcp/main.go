@@ -13,7 +13,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/auth"
-	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/metrics"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/mqttbus"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/server"
 )
@@ -24,12 +23,12 @@ func main() {
 
 	addr := envOr("MCP_ADDR", ":8080")
 	natsURL := envOr("NATS_URL", "tcp://nats:1883")
-	recorder := metrics.NewRecorder()
 
 	cfg := server.Config{
 		MQTT: mqttbus.Config{
 			BrokerURL: natsURL,
 			Username:  envOr("MQTT_USERNAME", mqttbus.DefaultUsername),
+			AuthMode:  mqttbus.AuthMode(envOr("MCP_MQTT_AUTH_MODE", string(mqttbus.DefaultAuthMode))),
 			TLS: mqttbus.TLSConfig{
 				CAFile:             os.Getenv("MQTT_TLS_CA_FILE"),
 				ServerName:         os.Getenv("MQTT_TLS_SERVER_NAME"),
@@ -39,50 +38,51 @@ func main() {
 			SubscribeTimeout: time.Duration(envInt("MQTT_SUBSCRIBE_TIMEOUT_S", 5)) * time.Second,
 			MaxResultBytes:   envInt("MQTT_MAX_RESULT_BYTES", 1048576),
 		},
-		Metrics:                     recorder,
-		DefaultMaxMessages:          envInt("MCP_DEFAULT_MAX_MESSAGES", 100),
-		MaxMessages:                 envInt("MCP_MAX_MESSAGES", 1000),
-		DefaultDurationS:            envInt("MCP_DEFAULT_MAX_DURATION_S", 30),
-		MaxDurationS:                envInt("MCP_MAX_DURATION_S", 30),
-		MQTTCollectMaxConcurrent:    envInt("MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD", 100),
-		MQTTWatchStartMaxConcurrent: envInt("MCP_MQTT_WATCH_START_MAX_CONCURRENT_PER_POD", 500),
-		WatchDefaultTTLS:            envInt("MCP_WATCH_DEFAULT_TTL_S", 300),
-		WatchMaxTTLS:                envInt("MCP_WATCH_MAX_TTL_S", 900),
-		WatchDefaultBufferMessages:  envInt("MCP_WATCH_DEFAULT_BUFFER_MESSAGES", 100),
-		WatchMaxBufferMessages:      envInt("MCP_WATCH_MAX_BUFFER_MESSAGES", 1000),
-		WatchDefaultBufferBytes:     envInt("MCP_WATCH_DEFAULT_BUFFER_BYTES", 262144),
-		WatchMaxBufferBytes:         envInt("MCP_WATCH_MAX_BUFFER_BYTES", 1048576),
-		WatchMaxPerSession:          envInt("MCP_WATCH_MAX_PER_SESSION", 10),
-		WatchMaxPerPod:              envInt("MCP_WATCH_MAX_PER_POD", 1000),
-		FindTopicsDefaultLimit:      envInt("MCP_FIND_TOPICS_DEFAULT_LIMIT", 20),
-		FindTopicsMaxLimit:          envInt("MCP_FIND_TOPICS_MAX_LIMIT", 100),
+		DefaultMaxMessages:           envInt("MCP_DEFAULT_MAX_MESSAGES", 100),
+		MaxMessages:                  envInt("MCP_MAX_MESSAGES", 1000),
+		DefaultDurationS:             envInt("MCP_DEFAULT_MAX_DURATION_S", 30),
+		MaxDurationS:                 envInt("MCP_MAX_DURATION_S", 30),
+		MQTTCollectMaxConcurrent:     envInt("MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD", 100),
+		FindTopicsDefaultLimit:       envInt("MCP_FIND_TOPICS_DEFAULT_LIMIT", 20),
+		FindTopicsMaxLimit:           envInt("MCP_FIND_TOPICS_MAX_LIMIT", 100),
+		EnableExperimentalWatchTools: envBool("MCP_ENABLE_EXPERIMENTAL_WATCH_TOOLS", false),
+	}
+
+	if cfg.EnableExperimentalWatchTools {
+		logger.Error("experimental watch tools are no longer exposed; use bounded dsx_exchange_subscribe calls")
+		os.Exit(2)
+	}
+	if err := cfg.MQTT.Validate(); err != nil {
+		logger.Error("invalid MQTT configuration", "err", err)
+		os.Exit(2)
 	}
 
 	srv := server.Build(cfg)
 
 	handler := mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return srv },
-		nil,
+		&mcp.StreamableHTTPOptions{
+			Stateless:    true,
+			JSONResponse: true,
+		},
 	)
 
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", auth.Middleware(handler))
 	mux.HandleFunc("/healthz/live", healthOK)
 	mux.HandleFunc("/healthz/ready", healthOK)
-	mux.Handle("/metrics", recorder.Handler())
 
 	logger.Info("dsx-exchange-mcp listening",
 		"addr", addr,
 		"nats", natsURL,
+		"mqtt_auth_mode", cfg.MQTT.AuthMode,
 		"mqtt_username", cfg.MQTT.Username,
 		"mqtt_tls_ca_configured", cfg.MQTT.TLS.CAFile != "",
 		"mqtt_tls_server_name", cfg.MQTT.TLS.ServerName,
 		"max_messages", cfg.MaxMessages,
 		"max_duration_s", cfg.MaxDurationS,
 		"mqtt_collect_max_concurrent_per_pod", cfg.MQTTCollectMaxConcurrent,
-		"mqtt_watch_start_max_concurrent_per_pod", cfg.MQTTWatchStartMaxConcurrent,
-		"watch_max_ttl_s", cfg.WatchMaxTTLS,
-		"watch_max_per_pod", cfg.WatchMaxPerPod,
+		"experimental_watch_tools_enabled", cfg.EnableExperimentalWatchTools,
 	)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		logger.Error("server exited", "err", err)

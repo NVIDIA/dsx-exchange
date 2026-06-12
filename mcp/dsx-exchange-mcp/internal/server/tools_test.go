@@ -295,9 +295,14 @@ func TestMCPClientListsAndCallsDescribeTopic(t *testing.T) {
 	for _, tool := range tools.Tools {
 		toolNames[tool.Name] = true
 	}
-	for _, name := range []string{toolDescribeTopic, toolFindTopics, toolReadRetained, toolSubscribe, toolStartSubscription, toolReadSubscription, toolStatusSubscription, toolStopSubscription} {
+	for _, name := range []string{toolDescribeTopic, toolFindTopics, toolReadRetained, toolSubscribe} {
 		if !toolNames[name] {
 			t.Fatalf("ListTools did not expose %q; saw %#v", name, toolNames)
+		}
+	}
+	for _, name := range []string{toolStartSubscription, toolReadSubscription, toolStatusSubscription, toolStopSubscription} {
+		if toolNames[name] {
+			t.Fatalf("ListTools exposed experimental watch tool %q without opt-in; saw %#v", name, toolNames)
 		}
 	}
 
@@ -334,6 +339,31 @@ func TestMCPClientListsAndCallsDescribeTopic(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMCPClientDoesNotExposeExperimentalWatchToolsWhenFlagSet(t *testing.T) {
+	session, cleanup := newTestMCPClientWithConfig(t, Config{
+		DefaultMaxMessages:           100,
+		MaxMessages:                  1000,
+		DefaultDurationS:             30,
+		MaxDurationS:                 30,
+		EnableExperimentalWatchTools: true,
+	})
+	defer cleanup()
+
+	tools, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListTools failed: %v", err)
+	}
+	toolNames := map[string]bool{}
+	for _, tool := range tools.Tools {
+		toolNames[tool.Name] = true
+	}
+	for _, name := range []string{toolStartSubscription, toolReadSubscription, toolStatusSubscription, toolStopSubscription} {
+		if toolNames[name] {
+			t.Fatalf("ListTools exposed retired watch tool %q; saw %#v", name, toolNames)
+		}
 	}
 }
 
@@ -402,15 +432,23 @@ func loadToolCallFixtures(t *testing.T) []toolCallFixture {
 
 func newTestMCPClient(t *testing.T) (*mcp.ClientSession, func()) {
 	t.Helper()
-	srv := Build(Config{
+	return newTestMCPClientWithConfig(t, Config{
 		DefaultMaxMessages: 100,
 		MaxMessages:        1000,
 		DefaultDurationS:   30,
 		MaxDurationS:       30,
 	})
+}
+
+func newTestMCPClientWithConfig(t *testing.T, cfg Config) (*mcp.ClientSession, func()) {
+	t.Helper()
+	srv := Build(cfg)
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return srv
-	}, nil)
+	}, &mcp.StreamableHTTPOptions{
+		Stateless:    true,
+		JSONResponse: true,
+	})
 
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", auth.Middleware(handler))

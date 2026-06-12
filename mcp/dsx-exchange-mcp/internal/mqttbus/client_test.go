@@ -7,6 +7,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 func TestValidateTopicFilter(t *testing.T) {
@@ -44,6 +46,64 @@ func TestErrorCode(t *testing.T) {
 	}
 	if got := ErrorCode(errors.New("plain")); got != CodeInternalError {
 		t.Fatalf("ErrorCode for plain error = %q, want %q", got, CodeInternalError)
+	}
+}
+
+func TestNormalizeAuthMode(t *testing.T) {
+	mode, err := NormalizeAuthMode("")
+	if err != nil {
+		t.Fatalf("NormalizeAuthMode empty returned error: %v", err)
+	}
+	if mode != AuthModeJWTPassthrough {
+		t.Fatalf("NormalizeAuthMode empty = %q, want %q", mode, AuthModeJWTPassthrough)
+	}
+
+	mode, err = NormalizeAuthMode(AuthModeNoAuth)
+	if err != nil {
+		t.Fatalf("NormalizeAuthMode noauth returned error: %v", err)
+	}
+	if mode != AuthModeNoAuth {
+		t.Fatalf("NormalizeAuthMode noauth = %q, want %q", mode, AuthModeNoAuth)
+	}
+
+	if _, err = NormalizeAuthMode("dummy"); ErrorCode(err) != CodeInvalidArgument {
+		t.Fatalf("NormalizeAuthMode invalid code = %q, want %q", ErrorCode(err), CodeInvalidArgument)
+	}
+}
+
+func TestConfigureClientAuthJWTPassthrough(t *testing.T) {
+	opts := mqtt.NewClientOptions()
+	err := configureClientAuth(opts, Config{AuthMode: AuthModeJWTPassthrough}, "token")
+	if err != nil {
+		t.Fatalf("configureClientAuth jwt returned error: %v", err)
+	}
+	if opts.Username != DefaultUsername {
+		t.Fatalf("username = %q, want %q", opts.Username, DefaultUsername)
+	}
+	if opts.Password != "token" {
+		t.Fatalf("password = %q, want token", opts.Password)
+	}
+}
+
+func TestConfigureClientAuthJWTPassthroughRequiresBearer(t *testing.T) {
+	opts := mqtt.NewClientOptions()
+	err := configureClientAuth(opts, Config{AuthMode: AuthModeJWTPassthrough}, "")
+	if ErrorCode(err) != CodeMissingBearer {
+		t.Fatalf("configureClientAuth missing bearer code = %q, want %q", ErrorCode(err), CodeMissingBearer)
+	}
+}
+
+func TestConfigureClientAuthNoAuthSendsNoCredentials(t *testing.T) {
+	opts := mqtt.NewClientOptions()
+	err := configureClientAuth(opts, Config{AuthMode: AuthModeNoAuth, Username: DefaultUsername}, "dummy")
+	if err != nil {
+		t.Fatalf("configureClientAuth noauth returned error: %v", err)
+	}
+	if opts.Username != "" {
+		t.Fatalf("noauth username = %q, want empty", opts.Username)
+	}
+	if opts.Password != "" {
+		t.Fatalf("noauth password = %q, want empty", opts.Password)
 	}
 }
 

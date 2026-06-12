@@ -62,7 +62,6 @@ internal/mqttbus/client.go
     |
     v
 internal/server/tools.go
-  records metrics
   writes audit log
   returns MCP result
 ```
@@ -75,14 +74,13 @@ For an MCP resource read, the flow stops inside `internal/specs`; no MQTT connec
 | --- | --- |
 | `cmd/dsx-exchange-mcp/main.go` | Process entrypoint. Reads env config, builds the MCP server, registers HTTP routes, starts `ListenAndServe`. |
 | `internal/server/server.go` | Creates the MCP server instance and registers tools/resources. |
-| `internal/server/tools.go` | Defines MCP tools, parses tool inputs, describes schema topics, enforces bounds, calls MQTT collection, emits audit logs and metrics. |
+| `internal/server/tools.go` | Defines MCP tools, parses tool inputs, describes schema topics, enforces bounds, calls MQTT collection, and emits audit logs. |
 | `internal/server/resources.go` | Defines MCP resources backed by embedded DSX specs. |
 | `internal/specs/specs.go` | Exposes raw spec resources from the embedded `schemas/` tree. |
 | `internal/schemaindex/index.go` | Parses AsyncAPI channel/message/operation primitives into a topic catalogue for schema exploration tools. |
 | `schemas/` | Generated copy of the monorepo root `schemas/`, embedded into the binary by `schemas/embed.go`. |
 | `internal/mqttbus/client.go` | MQTT/NATS client logic: connect, subscribe, collect messages, classify broker errors. |
 | `internal/auth/context.go` | Pulls Gateway-provided bearer and identity headers into Go context. |
-| `internal/metrics/metrics.go` | In-process Prometheus text metrics endpoint. |
 | `deploy/helm/dsx-exchange-mcp/templates/deployment.yaml` | Kubernetes Deployment: env vars, probes, security context, runtime class. |
 | `deploy/helm/dsx-exchange-mcp/templates/service.yaml` | Kubernetes Service that Gateway discovers/routes to. |
 | `deploy/helm/dsx-exchange-mcp/values.yaml` | Default deploy-time configuration. |
@@ -94,7 +92,6 @@ The binary starts in `cmd/dsx-exchange-mcp/main.go`.
 ```go
 addr := envOr("MCP_ADDR", ":8080")
 natsURL := envOr("NATS_URL", "tcp://nats:1883")
-recorder := metrics.NewRecorder()
 ```
 
 The entrypoint builds one `server.Config` from environment variables:
@@ -105,7 +102,6 @@ cfg := server.Config{
 		BrokerURL: natsURL,
 		Username:  envOr("MQTT_USERNAME", mqttbus.DefaultUsername),
 	},
-	Metrics:             recorder,
 	DefaultMaxMessages:  intEnvOr("MCP_DEFAULT_MAX_MESSAGES", 100),
 	MaxMessages:         intEnvOr("MCP_MAX_MESSAGES", 1000),
 	DefaultDurationS:    intEnvOr("MCP_DEFAULT_MAX_DURATION_S", 30),
@@ -124,7 +120,6 @@ handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 mux.Handle("/mcp", auth.Middleware(handler))
 mux.HandleFunc("/healthz/live", healthOK)
 mux.HandleFunc("/healthz/ready", healthOK)
-mux.Handle("/metrics", recorder.Handler())
 ```
 
 Important detail: this service uses MCP Streamable HTTP, but the current tools are bounded request/response calls. It does not currently maintain long-lived background subscriptions for clients.
@@ -218,7 +213,7 @@ The two MQTT data tools eventually call `collectTool`, which:
 2. Applies max message and max duration defaults.
 3. Calls MQTT collection.
 4. Converts the result into MCP content.
-5. Emits metrics and audit logs.
+5. Emits an audit log.
 
 The MQTT call is direct:
 
@@ -507,7 +502,7 @@ That means pods are intended to run with the configured Kata runtime class in th
 
 ## Observability
 
-There are three observability paths in the current code.
+There are two observability paths in the current code.
 
 ### Health
 
@@ -518,35 +513,7 @@ There are three observability paths in the current code.
 /healthz/ready
 ```
 
-Both currently return HTTP 200 with body `ok`.
-
-### Metrics
-
-`internal/metrics/metrics.go` implements a lightweight Prometheus text endpoint mounted at:
-
-```text
-/metrics
-```
-
-Current metrics include:
-
-```text
-dsx_exchange_mcp_active_tool_calls
-dsx_exchange_mcp_tool_calls_total{tool}
-dsx_exchange_mcp_tool_errors_total{tool,code}
-dsx_exchange_mcp_tool_duration_seconds_sum{tool}
-dsx_exchange_mcp_mqtt_messages_collected_total{tool}
-dsx_exchange_mcp_stopped_reasons_total{tool,reason}
-```
-
-The Helm chart enables scrape annotations by default:
-
-```yaml
-metrics:
-  scrape: true
-  path: /metrics
-  port: http
-```
+Both currently return HTTP 204 with no response body.
 
 ### Audit Logs
 

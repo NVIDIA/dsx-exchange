@@ -1,0 +1,39 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: dsx-exchange-mcp
+build:
+  tagPolicy:
+    inputDigest: {}
+  local:
+    push: true
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+    - image: localhost:5001/dsx-exchange-mcp
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        cliFlags:
+          - --provenance=false
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  tolerateFailuresUntilDeadline: true
+  helm:
+    releases:
+      - name: dsx-exchange-mcp
+        chartPath: deploy/helm/dsx-exchange-mcp
+        namespace: mcp-backends
+        createNamespace: true
+        wait: true
+        valuesFiles:
+          - deploy/helm/dsx-exchange-mcp/values.kind.yaml
+        setValues:
+          image.repository: localhost:5001/dsx-exchange-mcp
+          image.tag: local
+          image.pullPolicy: Always

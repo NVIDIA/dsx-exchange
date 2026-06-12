@@ -19,12 +19,6 @@ spec:
     metadata:
       labels:
         app: dsx-exchange-mcp
-      {{- if .Values.metrics.scrape }}
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: "/metrics"
-      {{- end }}
     spec:
       {{- with .Values.runtimeClassName }}
       runtimeClassName: {{ . | quote }}
@@ -56,6 +50,8 @@ spec:
               value: {{ .Values.natsURL | quote }}
             - name: MQTT_USERNAME
               value: {{ .Values.mqtt.username | quote }}
+            - name: MCP_MQTT_AUTH_MODE
+              value: {{ .Values.mqtt.authMode | quote }}
             - name: MQTT_CONNECT_TIMEOUT_S
               value: {{ .Values.mqtt.connectTimeoutSeconds | int | quote }}
             - name: MQTT_SUBSCRIBE_TIMEOUT_S
@@ -82,36 +78,12 @@ spec:
               value: {{ .Values.limits.maxDurationSeconds | int | quote }}
             - name: MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD
               value: {{ .Values.limits.mqtt.collectMaxConcurrentPerPod | int | quote }}
-            - name: MCP_MQTT_WATCH_START_MAX_CONCURRENT_PER_POD
-              value: {{ .Values.limits.mqtt.watchStartMaxConcurrentPerPod | int | quote }}
-            - name: MCP_WATCH_DEFAULT_TTL_S
-              value: {{ .Values.limits.watch.defaultTTLSeconds | int | quote }}
-            - name: MCP_WATCH_MAX_TTL_S
-              value: {{ .Values.limits.watch.maxTTLSeconds | int | quote }}
-            - name: MCP_WATCH_DEFAULT_BUFFER_MESSAGES
-              value: {{ .Values.limits.watch.defaultBufferMessages | int | quote }}
-            - name: MCP_WATCH_MAX_BUFFER_MESSAGES
-              value: {{ .Values.limits.watch.maxBufferMessages | int | quote }}
-            - name: MCP_WATCH_DEFAULT_BUFFER_BYTES
-              value: {{ .Values.limits.watch.defaultBufferBytes | int | quote }}
-            - name: MCP_WATCH_MAX_BUFFER_BYTES
-              value: {{ .Values.limits.watch.maxBufferBytes | int | quote }}
-            - name: MCP_WATCH_MAX_PER_SESSION
-              value: {{ .Values.limits.watch.maxPerSession | int | quote }}
-            - name: MCP_WATCH_MAX_PER_POD
-              value: {{ .Values.limits.watch.maxPerPod | int | quote }}
             - name: MCP_FIND_TOPICS_DEFAULT_LIMIT
               value: {{ .Values.limits.findTopics.defaultLimit | int | quote }}
             - name: MCP_FIND_TOPICS_MAX_LIMIT
               value: {{ .Values.limits.findTopics.maxLimit | int | quote }}
             - name: LOG_FORMAT
               value: json
-            {{- if .Values.otel.exporterOtlpEndpoint }}
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.otel.exporterOtlpEndpoint | quote }}
-            - name: OTEL_SERVICE_NAME
-              value: {{ .Values.otel.serviceName | quote }}
-            {{- end }}
           startupProbe:
             httpGet:
               path: /healthz/live

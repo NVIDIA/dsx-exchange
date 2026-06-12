@@ -81,14 +81,10 @@ func registerWatchTools(s *mcp.Server, cfg Config, watches *watchManager) {
 func startSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager, in startSubscriptionInput) (*mcp.CallToolResult, watchStartOutput, error) {
 	start := time.Now()
 	caller := auth.FromContext(ctx)
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginToolCall()
-		defer cfg.Metrics.EndToolCall()
-	}
 
 	topicFilter, err := resolveSubscriptionTopic(cfg, in)
 	if err != nil {
-		recordWatchAudit(toolStartSubscription, caller, "", "", 0, start, err, cfg)
+		recordWatchAudit(toolStartSubscription, caller, "", "", 0, start, err)
 		return toolErrorFromErr[watchStartOutput](err)
 	}
 
@@ -99,7 +95,7 @@ func startSubscriptionTool(ctx context.Context, cfg Config, watches *watchManage
 		BufferMaxMessages: in.BufferMaxMessages,
 		BufferMaxBytes:    in.BufferMaxBytes,
 	})
-	recordWatchAudit(toolStartSubscription, caller, out.SubscriptionID, topicFilter, 0, start, err, cfg)
+	recordWatchAudit(toolStartSubscription, caller, out.SubscriptionID, topicFilter, 0, start, err)
 	if err != nil {
 		return toolErrorFromErr[watchStartOutput](err)
 	}
@@ -109,10 +105,6 @@ func startSubscriptionTool(ctx context.Context, cfg Config, watches *watchManage
 func readSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager, in readSubscriptionInput) (*mcp.CallToolResult, watchReadOutput, error) {
 	start := time.Now()
 	caller := auth.FromContext(ctx)
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginToolCall()
-		defer cfg.Metrics.EndToolCall()
-	}
 	out, err := watches.read(watchReadRequest{
 		Caller:         caller,
 		SubscriptionID: in.SubscriptionID,
@@ -120,7 +112,7 @@ func readSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager
 		MaxMessages:    in.MaxMessages,
 		MaxBytes:       in.MaxBytes,
 	})
-	recordWatchAudit(toolReadSubscription, caller, in.SubscriptionID, "", out.Count, start, err, cfg)
+	recordWatchAudit(toolReadSubscription, caller, in.SubscriptionID, "", out.Count, start, err)
 	if err != nil {
 		return toolErrorFromErr[watchReadOutput](err)
 	}
@@ -130,15 +122,11 @@ func readSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager
 func statusSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager, in subscriptionIDInput) (*mcp.CallToolResult, watchStatusOutput, error) {
 	start := time.Now()
 	caller := auth.FromContext(ctx)
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginToolCall()
-		defer cfg.Metrics.EndToolCall()
-	}
 	out, err := watches.status(watchStatusRequest{
 		Caller:         caller,
 		SubscriptionID: in.SubscriptionID,
 	})
-	recordWatchAudit(toolStatusSubscription, caller, in.SubscriptionID, out.TopicFilter, 0, start, err, cfg)
+	recordWatchAudit(toolStatusSubscription, caller, in.SubscriptionID, out.TopicFilter, 0, start, err)
 	if err != nil {
 		return toolErrorFromErr[watchStatusOutput](err)
 	}
@@ -148,15 +136,11 @@ func statusSubscriptionTool(ctx context.Context, cfg Config, watches *watchManag
 func stopSubscriptionTool(ctx context.Context, cfg Config, watches *watchManager, in subscriptionIDInput) (*mcp.CallToolResult, watchStopOutput, error) {
 	start := time.Now()
 	caller := auth.FromContext(ctx)
-	if cfg.Metrics != nil {
-		cfg.Metrics.BeginToolCall()
-		defer cfg.Metrics.EndToolCall()
-	}
 	out, err := watches.stop(watchStopRequest{
 		Caller:         caller,
 		SubscriptionID: in.SubscriptionID,
 	})
-	recordWatchAudit(toolStopSubscription, caller, in.SubscriptionID, "", 0, start, err, cfg)
+	recordWatchAudit(toolStopSubscription, caller, in.SubscriptionID, "", 0, start, err)
 	if err != nil {
 		return toolErrorFromErr[watchStopOutput](err)
 	}
@@ -243,12 +227,9 @@ func toolErrorWithRetry[T any](code, message string, retryAfter int) (*mcp.CallT
 	}, zero, nil
 }
 
-func recordWatchAudit(tool string, caller auth.Caller, subscriptionID, topicFilter string, messages int, start time.Time, err error, cfg Config) {
+func recordWatchAudit(tool string, caller auth.Caller, subscriptionID, topicFilter string, messages int, start time.Time, err error) {
 	code := errorCode(err)
 	duration := time.Since(start)
-	if cfg.Metrics != nil {
-		cfg.Metrics.RecordToolCall(tool, code, "", duration, messages)
-	}
 	decision := "allowed"
 	if code != "" {
 		decision = "error"

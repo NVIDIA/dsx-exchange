@@ -334,7 +334,7 @@ func parseConfig() config {
 	flag.StringVar(&cfg.bearer, "bearer", firstEnv("DSX_EXCHANGE_E2E_BEARER", "DSX_EXCHANGE_BEARER"), "Bearer token for MCP Authorization")
 	flag.StringVar(&cfg.experiment, "experiment", env("DSX_EXCHANGE_MCP_LOAD_EXPERIMENT", ""), "experiment label recorded in JSON/CSV reports")
 	flag.StringVar(&cfg.experimentDetail, "experiment-detail", env("DSX_EXCHANGE_MCP_LOAD_EXPERIMENT_DETAIL", ""), "free-form experiment detail recorded in JSON/CSV reports")
-	flag.StringVar(&cfg.scenario, "scenario", env("DSX_EXCHANGE_MCP_LOAD_SCENARIO", "discovery"), "scenario: discovery, discovery-hold, schema-resources, bounded-read, watch, watch-hold, watch-status-hold, sticky-check, mixed")
+	flag.StringVar(&cfg.scenario, "scenario", env("DSX_EXCHANGE_MCP_LOAD_SCENARIO", "discovery"), "scenario: discovery, discovery-hold, schema-resources, bounded-read, mixed, mixed-stateless, or legacy watch/watch-hold/watch-status-hold/sticky-check")
 	flag.IntVar(&cfg.sessions, "sessions", envInt("DSX_EXCHANGE_MCP_LOAD_SESSIONS", 50), "concurrent MCP sessions")
 	flag.StringVar(&cfg.sessionSweep, "session-sweep", env("DSX_EXCHANGE_MCP_LOAD_SESSION_SWEEP", ""), "comma-separated concurrent MCP session counts; overrides -sessions when set")
 	flag.IntVar(&cfg.backendReplicas, "backend-replicas", envInt("DSX_EXCHANGE_MCP_LOAD_BACKEND_REPLICAS", 0), "metadata: MCP backend replica count for this experiment")
@@ -402,7 +402,7 @@ func validateConfig(cfg config) error {
 		return errors.New("-gateway-rate-limit-rps must be zero or greater")
 	}
 	switch cfg.scenario {
-	case "discovery", "discovery-hold", "schema-resources", "bounded-read", "watch", "watch-hold", "watch-status-hold", "sticky-check", "mixed":
+	case "discovery", "discovery-hold", "schema-resources", "bounded-read", "mixed-stateless", "watch", "watch-hold", "watch-status-hold", "sticky-check", "mixed":
 	default:
 		return fmt.Errorf("unknown scenario %q", cfg.scenario)
 	}
@@ -564,11 +564,9 @@ func runSession(ctx context.Context, cfg config, rec *recorder, client *mcpClien
 	}); err != nil {
 		return
 	}
-	if sessionID == "" {
-		rec.recordError("initialize_empty_session_id")
-		return
+	if sessionID != "" {
+		rec.recordInitializedSession()
 	}
-	rec.recordInitializedSession()
 	if _, err := measure(ctx, rec, "notifications_initialized", func(ctx context.Context) error {
 		return client.initialized(ctx, sessionID)
 	}); err != nil {
@@ -609,17 +607,19 @@ func runSession(ctx context.Context, cfg config, rec *recorder, client *mcpClien
 			runSchemaResources(ctx, rec, client, sessionID)
 		case "bounded-read":
 			runBoundedRead(ctx, cfg, rec, client, sessionID, names)
+		case "mixed-stateless":
+			if rng.Intn(100) < 60 {
+				runDiscovery(ctx, cfg, rec, client, sessionID, names)
+			} else {
+				runBoundedRead(ctx, cfg, rec, client, sessionID, names)
+			}
 		case "watch":
 			runWatch(ctx, cfg, rec, client, sessionID, names)
 		case "mixed":
-			n := rng.Intn(100)
-			switch {
-			case n < 60:
+			if rng.Intn(100) < 60 {
 				runDiscovery(ctx, cfg, rec, client, sessionID, names)
-			case n < 85:
+			} else {
 				runBoundedRead(ctx, cfg, rec, client, sessionID, names)
-			default:
-				runWatch(ctx, cfg, rec, client, sessionID, names)
 			}
 		}
 	}
@@ -916,6 +916,9 @@ func measure(ctx context.Context, rec *recorder, operation string, fn func(conte
 	err := fn(ctx)
 	duration := time.Since(start)
 	if err != nil {
+		if ctx.Err() != nil && errors.Is(err, context.DeadlineExceeded) {
+			return "", err
+		}
 		rec.record(operation, duration, false, err)
 		return "", err
 	}
@@ -1159,7 +1162,7 @@ func (n toolNames) require(scenario string) error {
 	if n.find == "" {
 		return errors.New("missing_tool_find_topics")
 	}
-	if scenario == "bounded-read" || scenario == "mixed" {
+	if scenario == "bounded-read" || scenario == "mixed-stateless" || scenario == "mixed" {
 		if n.readRetained == "" {
 			return errors.New("missing_tool_read_retained")
 		}
@@ -1167,12 +1170,12 @@ func (n toolNames) require(scenario string) error {
 			return errors.New("missing_tool_subscribe")
 		}
 	}
-	if scenario == "watch" || scenario == "watch-hold" || scenario == "watch-status-hold" || scenario == "sticky-check" || scenario == "mixed" {
+	if scenario == "watch" || scenario == "watch-hold" || scenario == "watch-status-hold" || scenario == "sticky-check" {
 		if n.start == "" || n.status == "" || n.stop == "" {
 			return errors.New("missing_watch_tool")
 		}
 	}
-	if scenario == "watch" || scenario == "watch-hold" || scenario == "sticky-check" || scenario == "mixed" {
+	if scenario == "watch" || scenario == "watch-hold" || scenario == "sticky-check" {
 		if n.read == "" {
 			return errors.New("missing_watch_read_tool")
 		}

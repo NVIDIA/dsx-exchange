@@ -306,9 +306,6 @@ func (m *watchManager) start(req watchStartRequest) (watchStartOutput, error) {
 	m.total++
 	m.activeTotal++
 	m.mu.Unlock()
-	if m.cfg.Metrics != nil {
-		m.cfg.Metrics.BeginWatch()
-	}
 
 	go func() {
 		result, err := m.runner(ctx, m.cfg.MQTT, req.Caller.Bearer, w.topicFilter, mqttbus.StreamOptions{
@@ -590,17 +587,11 @@ func (m *watchManager) recordMessage(sessionID, subscriptionID string, msg mqttb
 		msg:    msg,
 	})
 	w.bufferBytes += size
-	droppedCount := int64(0)
 	for len(w.buffer) > w.maxMessages || w.bufferBytes > w.maxBytes {
 		dropped := w.buffer[0]
 		w.buffer = w.buffer[1:]
 		w.bufferBytes -= dropped.size
 		w.droppedCount++
-		droppedCount++
-	}
-	if m.cfg.Metrics != nil {
-		m.cfg.Metrics.RecordWatchMessage()
-		m.cfg.Metrics.RecordWatchDrop(droppedCount)
 	}
 }
 
@@ -767,11 +758,9 @@ func (m *watchManager) finish(sessionID, subscriptionID string, result mqttbus.S
 		m.mu.Unlock()
 		return
 	}
-	endWatch := false
 	if w.active {
 		w.active = false
 		m.activeTotal--
-		endWatch = true
 	}
 	switch {
 	case w.stopped:
@@ -792,9 +781,6 @@ func (m *watchManager) finish(sessionID, subscriptionID string, result mqttbus.S
 	}
 	w.finishedAt = m.now()
 	m.mu.Unlock()
-	if endWatch && m.cfg.Metrics != nil {
-		m.cfg.Metrics.EndWatch()
-	}
 
 	if w.status == watchStatusExpired || w.status == watchStatusFailed {
 		time.AfterFunc(m.retention, func() {
@@ -829,11 +815,9 @@ func (m *watchManager) remove(sessionID, subscriptionID string) {
 		return
 	}
 	w := sessionWatches[subscriptionID]
-	endWatch := false
 	if w.active {
 		w.active = false
 		m.activeTotal--
-		endWatch = true
 	}
 	delete(sessionWatches, subscriptionID)
 	m.total--
@@ -841,9 +825,6 @@ func (m *watchManager) remove(sessionID, subscriptionID string) {
 		delete(m.watches, sessionID)
 	}
 	m.mu.Unlock()
-	if endWatch && m.cfg.Metrics != nil {
-		m.cfg.Metrics.EndWatch()
-	}
 }
 
 func activeSessionCount(sessionWatches map[string]*watch) int {
