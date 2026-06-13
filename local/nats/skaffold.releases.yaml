@@ -32,6 +32,10 @@ deploy:
   tolerateFailuresUntilDeadline: true
   helm:
     flags:
+      # Helm's default --wait timeout is 5m; the mTLS NATS cluster can take
+      # longer to become ready on slower/loaded machines, so give it headroom.
+      upgrade:
+        - --timeout=15m
       depBuild:
         - --repository-config=local/helm/repositories.yaml
     releases:
@@ -61,6 +65,10 @@ deploy:
   tolerateFailuresUntilDeadline: true
   helm:
     flags:
+      # Helm's default --wait timeout is 5m; the mTLS NATS cluster can take
+      # longer to become ready on slower/loaded machines, so give it headroom.
+      upgrade:
+        - --timeout=15m
       depBuild:
         - --repository-config=local/helm/repositories.yaml
     releases:
@@ -91,6 +99,10 @@ deploy:
   tolerateFailuresUntilDeadline: true
   helm:
     flags:
+      # Helm's default --wait timeout is 5m; the mTLS NATS cluster can take
+      # longer to become ready on slower/loaded machines, so give it headroom.
+      upgrade:
+        - --timeout=15m
       depBuild:
         - --repository-config=local/helm/repositories.yaml
     releases:

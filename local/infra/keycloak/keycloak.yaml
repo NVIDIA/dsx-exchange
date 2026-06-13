@@ -18,10 +18,10 @@ spec:
   resources:
     requests:
       cpu: "100m"
-      memory: "550Mi"
+      memory: "1Gi"
     limits:
       cpu: "1000m"
-      memory: "550Mi"
+      memory: "1536Mi"
   unsupported:
     podTemplate:
       spec:
@@ -35,6 +35,13 @@ spec:
               - "--verbose"
               - "start"
               - "--import-realm"
+            env:
+              # Constrain the JVM heap so heap + non-heap RSS fits inside the
+              # container memory limit. Without this, Quarkus defaults to
+              # MaxRAMPercentage=70%, and heap + metaspace/GC/buffers exceed the
+              # limit and the pod is OOMKilled during the build phase.
+              - name: JAVA_OPTS_KC_HEAP
+                value: "-Xms256m -Xmx768m"
             volumeMounts:
               - name: realm-import
                 mountPath: /opt/keycloak/data/import
