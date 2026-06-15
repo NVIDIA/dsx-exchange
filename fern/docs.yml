@@ -13,6 +13,9 @@ instances:
 
 title: DSX Exchange
 
+announcement:
+  message: "🔔 DSX Exchange is a <strong>developer preview</strong>. APIs and behavior may change without notice."
+
 #==============================================================================
 # Content navigation from here down
 #==============================================================================
