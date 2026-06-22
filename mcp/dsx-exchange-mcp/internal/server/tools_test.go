@@ -127,25 +127,6 @@ func TestFindTopicsToolMatchesSelector(t *testing.T) {
 	}
 }
 
-func TestResolveSubscriptionTopicFromSelector(t *testing.T) {
-	cfg := Config{}
-	normalizeConfig(&cfg)
-	topicFilter, err := resolveSubscriptionTopic(cfg, startSubscriptionInput{
-		Selector: findTopicsInput{
-			Domain:     "bms",
-			Role:       "value",
-			ObjectType: "Rack",
-			PointType:  "RackLiquidIsolationStatus",
-		},
-	})
-	if err != nil {
-		t.Fatalf("resolveSubscriptionTopic returned error: %v", err)
-	}
-	if topicFilter != "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#" {
-		t.Fatalf("topic filter = %q, want RackLiquidIsolationStatus value filter", topicFilter)
-	}
-}
-
 type toolCallFixture struct {
 	ID                string             `json:"id"`
 	Domain            string             `json:"domain"`
@@ -179,21 +160,12 @@ func TestToolCallExpectationFixtures(t *testing.T) {
 	}
 
 	cfg := Config{
-		DefaultMaxMessages:         100,
-		MaxMessages:                1000,
-		DefaultDurationS:           30,
-		MaxDurationS:               30,
-		WatchDefaultTTLS:           300,
-		WatchMaxTTLS:               900,
-		WatchDefaultBufferMessages: 100,
-		WatchMaxBufferMessages:     1000,
-		WatchDefaultBufferBytes:    262144,
-		WatchMaxBufferBytes:        1048576,
-		WatchMaxPerSession:         10,
-		WatchMaxPerPod:             1000,
+		DefaultMaxMessages: 100,
+		MaxMessages:        1000,
+		DefaultDurationS:   30,
+		MaxDurationS:       30,
 	}
 	normalizeConfig(&cfg)
-	watches := newWatchManager(cfg)
 
 	for _, fixture := range fixtures {
 		t.Run(fixture.ID, func(t *testing.T) {
@@ -249,17 +221,6 @@ func TestToolCallExpectationFixtures(t *testing.T) {
 					if _, _, err := applyLimits(cfg, maxMessages, maxDurationS); err != nil {
 						t.Fatalf("subscribe limits invalid for %q: %v", topicFilter, err)
 					}
-				case toolStartSubscription:
-					ttlS := intArg(t, fixture.ID, i, call.Arguments, "ttl_seconds")
-					bufferMaxMessages := intArg(t, fixture.ID, i, call.Arguments, "buffer_max_messages")
-					bufferMaxBytes := intArg(t, fixture.ID, i, call.Arguments, "buffer_max_bytes")
-					if _, _, _, err := watches.applyStartLimits(watchStartRequest{
-						TTLS:              ttlS,
-						BufferMaxMessages: bufferMaxMessages,
-						BufferMaxBytes:    bufferMaxBytes,
-					}); err != nil {
-						t.Fatalf("start_subscription limits invalid for %q: %v", topicFilter, err)
-					}
 				default:
 					t.Fatalf("call %d has unknown tool %q", i, call.Tool)
 				}
@@ -300,10 +261,13 @@ func TestMCPClientListsAndCallsDescribeTopic(t *testing.T) {
 			t.Fatalf("ListTools did not expose %q; saw %#v", name, toolNames)
 		}
 	}
-	for _, name := range []string{toolStartSubscription, toolReadSubscription, toolStatusSubscription, toolStopSubscription} {
-		if toolNames[name] {
-			t.Fatalf("ListTools exposed experimental watch tool %q without opt-in; saw %#v", name, toolNames)
-		}
+
+	subscribeTool := toolByName(t, tools.Tools, toolSubscribe)
+	if got := subscribeTool.Meta["x-dsx-exchange-background-preferred"]; got != true {
+		t.Fatalf("%s metadata background-preferred = %#v, want true", toolSubscribe, got)
+	}
+	if got := subscribeTool.Meta["x-dsx-exchange-bounded-window"]; got != true {
+		t.Fatalf("%s metadata bounded-window = %#v, want true", toolSubscribe, got)
 	}
 
 	for _, fixture := range fixtures {
@@ -342,29 +306,15 @@ func TestMCPClientListsAndCallsDescribeTopic(t *testing.T) {
 	}
 }
 
-func TestMCPClientDoesNotExposeExperimentalWatchToolsWhenFlagSet(t *testing.T) {
-	session, cleanup := newTestMCPClientWithConfig(t, Config{
-		DefaultMaxMessages:           100,
-		MaxMessages:                  1000,
-		DefaultDurationS:             30,
-		MaxDurationS:                 30,
-		EnableExperimentalWatchTools: true,
-	})
-	defer cleanup()
-
-	tools, err := session.ListTools(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("ListTools failed: %v", err)
-	}
-	toolNames := map[string]bool{}
-	for _, tool := range tools.Tools {
-		toolNames[tool.Name] = true
-	}
-	for _, name := range []string{toolStartSubscription, toolReadSubscription, toolStatusSubscription, toolStopSubscription} {
-		if toolNames[name] {
-			t.Fatalf("ListTools exposed retired watch tool %q; saw %#v", name, toolNames)
+func toolByName(t *testing.T, tools []*mcp.Tool, name string) *mcp.Tool {
+	t.Helper()
+	for _, tool := range tools {
+		if tool.Name == name {
+			return tool
 		}
 	}
+	t.Fatalf("tools/list did not expose %q", name)
+	return nil
 }
 
 func TestMCPClientDescribeTopicInvalidFilterReturnsToolError(t *testing.T) {

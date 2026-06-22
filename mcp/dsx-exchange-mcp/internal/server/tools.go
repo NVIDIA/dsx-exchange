@@ -88,12 +88,16 @@ func registerTools(s *mcp.Server, cfg Config) {
 		},
 		Name:        toolSubscribe,
 		Annotations: readOnlyOpenWorldAnnotations("Bounded MQTT subscribe"),
-		Description: "Background-friendly bounded MQTT subscribe. For watch/listen/monitor prompts, " +
-			"invoke this tool as a native MCP tool call and let the MCP client run it in the " +
-			"background (same UX as long-running shell/make targets): do not block the chat on the " +
-			"full max_duration_s window, do not delegate to a subagent, and do not shell out to " +
-			"mosquitto_sub. The call may take up to max_duration_s; the host keeps the conversation " +
-			"usable while it runs. Use this for BMS Value channels under " +
+		Description: "Background-friendly bounded MQTT subscribe. Any MCP client planning to call " +
+			"this tool should default to its nonblocking background-agent/subagent/task " +
+			"mechanism when available, including when the user asks to get, fetch, read, " +
+			"or sample live values and the agent infers that a subscription is needed. " +
+			"The user does not need to explicitly ask for a background agent. Some clients " +
+			"block active chat while a direct long-running tools/call is in flight. Use " +
+			"direct foreground calls only for explicitly short/inline probes. Do not shell " +
+			"out to mosquitto_sub. " +
+			"The call may take up to max_duration_s. " +
+			"Use this for BMS Value channels under " +
 			"BMS/v1/PUB/Value/{objectType}/{pointType}/{tagPath}. Good discovery filters are " +
 			"BMS/v1/PUB/Value/# and BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#. " +
 			"This is a finite server request: one temporary MQTT client, subscribe, collect until " +
@@ -342,42 +346,6 @@ func normalizeConfig(cfg *Config) {
 	}
 	if cfg.MQTTCollectMaxConcurrent <= 0 {
 		cfg.MQTTCollectMaxConcurrent = 100
-	}
-	if cfg.MQTTWatchStartMaxConcurrent <= 0 {
-		cfg.MQTTWatchStartMaxConcurrent = 500
-	}
-	if cfg.WatchDefaultTTLS <= 0 {
-		cfg.WatchDefaultTTLS = 300
-	}
-	if cfg.WatchMaxTTLS <= 0 {
-		cfg.WatchMaxTTLS = 900
-	}
-	if cfg.WatchDefaultTTLS > cfg.WatchMaxTTLS {
-		cfg.WatchDefaultTTLS = cfg.WatchMaxTTLS
-	}
-	if cfg.WatchDefaultBufferMessages <= 0 {
-		cfg.WatchDefaultBufferMessages = 100
-	}
-	if cfg.WatchMaxBufferMessages <= 0 {
-		cfg.WatchMaxBufferMessages = 1000
-	}
-	if cfg.WatchDefaultBufferMessages > cfg.WatchMaxBufferMessages {
-		cfg.WatchDefaultBufferMessages = cfg.WatchMaxBufferMessages
-	}
-	if cfg.WatchDefaultBufferBytes <= 0 {
-		cfg.WatchDefaultBufferBytes = 262144
-	}
-	if cfg.WatchMaxBufferBytes <= 0 {
-		cfg.WatchMaxBufferBytes = 1048576
-	}
-	if cfg.WatchDefaultBufferBytes > cfg.WatchMaxBufferBytes {
-		cfg.WatchDefaultBufferBytes = cfg.WatchMaxBufferBytes
-	}
-	if cfg.WatchMaxPerSession <= 0 {
-		cfg.WatchMaxPerSession = 10
-	}
-	if cfg.WatchMaxPerPod <= 0 {
-		cfg.WatchMaxPerPod = 1000
 	}
 	if cfg.FindTopicsDefaultLimit <= 0 {
 		cfg.FindTopicsDefaultLimit = 20

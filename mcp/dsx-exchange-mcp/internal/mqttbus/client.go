@@ -42,7 +42,6 @@ const (
 	StoppedMaxDuration    = "max_duration"
 	StoppedRetainedIdle   = "retained_idle"
 	StoppedCallerCancel   = "caller_cancelled"
-	StoppedBrokerError    = "broker_error"
 	StoppedResultTooLarge = "result_too_large"
 )
 
@@ -84,19 +83,6 @@ type CollectResult struct {
 	StoppedReason string        `json:"stopped_reason"`
 	Truncated     bool          `json:"truncated"`
 	Duration      time.Duration `json:"-"`
-}
-
-type StreamOptions struct {
-	ClientID     string
-	MaxMessages  int
-	MaxDuration  time.Duration
-	OnSubscribed func()
-}
-
-type StreamResult struct {
-	Count         int
-	StoppedReason string
-	Duration      time.Duration
 }
 
 type BusError struct {
@@ -179,7 +165,7 @@ func configureClientAuth(opts *mqtt.ClientOptions, cfg Config, bearer string) er
 // Collect opens a one-shot MQTT connection, subscribes to topicFilter, and
 // returns up to maxMessages messages or until maxDuration elapses. The caller's
 // bearer is passed as the MQTT password in jwt_passthrough mode; noauth mode
-// sends no MQTT username/password. DSX Exchange auth-callout owns token
+// sends no MQTT username/password. Event Bus auth-callout owns token
 // validation, anonymous profile matching, and topic ACL enforcement.
 func Collect(
 	ctx context.Context,
@@ -247,6 +233,8 @@ func Collect(
 			done <- reason
 		}
 	}
+	// Mutex ensures thread-safe adding of incoming MQTT messages and checks message size limits
+	// Ensures messages are processed and appended in order, preventing overlap from concurrent handler calls.
 
 	opts.SetDefaultPublishHandler(func(_ mqtt.Client, m mqtt.Message) {
 		mu.Lock()
@@ -304,6 +292,7 @@ func Collect(
 		}
 		select {
 		case <-ctx.Done():
+			// MCP client disconnects
 			mu.Lock()
 			finish(StoppedCallerCancel)
 			out.Messages = append([]Message(nil), messages...)
@@ -313,6 +302,7 @@ func Collect(
 			mu.Unlock()
 			return out, ctx.Err()
 		case <-deadline.C:
+			// Exceeded max duration
 			mu.Lock()
 			finish(StoppedMaxDuration)
 			out.Messages = append([]Message(nil), messages...)
@@ -322,16 +312,21 @@ func Collect(
 			mu.Unlock()
 			return out, nil
 		case <-messageSeen:
+			// Only relevant in retained-only mode:
+			// Checks if no new messages have been received in the last 750ms.
+			// Resets idle timer to 750ms.
 			if idle != nil {
 				if !idle.Stop() {
 					select {
-					case <-idle.C:
+					case <-idle.C: // drains stale timer channel to prevent premature expiration.
 					default:
 					}
 				}
-				idle.Reset(750 * time.Millisecond)
+				idle.Reset(750 * time.Millisecond) // reset idle timer
 			}
 		case <-idleC:
+			// Only relevant in retained-only mode:
+			// Finish reading retained messages after 750ms of inactivity.
 			mu.Lock()
 			finish(StoppedRetainedIdle)
 			out.Messages = append([]Message(nil), messages...)
@@ -341,168 +336,13 @@ func Collect(
 			mu.Unlock()
 			return out, nil
 		case reason := <-done:
+			// Exceeded Max Number / Size of Messages
 			mu.Lock()
 			out.Messages = append([]Message(nil), messages...)
 			out.StoppedReason = reason
 			out.Truncated = truncated
 			out.Duration = time.Since(start)
 			mu.Unlock()
-			return out, nil
-		}
-	}
-}
-
-// Stream opens an MQTT connection, subscribes to topicFilter, and calls
-// onMessage for each message until a bound is reached or the context is
-// cancelled. It is intended for async task workers that persist messages
-// outside this package.
-func Stream(
-	ctx context.Context,
-	cfg Config,
-	bearer, topicFilter string,
-	opts StreamOptions,
-	onMessage func(Message) error,
-) (StreamResult, error) {
-	start := time.Now()
-	out := StreamResult{}
-
-	if err := ValidateTopicFilter(topicFilter); err != nil {
-		return out, err
-	}
-	if opts.MaxMessages <= 0 {
-		return out, &BusError{Code: CodeInvalidArgument, Message: "max_messages must be greater than zero"}
-	}
-	if opts.MaxDuration <= 0 {
-		return out, &BusError{Code: CodeInvalidArgument, Message: "max_duration_s must be greater than zero"}
-	}
-	if cfg.BrokerURL == "" {
-		return out, &BusError{Code: CodeInvalidArgument, Message: "broker URL is required"}
-	}
-	if onMessage == nil {
-		return out, &BusError{Code: CodeInvalidArgument, Message: "onMessage callback is required"}
-	}
-
-	connectTimeout := cfg.ConnectTimeout
-	if connectTimeout <= 0 {
-		connectTimeout = 5 * time.Second
-	}
-	subscribeTimeout := cfg.SubscribeTimeout
-	if subscribeTimeout <= 0 {
-		subscribeTimeout = 5 * time.Second
-	}
-	clientID := opts.ClientID
-	if clientID == "" {
-		clientID = fmt.Sprintf("dsx-exchange-mcp-task-%d", time.Now().UnixNano())
-	}
-
-	done := make(chan string, 1)
-	errs := make(chan error, 1)
-	finish := func(reason string) {
-		select {
-		case done <- reason:
-		default:
-		}
-	}
-	fail := func(err error) {
-		select {
-		case errs <- err:
-		default:
-		}
-	}
-
-	optsMQTT := mqtt.NewClientOptions().
-		AddBroker(cfg.BrokerURL).
-		SetClientID(clientID).
-		SetCleanSession(true).
-		SetAutoReconnect(false).
-		SetConnectTimeout(connectTimeout).
-		SetConnectionLostHandler(func(_ mqtt.Client, err error) {
-			if err != nil {
-				fail(&BusError{Code: CodeBusUnavailable, Message: "mqtt connection lost", Err: err})
-				return
-			}
-			finish(StoppedBrokerError)
-		})
-	if err := configureClientAuth(optsMQTT, cfg, bearer); err != nil {
-		return out, err
-	}
-
-	if usesTLS(cfg.BrokerURL) || cfg.TLS.CAFile != "" || cfg.TLS.ServerName != "" || cfg.TLS.InsecureSkipVerify {
-		tlsCfg, err := buildTLSConfig(cfg.TLS)
-		if err != nil {
-			return out, err
-		}
-		optsMQTT.SetTLSConfig(tlsCfg)
-	}
-
-	var mu sync.Mutex
-	count := 0
-	optsMQTT.SetDefaultPublishHandler(func(_ mqtt.Client, m mqtt.Message) {
-		msg := convertMessage(m)
-		if err := onMessage(msg); err != nil {
-			fail(&BusError{Code: CodeInternalError, Message: "persist MQTT stream message", Err: err})
-			return
-		}
-		mu.Lock()
-		count++
-		reached := count >= opts.MaxMessages
-		mu.Unlock()
-		if reached {
-			finish(StoppedMaxMessages)
-		}
-	})
-
-	c := mqtt.NewClient(optsMQTT)
-	if tok := c.Connect(); !tok.WaitTimeout(connectTimeout) {
-		return out, &BusError{Code: CodeBusUnavailable, Message: "mqtt connect timeout"}
-	} else if tok.Error() != nil {
-		return out, classifyConnectError(tok.Error())
-	}
-	defer c.Disconnect(250)
-
-	if tok := c.Subscribe(topicFilter, 0, nil); !tok.WaitTimeout(subscribeTimeout) {
-		return out, &BusError{Code: CodeBusUnavailable, Message: fmt.Sprintf("mqtt subscribe %q timeout", topicFilter)}
-	} else if tok.Error() != nil {
-		return out, classifySubscribeError(topicFilter, tok.Error())
-	} else if err := classifySubscribeResult(topicFilter, tok); err != nil {
-		return out, err
-	}
-	if opts.OnSubscribed != nil {
-		opts.OnSubscribed()
-	}
-
-	deadline := time.NewTimer(opts.MaxDuration)
-	defer deadline.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			mu.Lock()
-			out.Count = count
-			mu.Unlock()
-			out.StoppedReason = StoppedCallerCancel
-			out.Duration = time.Since(start)
-			return out, ctx.Err()
-		case <-deadline.C:
-			mu.Lock()
-			out.Count = count
-			mu.Unlock()
-			out.StoppedReason = StoppedMaxDuration
-			out.Duration = time.Since(start)
-			return out, nil
-		case err := <-errs:
-			mu.Lock()
-			out.Count = count
-			mu.Unlock()
-			out.StoppedReason = StoppedBrokerError
-			out.Duration = time.Since(start)
-			return out, err
-		case reason := <-done:
-			mu.Lock()
-			out.Count = count
-			mu.Unlock()
-			out.StoppedReason = reason
-			out.Duration = time.Since(start)
 			return out, nil
 		}
 	}
@@ -559,6 +399,8 @@ func usesTLS(url string) bool {
 	return strings.HasPrefix(lower, "tls://") || strings.HasPrefix(lower, "ssl://") || strings.HasPrefix(lower, "mqtts://")
 }
 
+// convertMessage converts an mqtt.Message to a Message struct, storing the payload as a UTF-8 string if valid,
+// or base64-encoding it otherwise. Sets encoding and message metadata accordingly.
 func convertMessage(m mqtt.Message) Message {
 	payload := m.Payload()
 	encoding := "utf8"

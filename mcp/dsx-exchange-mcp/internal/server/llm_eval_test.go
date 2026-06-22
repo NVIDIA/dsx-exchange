@@ -233,7 +233,7 @@ func llmEvalSystemPrompt(allowLiveTools bool) string {
 Use the available MCP tools before answering. Prefer dsx_exchange_describe_topic, or the gateway-prefixed equivalent, to discover matching AsyncAPI schema channels and related metadata/value topics.
 For "most recent" or snapshot-style requests, plan a retained metadata read before sampling live values when the schema exposes related metadata and value topics.
 For live stream requests, plan dsx_exchange_subscribe with bounded max_messages and max_duration_s.
-For background watch/listen/monitor requests, plan dsx_exchange_subscribe with a concrete topic_filter plus bounded max_messages and max_duration_s; use max_duration_s=30 unless the deployment documents a higher cap, and invoke it as a native background MCP tool call in Cursor (not a subagent); the host should run the tool while the chat stays usable, like long make targets.
+For get/fetch/read/sample/watch/listen/monitor/subscribe requests over live values, plan dsx_exchange_subscribe with a concrete topic_filter plus bounded max_messages and max_duration_s; use max_duration_s=30 unless the deployment documents a higher cap. When the MCP client supports a background agent, subagent, task, or equivalent mechanism, use it by default for every dsx_exchange_subscribe call so the active chat remains usable during the sampling window; direct tools/call may block the active chat until the subscribe returns.
 ` + liveToolInstruction + `
 
 Final response requirements:
@@ -457,10 +457,6 @@ func normalizeToolName(name string) string {
 		toolFindTopics,
 		toolReadRetained,
 		toolSubscribe,
-		toolStartSubscription,
-		toolReadSubscription,
-		toolStatusSubscription,
-		toolStopSubscription,
 	} {
 		if name == canonical || strings.HasSuffix(name, "_"+canonical) {
 			return canonical

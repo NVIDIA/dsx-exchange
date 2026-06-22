@@ -14,27 +14,16 @@ import (
 )
 
 type Config struct {
-	MQTT                         mqttbus.Config
-	DefaultMaxMessages           int
-	MaxMessages                  int
-	DefaultDurationS             int
-	MaxDurationS                 int
-	MQTTCollectMaxConcurrent     int
-	MQTTWatchStartMaxConcurrent  int
-	WatchDefaultTTLS             int
-	WatchMaxTTLS                 int
-	WatchDefaultBufferMessages   int
-	WatchMaxBufferMessages       int
-	WatchDefaultBufferBytes      int
-	WatchMaxBufferBytes          int
-	WatchMaxPerSession           int
-	WatchMaxPerPod               int
-	FindTopicsDefaultLimit       int
-	FindTopicsMaxLimit           int
-	EnableExperimentalWatchTools bool
+	MQTT                     mqttbus.Config
+	DefaultMaxMessages       int
+	MaxMessages              int
+	DefaultDurationS         int
+	MaxDurationS             int
+	MQTTCollectMaxConcurrent int
+	FindTopicsDefaultLimit   int
+	FindTopicsMaxLimit       int
 
-	collectAdmission    *admissionLimiter
-	watchStartAdmission *admissionLimiter
+	collectAdmission *admissionLimiter
 }
 
 // Build constructs the singleton MCP server. The same *mcp.Server is returned

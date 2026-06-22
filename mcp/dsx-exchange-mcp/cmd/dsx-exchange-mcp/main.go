@@ -38,20 +38,15 @@ func main() {
 			SubscribeTimeout: time.Duration(envInt("MQTT_SUBSCRIBE_TIMEOUT_S", 5)) * time.Second,
 			MaxResultBytes:   envInt("MQTT_MAX_RESULT_BYTES", 1048576),
 		},
-		DefaultMaxMessages:           envInt("MCP_DEFAULT_MAX_MESSAGES", 100),
-		MaxMessages:                  envInt("MCP_MAX_MESSAGES", 1000),
-		DefaultDurationS:             envInt("MCP_DEFAULT_MAX_DURATION_S", 30),
-		MaxDurationS:                 envInt("MCP_MAX_DURATION_S", 30),
-		MQTTCollectMaxConcurrent:     envInt("MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD", 100),
-		FindTopicsDefaultLimit:       envInt("MCP_FIND_TOPICS_DEFAULT_LIMIT", 20),
-		FindTopicsMaxLimit:           envInt("MCP_FIND_TOPICS_MAX_LIMIT", 100),
-		EnableExperimentalWatchTools: envBool("MCP_ENABLE_EXPERIMENTAL_WATCH_TOOLS", false),
+		DefaultMaxMessages:       envInt("MCP_DEFAULT_MAX_MESSAGES", 100),
+		MaxMessages:              envInt("MCP_MAX_MESSAGES", 1000),
+		DefaultDurationS:         envInt("MCP_DEFAULT_MAX_DURATION_S", 30),
+		MaxDurationS:             envInt("MCP_MAX_DURATION_S", 30),
+		MQTTCollectMaxConcurrent: envInt("MCP_MQTT_COLLECT_MAX_CONCURRENT_PER_POD", 100),
+		FindTopicsDefaultLimit:   envInt("MCP_FIND_TOPICS_DEFAULT_LIMIT", 20),
+		FindTopicsMaxLimit:       envInt("MCP_FIND_TOPICS_MAX_LIMIT", 100),
 	}
 
-	if cfg.EnableExperimentalWatchTools {
-		logger.Error("experimental watch tools are no longer exposed; use bounded dsx_exchange_subscribe calls")
-		os.Exit(2)
-	}
 	if err := cfg.MQTT.Validate(); err != nil {
 		logger.Error("invalid MQTT configuration", "err", err)
 		os.Exit(2)
@@ -82,7 +77,6 @@ func main() {
 		"max_messages", cfg.MaxMessages,
 		"max_duration_s", cfg.MaxDurationS,
 		"mqtt_collect_max_concurrent_per_pod", cfg.MQTTCollectMaxConcurrent,
-		"experimental_watch_tools_enabled", cfg.EnableExperimentalWatchTools,
 	)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		logger.Error("server exited", "err", err)

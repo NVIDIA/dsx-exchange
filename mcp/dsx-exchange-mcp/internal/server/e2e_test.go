@@ -144,121 +144,6 @@ func TestStagedMCPSchemaDescribeThroughEndpoint(t *testing.T) {
 	}
 }
 
-func TestStagedMCPWatchThroughEndpoint(t *testing.T) {
-	if os.Getenv("RUN_EXCHANGE_MCP_WATCH_E2E") != "1" {
-		t.Skip("set RUN_EXCHANGE_MCP_WATCH_E2E=1 to run staged MCP background watch e2e")
-	}
-	t.Skip("background watch tools are retired from the public MCP surface; validate bounded dsx_exchange_subscribe instead")
-
-	endpoint := requiredEnv(t, "DSX_EXCHANGE_MCP_URL")
-	bearer := requiredEnv(t, "DSX_EXCHANGE_E2E_BEARER")
-	allowedTopic := requiredEnv(t, "DSX_EXCHANGE_E2E_ALLOWED_TOPIC")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	client := &mcpHTTPClient{
-		endpoint: endpoint,
-		bearer:   bearer,
-		httpc:    &http.Client{Timeout: 30 * time.Second},
-	}
-
-	sessionID, err := client.initialize(ctx)
-	if err != nil {
-		t.Fatalf("initialize through MCP endpoint failed: %v", err)
-	}
-	if err := client.initialized(ctx, sessionID); err != nil {
-		t.Fatalf("notifications/initialized failed: %v", err)
-	}
-
-	tools, err := client.listTools(ctx, sessionID)
-	if err != nil {
-		t.Fatalf("tools/list failed: %v", err)
-	}
-	startTool := chooseStartSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_START_TOOL_NAME"))
-	readTool := chooseReadSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_READ_TOOL_NAME"))
-	statusTool := chooseStatusSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_STATUS_TOOL_NAME"))
-	stopTool := chooseStopSubscriptionToolName(tools, os.Getenv("DSX_EXCHANGE_E2E_STOP_TOOL_NAME"))
-	if startTool == "" || readTool == "" || statusTool == "" || stopTool == "" {
-		t.Fatalf("tools/list missing watch tool(s): start=%q read=%q status=%q stop=%q tools=%v", startTool, readTool, statusTool, stopTool, tools)
-	}
-
-	started, err := client.callTool(ctx, sessionID, startTool, map[string]any{
-		"topic_filter":        allowedTopic,
-		"ttl_seconds":         30,
-		"buffer_max_messages": 10,
-		"buffer_max_bytes":    32768,
-	})
-	if err != nil {
-		t.Fatalf("tools/call(%q start watch) failed: %v", startTool, err)
-	}
-	if started.IsError {
-		t.Fatalf("tools/call(%q start watch) returned MCP tool error: %s", startTool, started.textSummary())
-	}
-	var startOut watchStartOutput
-	if err := json.Unmarshal([]byte(started.lastText()), &startOut); err != nil {
-		t.Fatalf("decode watch start response: %v; content=%s", err, started.textSummary())
-	}
-	if startOut.SubscriptionID == "" {
-		t.Fatalf("watch start response missing subscription_id: %#v", startOut)
-	}
-	t.Logf("started watch %s with status %s on %s", startOut.SubscriptionID, startOut.Status, startOut.TopicFilter)
-
-	status, err := client.callTool(ctx, sessionID, statusTool, map[string]any{
-		"subscription_id": startOut.SubscriptionID,
-	})
-	if err != nil {
-		t.Fatalf("tools/call(%q status watch) failed: %v", statusTool, err)
-	}
-	if status.IsError {
-		t.Fatalf("tools/call(%q status watch) returned MCP tool error: %s", statusTool, status.textSummary())
-	}
-	var statusOut watchStatusOutput
-	if err := json.Unmarshal([]byte(status.lastText()), &statusOut); err != nil {
-		t.Fatalf("decode watch status response: %v; content=%s", err, status.textSummary())
-	}
-	if statusOut.SubscriptionID != startOut.SubscriptionID {
-		t.Fatalf("watch status subscription_id = %q, want %q", statusOut.SubscriptionID, startOut.SubscriptionID)
-	}
-
-	read, err := client.callTool(ctx, sessionID, readTool, map[string]any{
-		"subscription_id": startOut.SubscriptionID,
-		"cursor":          startOut.Cursor,
-		"max_messages":    10,
-		"max_bytes":       32768,
-	})
-	if err != nil {
-		t.Fatalf("tools/call(%q read watch) failed: %v", readTool, err)
-	}
-	if read.IsError {
-		t.Fatalf("tools/call(%q read watch) returned MCP tool error: %s", readTool, read.textSummary())
-	}
-	var readOut watchReadOutput
-	if err := json.Unmarshal([]byte(read.lastText()), &readOut); err != nil {
-		t.Fatalf("decode watch read response: %v; content=%s", err, read.textSummary())
-	}
-	if readOut.SubscriptionID != startOut.SubscriptionID {
-		t.Fatalf("watch read subscription_id = %q, want %q", readOut.SubscriptionID, startOut.SubscriptionID)
-	}
-
-	stopped, err := client.callTool(ctx, sessionID, stopTool, map[string]any{
-		"subscription_id": startOut.SubscriptionID,
-	})
-	if err != nil {
-		t.Fatalf("tools/call(%q stop watch) failed: %v", stopTool, err)
-	}
-	if stopped.IsError {
-		t.Fatalf("tools/call(%q stop watch) returned MCP tool error: %s", stopTool, stopped.textSummary())
-	}
-	var stopOut watchStopOutput
-	if err := json.Unmarshal([]byte(stopped.lastText()), &stopOut); err != nil {
-		t.Fatalf("decode watch stop response: %v; content=%s", err, stopped.textSummary())
-	}
-	if stopOut.SubscriptionID != startOut.SubscriptionID || stopOut.Status != watchStatusStopped {
-		t.Fatalf("watch stop response = %#v, want stopped %q", stopOut, startOut.SubscriptionID)
-	}
-}
-
 func TestStagedMCPQualityFixturesThroughEndpoint(t *testing.T) {
 	if os.Getenv("RUN_EXCHANGE_MCP_QUALITY_E2E") != "1" {
 		t.Skip("set RUN_EXCHANGE_MCP_QUALITY_E2E=1 to run staged MCP quality fixture replay")
@@ -345,31 +230,6 @@ func TestStagedMCPQualityFixturesThroughEndpoint(t *testing.T) {
 						t.Fatalf("tools/call(%q fixture call %d) returned MCP tool error: %s", toolName, i, res.textSummary())
 					}
 					validateCollectResponseShape(t, res, fixture.ID, i)
-				case toolStartSubscription:
-					if !executeLiveTools {
-						t.Logf("skipping live fixture call %d %s; set DSX_EXCHANGE_MCP_QUALITY_EXECUTE_LIVE_TOOLS=1 to execute", i, call.Tool)
-						continue
-					}
-					args := qualityLiveArguments(call, liveMaxDurationS)
-					res, err := client.callTool(ctx, sessionID, toolName, args)
-					if err != nil {
-						t.Fatalf("tools/call(%q fixture call %d) failed: %v", toolName, i, err)
-					}
-					if res.IsError {
-						t.Fatalf("tools/call(%q fixture call %d) returned MCP tool error: %s", toolName, i, res.textSummary())
-					}
-					startOut := validateWatchStartResponseShape(t, res, fixture.ID, i)
-					stopTool := chooseStopSubscriptionToolName(tools, "")
-					if stopTool == "" {
-						t.Fatalf("tools/list missing %s needed to clean up fixture watch", toolStopSubscription)
-					}
-					stopped, err := client.callTool(ctx, sessionID, stopTool, map[string]any{"subscription_id": startOut.SubscriptionID})
-					if err != nil {
-						t.Fatalf("cleanup tools/call(%q) failed for fixture watch %q: %v", stopTool, startOut.SubscriptionID, err)
-					}
-					if stopped.IsError {
-						t.Fatalf("cleanup tools/call(%q) returned MCP tool error for fixture watch %q: %s", stopTool, startOut.SubscriptionID, stopped.textSummary())
-					}
 				default:
 					t.Fatalf("fixture call %d has unsupported tool %q", i, call.Tool)
 				}
@@ -581,22 +441,6 @@ func chooseDescribeTopicToolName(names []string, explicit string) string {
 	return chooseToolName(names, toolDescribeTopic, explicit)
 }
 
-func chooseStartSubscriptionToolName(names []string, explicit string) string {
-	return chooseToolName(names, toolStartSubscription, explicit)
-}
-
-func chooseReadSubscriptionToolName(names []string, explicit string) string {
-	return chooseToolName(names, toolReadSubscription, explicit)
-}
-
-func chooseStatusSubscriptionToolName(names []string, explicit string) string {
-	return chooseToolName(names, toolStatusSubscription, explicit)
-}
-
-func chooseStopSubscriptionToolName(names []string, explicit string) string {
-	return chooseToolName(names, toolStopSubscription, explicit)
-}
-
 func chooseToolName(names []string, baseName string, explicit string) string {
 	if explicit != "" {
 		for _, name := range names {
@@ -653,10 +497,6 @@ func qualityLiveArguments(call fixtureToolCall, maxDurationS int) map[string]any
 		args["max_messages"] = minPositiveIntArg(args, "max_messages", 10)
 	case toolReadRetained:
 		args["max_messages"] = minPositiveIntArg(args, "max_messages", 10)
-	case toolStartSubscription:
-		args["ttl_seconds"] = minPositiveIntArg(args, "ttl_seconds", 30)
-		args["buffer_max_messages"] = minPositiveIntArg(args, "buffer_max_messages", 10)
-		args["buffer_max_bytes"] = minPositiveIntArg(args, "buffer_max_bytes", 32768)
 	}
 	return args
 }
@@ -712,24 +552,6 @@ func validateCollectResponseShape(t *testing.T, res toolCallResult, fixtureID st
 	if out.StoppedReason == "" {
 		t.Fatalf("%s call %d collect response stopped_reason is empty", fixtureID, callIndex)
 	}
-}
-
-func validateWatchStartResponseShape(t *testing.T, res toolCallResult, fixtureID string, callIndex int) watchStartOutput {
-	t.Helper()
-	var out watchStartOutput
-	if err := json.Unmarshal([]byte(res.lastText()), &out); err != nil {
-		t.Fatalf("%s call %d decode watch start response: %v; content=%s", fixtureID, callIndex, err, res.textSummary())
-	}
-	if out.SubscriptionID == "" {
-		t.Fatalf("%s call %d watch start response missing subscription_id: %#v", fixtureID, callIndex, out)
-	}
-	if out.TopicFilter == "" {
-		t.Fatalf("%s call %d watch start response missing topic_filter: %#v", fixtureID, callIndex, out)
-	}
-	if out.Status == "" {
-		t.Fatalf("%s call %d watch start response missing status: %#v", fixtureID, callIndex, out)
-	}
-	return out
 }
 
 func assertOptionalDeniedSubscribe(t *testing.T, ctx context.Context, client *mcpHTTPClient, sessionID string, tools []string) {
