@@ -42,17 +42,10 @@ In scope:
 - Let the broker and auth-callout remain authoritative for topic ACL decisions.
 - Return structured tool errors for missing bearer, invalid topics, broker
   unavailability, auth failure, and ACL denial.
-- Provide pod-local background watch tools:
-  - `dsx_exchange_start_subscription`
-  - `dsx_exchange_read_subscription`
-  - `dsx_exchange_subscription_status`
-  - `dsx_exchange_stop_subscription`
-- Keep active watch state, MQTT connections, cursors, and raw ring buffers
-  pod-local and session-pinned.
-- Use short TTLs, bounded buffers, per-session limits, per-pod limits, metrics,
-  and audit logs to keep this safe.
-- Document that pod restart, pod eviction, rollout interruption, or MCP session
-  loss can end a watch and require the client to start a new one.
+- For live-value get/fetch/read/sample/watch/listen/monitor UX, use repeated
+  bounded `dsx_exchange_subscribe` calls (client-side background
+  agent/subagent/task execution when the MCP host supports it), not server-side
+  subscription lifecycle tools.
 
 ## Explicitly Out Of Scope For Current V1
 
@@ -67,6 +60,9 @@ Do not treat these as current v1 gaps:
 - Implementing `dsx_exchange_summarize_subscription`.
 - Implementing `dsx_exchange_aggregate_subscription`.
 - Implementing `dsx_exchange_export_subscription`.
+- Server-side watch/listen/monitor lifecycle tools
+  (`start_subscription`, `read_subscription`, `subscription_status`,
+  `stop_subscription`).
 - Implementing MCP notifications for watch events.
 - Making watches durable across pod restart or cross-pod failover.
 - Storing raw JWTs, refreshing caller tokens, or resuming MQTT clients without a
@@ -79,13 +75,12 @@ branch useful or complete for its intended scope.
 ## Possible Later Work
 
 Aggregation is the most plausible next feature after this scope because it can
-reduce high-volume streams into smaller operator-facing results. If added, it
-should be introduced as a focused extension to the existing pod-local watch
-model before adding distributed watch state.
+reduce high-volume streams into smaller operator-facing results.
 
-Durable watch state, external workers, cross-pod recovery, entitlement-driven
-discovery filtering, graph construction, and export sinks should wait for clear
-product demand or benchmark evidence.
+Durable watch state, pod-local background subscription lifecycle tools, external
+workers, cross-pod recovery, entitlement-driven discovery filtering, graph
+construction, and export sinks should wait for clear product demand or benchmark
+evidence.
 
 ## Completion Bar
 
@@ -93,10 +88,9 @@ For this scope, the branch is complete enough when:
 
 - Default MCP unit tests pass.
 - Helm rendering/linting for the MCP chart passes.
-- The MCP server can be deployed behind the gateway with stateful session
-  routing.
-- A caller can discover schema topics, read retained metadata, collect bounded
-  live messages, and use start/read/status/stop background watches.
+- The MCP server can be deployed behind the gateway.
+- A caller can discover schema topics, read retained metadata, and collect bounded
+  live messages with `dsx_exchange_subscribe`.
 - Unauthorized MQTT topics fail through broker-backed structured errors instead
   of being treated as empty data.
 - Docs and examples describe the smaller v1 scope instead of implying the full

@@ -30,10 +30,11 @@ return within configured message, duration, and byte limits:
 
 - `dsx_exchange_subscribe(topic_filter, max_messages, max_duration_s)` —
   subscribe and collect messages over a bounded window. Use this for live
-  values. For watch/listen/monitor requests, MCP clients that support
-  background tool calls should run this tool in the background so the main
-  agent can keep working. If background execution is unavailable, use short
-  sampling windows and repeat the call.
+  values. For live-value get/fetch/read/sample/watch/listen/monitor requests,
+  MCP clients that support background agent, subagent, task, or equivalent
+  execution should run this tool through that mechanism so the main chat can
+  keep working. If background execution is unavailable, use short sampling
+  windows and repeat the call.
 - `dsx_exchange_read_retained(topic_filter, max_messages)` — drain retained
   messages currently held by the broker. Use this for metadata; BMS values are
   not retained (republished on change every ~100 s).
@@ -45,10 +46,11 @@ Why this split exists: MCP tool calls are fundamentally request/response. A
 long MQTT subscription inside one foreground tool call can tie up the MCP client
 while it waits for stream data, which is a poor fit for sparse or ongoing
 telemetry. The preferred stateless pattern is to use `dsx_exchange_subscribe`
-with bounded limits and have agent runtimes run long sampling calls in the
-background when they support that primitive. MCP Tasks or response streaming may
-eventually provide a cleaner protocol-level answer, but those paths are still
-experimental for this use case. The public v1 surface intentionally avoids
+with bounded limits and have agent runtimes run long sampling calls through a
+background agent, subagent, task, or equivalent mechanism when they support that
+primitive. MCP Tasks or response streaming may eventually provide a cleaner
+protocol-level answer, but those paths are still experimental for this use case.
+The public v1 surface intentionally avoids
 server-side watch/listen/monitor state: one MQTT tool call creates a temporary
 client, subscribes for a finite window, returns bounded results, and disconnects.
 
@@ -141,10 +143,10 @@ Health endpoints are served on the same listener:
 
 TLS trust is deployment configuration, not MCP tool input. For deployed-bus
 tests or production, mount the broker root CA and set `MQTT_TLS_CA_FILE`.
-Agents provide bearer credentials through MCP request headers and tool
-arguments only. In `noauth` local mode, do not provide a dummy token; the MQTT
-client intentionally sends no username/password so the Event Bus noauth
-fallback can match.
+Agents provide bearer credentials through MCP request headers only, never tool
+arguments. In `noauth` local mode, do not provide a dummy token; the MQTT client
+intentionally sends no username/password so the Event Bus noauth fallback can
+match.
 
 The public schema tree is copied from the monorepo root `schemas/` directory. Override the location with `SCHEMA_SRC=/path/to/schemas make sync-specs`.
 
@@ -280,6 +282,7 @@ schema discovery plus finite bounded MQTT reads.
 
 - Schema repo — `gitlab-master.nvidia.com/ncp/dsx/event-bus/schema`
 - Current v1 scope — `docs/current-v1-scope.md`
+- Gateway auth interactions — `docs/gateway-auth-interactions.md`
 - Load validation findings — `docs/load-testing.md`
 - MCP spec — https://modelcontextprotocol.io/specification/2025-06-18/
 - Go SDK — https://github.com/modelcontextprotocol/go-sdk

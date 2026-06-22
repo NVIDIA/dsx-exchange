@@ -1,10 +1,17 @@
 # dsx-exchange-mcp Architecture
 
-This document is for a new developer trying to understand how the code works. It is intentionally code-centric: which files own which behavior, how a request flows through the service, and how this MCP server plugs into Agent Gateway / Latinum MCP Gateway.
+This document is for a new developer trying to understand how the code works. It
+is intentionally code-centric: which files own which behavior, how a request flows
+through the service, and how configuration shapes runtime behavior.
+
+The server is designed to run **standalone**. Any HTTP MCP client that speaks
+Streamable HTTP can call it directly at `/mcp`. AgentGateway (or any
+other reverse proxy) is an optional front door for production aggregation and
+coarse auth — not a requirement for the server to function.
 
 ## Big Picture
 
-`dsx-exchange-mcp` is an MCP server that exposes DSX exchange data over MCP.
+`dsx-exchange-mcp` is an MCP server that exposes DSX Exchange data over MCP.
 
 At runtime it does three main things:
 
@@ -12,31 +19,49 @@ At runtime it does three main things:
 2. Exposes embedded exchange specs as MCP resources.
 3. Exposes schema exploration and bounded MQTT/NATS reads as MCP tools.
 
-In production it is expected to sit behind Gateway:
+Standalone deployment shape:
 
 ```text
-MCP client
-  -> Latinum / Agent Gateway
-  -> Kubernetes Service: dsx-exchange-mcp
-  -> dsx-exchange-mcp pod
-  -> MQTT/NATS broker
+MCP client or auth-capable proxy
+  -> HTTP POST /mcp
+  -> dsx-exchange-mcp process or pod
+  -> MQTT/NATS broker (when a broker-backed tool runs)
 ```
 
-The MCP server does not implement topic authorization itself. The caller JWT is passed through Gateway, forwarded to this service, then used as the MQTT password when connecting to NATS/MQTT. NATS auth callout / ACLs enforce topic access.
+The same binary and container work in all of these placements:
+
+
+| Placement                  | Typical use                                                 |
+| -------------------------- | ----------------------------------------------------------- |
+| Local process (`make run`) | Dev, prompt eval, direct MCP client checks                  |
+| Docker container           | Portable standalone service                                 |
+| Kubernetes Deployment      | Production or local Kind backend                            |
+| Behind a gateway           | Optional — gateway forwards the same HTTP contract upstream |
+
+
+The server does not implement topic authorization itself. It defers to the event bus.
+
+In `jwt_passthrough` mode it takes the caller bearer from the incoming HTTP
+request and presents it to the broker as the MQTT password. NATS auth-callout /
+ACLs enforce topic access.
+
+In `noauth` mode it sends no MQTT credentials, matching local Event Bus
+deployments that allow anonymous fallback.
 
 ## Request Flow
 
-For an MCP tool call such as `dsx_exchange_subscribe`:
+Every MCP request hits the same HTTP entrypoint regardless of who sits in front
+of the server. The upstream caller — desktop MCP client, test harness, load
+generator, auth-capable proxy, or gateway — is responsible for attaching
+credentials to the HTTP request. This service reads those headers and does not
+mint, refresh, or store tokens.
+
+### Broker-backed tool (e.g. `dsx_exchange_subscribe`)
 
 ```text
-client
-  sends MCP request with JWT
-    |
-    v
-gateway
-  validates identity
-  forwards Authorization: Bearer <jwt>
-  forwards x-mcp-* identity headers
+MCP caller
+  POST /mcp with optional Authorization: Bearer <jwt>
+  optional identity headers (x-mcp-*, Mcp-Session-Id)
     |
     v
 cmd/dsx-exchange-mcp/main.go
@@ -44,7 +69,7 @@ cmd/dsx-exchange-mcp/main.go
   wraps handler with auth.Middleware
     |
     v
-internal/auth/context.go
+internal/auth/caller.go
   extracts bearer + identity headers into request context
     |
     v
@@ -55,8 +80,8 @@ internal/server/tools.go
     |
     v
 internal/mqttbus/client.go
-  creates MQTT client
-  uses bearer token as MQTT password
+  creates short-lived MQTT client
+  uses bearer as MQTT password (jwt_passthrough) or no credentials (noauth)
   subscribes to topic filter
   collects bounded messages
     |
@@ -66,24 +91,57 @@ internal/server/tools.go
   returns MCP result
 ```
 
-For an MCP resource read, the flow stops inside `internal/specs`; no MQTT connection is opened.
+### Schema-only paths (resources and discovery tools)
+
+For MCP resource reads (`dsx-exchange://specs/...`) and schema tools
+(`dsx_exchange_find_topics`, `dsx_exchange_describe_topic`), the flow stops
+inside `internal/specs` or `internal/schemaindex`. No MQTT connection is
+opened and no bearer is required.
+
+## Deployment Modes
+
+### Standalone (direct `/mcp`)
+
+The primary integration surface is Streamable HTTP on `MCP_ADDR` (default
+`:8080`):
+
+```text
+http://<host>:8080/mcp
+```
+
+Configure any MCP client that supports Streamable HTTP with that URL. For
+broker-backed tools in `jwt_passthrough` mode, the client (or an adjacent token
+proxy) must send `Authorization: Bearer <jwt>` on **each** MCP request. The
+server does not cache credentials across requests.
+
+Local Kind deploys this way by default: port-forward the backend Service and
+point the client at `http://127.0.0.1:18080/mcp` with `MCP_MQTT_AUTH_MODE=noauth`.
+
+### Optional gateway front door
+
+In multi-upstream production topologies, a gateway may sit in front of one or
+more MCP backends. From this server's perspective nothing changes: it still
+accepts the same `/mcp` requests and reads the same headers. See
+[Optional Gateway Integration](#optional-gateway-integration) below.
 
 ## File Map
 
-| Path | Responsibility |
-| --- | --- |
-| `cmd/dsx-exchange-mcp/main.go` | Process entrypoint. Reads env config, builds the MCP server, registers HTTP routes, starts `ListenAndServe`. |
-| `internal/server/server.go` | Creates the MCP server instance and registers tools/resources. |
-| `internal/server/tools.go` | Defines MCP tools, parses tool inputs, describes schema topics, enforces bounds, calls MQTT collection, and emits audit logs. |
-| `internal/server/resources.go` | Defines MCP resources backed by embedded DSX specs. |
-| `internal/specs/specs.go` | Exposes raw spec resources from the embedded `schemas/` tree. |
-| `internal/schemaindex/index.go` | Parses AsyncAPI channel/message/operation primitives into a topic catalogue for schema exploration tools. |
-| `schemas/` | Generated copy of the monorepo root `schemas/`, embedded into the binary by `schemas/embed.go`. |
-| `internal/mqttbus/client.go` | MQTT/NATS client logic: connect, subscribe, collect messages, classify broker errors. |
-| `internal/auth/context.go` | Pulls Gateway-provided bearer and identity headers into Go context. |
-| `deploy/helm/dsx-exchange-mcp/templates/deployment.yaml` | Kubernetes Deployment: env vars, probes, security context, runtime class. |
-| `deploy/helm/dsx-exchange-mcp/templates/service.yaml` | Kubernetes Service that Gateway discovers/routes to. |
-| `deploy/helm/dsx-exchange-mcp/values.yaml` | Default deploy-time configuration. |
+
+| Path                                                     | Responsibility                                                                                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `cmd/dsx-exchange-mcp/main.go`                           | Process entrypoint. Reads env config, builds the MCP server, registers HTTP routes, starts `ListenAndServe`.                  |
+| `internal/server/server.go`                              | Creates the MCP server instance and registers tools/resources.                                                                |
+| `internal/server/tools.go`                               | Defines MCP tools, parses tool inputs, describes schema topics, enforces bounds, calls MQTT collection, and emits audit logs. |
+| `internal/server/resources.go`                           | Defines MCP resources backed by embedded DSX specs.                                                                           |
+| `internal/specs/specs.go`                                | Exposes raw spec resources from the embedded `schemas/` tree.                                                                 |
+| `internal/schemaindex/index.go`                          | Parses AsyncAPI channel/message/operation primitives into a topic catalogue for schema exploration tools.                     |
+| `schemas/`                                               | Generated copy of the monorepo root `schemas/`, embedded into the binary by `schemas/embed.go`.                               |
+| `internal/mqttbus/client.go`                             | MQTT/NATS client logic: connect, subscribe, collect messages, classify broker errors.                                         |
+| `internal/auth/caller.go`                               | Pulls caller bearer and optional identity headers from the HTTP request into Go context.                                      |
+| `deploy/helm/dsx-exchange-mcp/templates/deployment.yaml` | Kubernetes Deployment: env vars, probes, security context, runtime class.                                                     |
+| `deploy/helm/dsx-exchange-mcp/templates/service.yaml`    | Kubernetes Service exposing the MCP port (optionally annotated for gateway discovery).                                        |
+| `deploy/helm/dsx-exchange-mcp/values.yaml`               | Default deploy-time configuration.                                                                                            |
+
 
 ## Process Startup
 
@@ -101,6 +159,7 @@ cfg := server.Config{
 	MQTT: mqttbus.Config{
 		BrokerURL: natsURL,
 		Username:  envOr("MQTT_USERNAME", mqttbus.DefaultUsername),
+		AuthMode:  mqttbus.AuthMode(envOr("MCP_MQTT_AUTH_MODE", string(mqttbus.DefaultAuthMode))),
 	},
 	DefaultMaxMessages:  intEnvOr("MCP_DEFAULT_MAX_MESSAGES", 100),
 	MaxMessages:         intEnvOr("MCP_MAX_MESSAGES", 1000),
@@ -115,14 +174,16 @@ Then it creates the MCP server and attaches it to HTTP:
 srv := server.Build(cfg)
 handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 	return srv
-}, nil)
+}, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true})
 
 mux.Handle("/mcp", auth.Middleware(handler))
 mux.HandleFunc("/healthz/live", healthOK)
 mux.HandleFunc("/healthz/ready", healthOK)
 ```
 
-Important detail: this service uses MCP Streamable HTTP, but the current tools are bounded request/response calls. It does not currently maintain long-lived background subscriptions for clients.
+Important detail: this service uses stateless MCP Streamable HTTP. Each tool
+call is a bounded request/response operation. It does not currently maintain
+long-lived background subscriptions for clients.
 
 ## MCP Server Construction
 
@@ -146,43 +207,87 @@ The same `*mcp.Server` is returned for each HTTP request:
 // context injected by auth.Middleware.
 ```
 
-That means per-caller information must not be stored globally on the server object. Caller-specific data flows through `context.Context`.
+That means per-caller information must not be stored globally on the server
+object. Caller-specific data flows through `context.Context`.
 
-## Auth And JWT Passthrough
+## Auth And Caller Credentials
 
-`internal/auth/context.go` extracts identity from the incoming HTTP request.
+Authentication is split between **HTTP request headers** (what this server
+reads) and **broker enforcement** (what auth-callout decides at MQTT CONNECT /
+SUBSCRIBE).
 
-Gateway is expected to forward:
+This server is not the identity policy engine. It extracts credentials from
+the incoming HTTP request and, for broker-backed tools, delegates them to the
+broker. Whoever calls `/mcp` — client, proxy, or gateway — must supply the
+headers below.
 
-| Header | Used for |
-| --- | --- |
-| `Authorization: Bearer <jwt>` | Delegated credential used as MQTT password. |
-| `x-mcp-tenant` | Audit label. |
-| `x-mcp-issuer` | Audit label. |
-| `x-mcp-sub` | Audit label. |
-| `x-mcp-spiffe-id` | Audit label. |
+### HTTP contract
 
-The middleware:
+
+| Header                        | Required                                       | Used for                                                                 |
+| ----------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| `Authorization: Bearer <jwt>` | Required for broker tools in `jwt_passthrough` | Delegated credential presented as MQTT password                          |
+| `Mcp-Session-Id`              | Optional                                       | Session correlation in audit logs; relevant when a gateway pins sessions |
+| `x-mcp-tenant`                | Optional                                       | Audit label                                                              |
+| `x-mcp-issuer`                | Optional                                       | Audit label                                                              |
+| `x-mcp-sub`                   | Optional                                       | Audit label                                                              |
+| `x-mcp-spiffe-id`             | Optional                                       | Audit label                                                              |
+
+
+The middleware in `internal/auth/caller.go`:
 
 ```go
 caller := Caller{
-	Bearer:   bearerFromHeader(r.Header.Get("Authorization")),
-	Tenant:   r.Header.Get("x-mcp-tenant"),
-	Issuer:   r.Header.Get("x-mcp-issuer"),
-	Subject:  r.Header.Get("x-mcp-sub"),
-	SpiffeID: r.Header.Get("x-mcp-spiffe-id"),
+	Bearer:    bearerFromHeader(r.Header.Get("Authorization")),
+	SessionID: r.Header.Get("Mcp-Session-Id"),
+	Tenant:    r.Header.Get("x-mcp-tenant"),
+	Issuer:    r.Header.Get("x-mcp-issuer"),
+	Subject:   r.Header.Get("x-mcp-sub"),
+	SpiffeID:  r.Header.Get("x-mcp-spiffe-id"),
 }
-r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, caller))
+r = r.WithContext(WithCaller(r.Context(), caller))
 ```
 
-The code comment describes the intended trust boundary:
+The bearer is never accepted as a tool argument and is never logged. Audit logs
+record only `bearer_present` plus the optional identity labels.
 
-```go
-// The raw bearer is used only as the delegated credential for the MQTT/NATS
-// password. The x-mcp-* fields are audit labels emitted by gateway ext_authz.
+### MQTT auth modes
+
+Controlled by `MCP_MQTT_AUTH_MODE`:
+
+
+| Mode                        | HTTP bearer                      | MQTT CONNECT                                    |
+| --------------------------- | -------------------------------- | ----------------------------------------------- |
+| `jwt_passthrough` (default) | Required for broker-backed tools | `username=<MQTT_USERNAME>`, `password=<bearer>` |
+| `noauth`                    | Ignored for MQTT                 | No username or password                         |
+
+
+Broker-backed tools in `jwt_passthrough` return structured `missing_bearer`
+when the request has no bearer. Schema tools work without a bearer in either
+mode.
+
+### Credential path to the broker
+
+```text
+HTTP Authorization: Bearer <jwt>
+  -> auth.Middleware stores bearer in request context
+  -> mqttbus.Collect receives caller.Bearer
+  -> Paho MQTT SetPassword(bearer)
+  -> NATS auth-callout validates token and enforces topic ACLs
 ```
 
-So this service is not the main identity policy engine. It preserves identity for audit and delegates topic authorization to the broker by connecting with the caller token.
+Responsibility split:
+
+
+| Layer                           | Responsibility                                                                    |
+| ------------------------------- | --------------------------------------------------------------------------------- |
+| MCP caller / proxy / gateway    | Obtain and attach caller credentials on each HTTP request                         |
+| `dsx-exchange-mcp`              | Extract credentials, translate MCP tools to embedded specs and bounded MQTT reads |
+| NATS/MQTT broker + auth-callout | Authenticate the delegated token (or noauth profile) and enforce topic ACLs       |
+
+
+For gateway-specific auth interactions when a gateway is deployed, see
+`docs/gateway-auth-interactions.md`.
 
 ## MCP Tools
 
@@ -190,11 +295,14 @@ Tool registration lives in `internal/server/tools.go`.
 
 Current tools:
 
-| Tool | Purpose |
-| --- | --- |
-| `dsx_exchange_describe_topic` | Describe the AsyncAPI channel matching a topic filter, including payload shape, retained/live behavior, examples, and related metadata/value topics. |
-| `dsx_exchange_subscribe` | Subscribe to a topic filter and collect a bounded batch of live messages. |
-| `dsx_exchange_read_retained` | Subscribe briefly and return retained messages for a topic filter. |
+
+| Tool                          | Purpose                                                   | MQTT |
+| ----------------------------- | --------------------------------------------------------- | ---- |
+| `dsx_exchange_find_topics`    | Search embedded AsyncAPI index for relevant topics        | No   |
+| `dsx_exchange_describe_topic` | Describe channel schema, retained/live behavior, examples | No   |
+| `dsx_exchange_subscribe`      | Subscribe and collect a bounded batch of live messages    | Yes  |
+| `dsx_exchange_read_retained`  | Drain retained messages for a topic filter                | Yes  |
+
 
 The subscribe tool is registered like this:
 
@@ -225,7 +333,8 @@ res, err := mqttbus.Collect(ctx, cfg.MQTT, caller.Bearer, topicFilter, mqttbus.C
 })
 ```
 
-If a tool fails, the service returns a structured MCP error result rather than a raw Go error:
+If a tool fails, the service returns a structured MCP error result rather than a
+raw Go error:
 
 ```go
 return &mcp.CallToolResult{
@@ -234,7 +343,8 @@ return &mcp.CallToolResult{
 }, nil, nil
 ```
 
-This matters for clients: the MCP transport request may succeed while the tool result itself is an error.
+This matters for clients: the MCP transport request may succeed while the tool
+result itself is an error.
 
 ## MCP Resources
 
@@ -278,9 +388,8 @@ sync-specs:
 	cp -R $(SCHEMA_SRC)/. schemas/
 ```
 
-Resource calls are therefore local file reads from embedded data. They do not call NATS/MQTT.
-
-`dsx_exchange_describe_topic` also does not call NATS/MQTT. It reads the embedded AsyncAPI catalogue through `internal/schemaindex`.
+Resource calls are therefore local file reads from embedded data. They do not
+call NATS/MQTT.
 
 ## MQTT/NATS Client Behavior
 
@@ -292,7 +401,7 @@ The default username is:
 const DefaultUsername = "oauthtoken"
 ```
 
-`Collect` requires a bearer token:
+In `jwt_passthrough` mode, `Collect` requires a bearer token:
 
 ```go
 if strings.TrimSpace(bearer) == "" {
@@ -320,16 +429,19 @@ token := c.Subscribe(topicFilter, 0, nil)
 
 The collection loop stops for bounded reasons:
 
-| Stop reason | Meaning |
-| --- | --- |
-| `max_messages` | Hit requested or configured message count. |
-| `max_duration` | Hit requested or configured duration. |
-| `retained_idle` | Retained-read mode saw no more retained messages for the idle window. |
-| `max_result_bytes` | Payload would exceed configured response size. |
-| `client_cancelled` | Request context was cancelled. |
-| `completed` | Normal completion path. |
 
-Payload conversion is also handled here. UTF-8 payloads are returned as strings; non-UTF-8 payloads are base64 encoded:
+| Stop reason        | Meaning                                                               |
+| ------------------ | --------------------------------------------------------------------- |
+| `max_messages`     | Hit requested or configured message count.                            |
+| `max_duration`     | Hit requested or configured duration.                                 |
+| `retained_idle`    | Retained-read mode saw no more retained messages for the idle window. |
+| `max_result_bytes` | Payload would exceed configured response size.                        |
+| `client_cancelled` | Request context was cancelled.                                        |
+| `completed`        | Normal completion path.                                               |
+
+
+Payload conversion is also handled here. UTF-8 payloads are returned as strings;
+non-UTF-8 payloads are base64 encoded:
 
 ```go
 if utf8.Valid(payload) {
@@ -341,103 +453,18 @@ if utf8.Valid(payload) {
 }
 ```
 
-### Current Streaming Boundary
+### MQTT collection boundary
 
-`internal/mqttbus/client.go` also has a lower-level `Stream` function:
-
-```go
-// Stream opens an MQTT subscription and invokes onMessage for every received
-// message until the context is cancelled or a bound is reached. It is intended
-// for async task workers that need to persist messages outside this package.
-```
-
-That is scaffolding for a future async/background watch design. It is not currently registered as an MCP tool. The current MQTT data tools collect bounded batches inside the request lifecycle.
-
-## Gateway Integration
-
-In production, MCP clients should normally talk to Gateway, not directly to the pod.
-
-The intended Gateway-facing shape is:
-
-```text
-MCP client
-  -> Gateway /mcp
-  -> upstream route for dsx-exchange-mcp
-  -> Kubernetes Service dsx-exchange-mcp:<mcp port>
-  -> pod /mcp
-```
-
-This repo's Helm Service advertises the MCP port:
-
-```yaml
-ports:
-  - name: {{ .Values.service.portName }}
-    port: {{ .Values.service.port }}
-    targetPort: mcp
-    protocol: TCP
-    appProtocol: agentgateway.dev/mcp
-```
-
-The important field is:
-
-```yaml
-appProtocol: agentgateway.dev/mcp
-```
-
-That tells Gateway discovery that this service port speaks MCP.
-
-A Gateway upstream entry is expected to target this service by service name, namespace, labels, port, and pod selector. The README shows the shape:
-
-```yaml
-upstreams:
-  - serviceName: dsx-exchange-mcp
-    portName: mcp
-    namespace: mcp-backends
-    serviceLabels:
-      app: dsx-exchange-mcp
-    port: 8080
-    podSelector:
-      app: dsx-exchange-mcp
-```
-
-In multi-upstream Gateway deployments, tool names may be exposed with an upstream prefix. For example, the local tool `dsx_exchange_subscribe` may appear to an external client as something like:
-
-```text
-dsx-exchange-mcp-mcp_dsx_exchange_subscribe
-```
-
-The exact external name depends on Gateway's upstream naming behavior.
-
-### JWT Passthrough Contract
-
-The service expects Gateway to forward the caller token:
-
-```text
-Authorization: Bearer <caller JWT>
-```
-
-The service does not exchange this token. It passes it to MQTT/NATS as the password:
-
-```text
-Gateway-validated JWT
-  -> Authorization header to dsx-exchange-mcp
-  -> auth.Middleware stores bearer in context
-  -> mqttbus.Collect receives caller.Bearer
-  -> Paho MQTT SetPassword(bearer)
-  -> NATS auth callout / ACL policy
-```
-
-This gives a clean responsibility split:
-
-| Component | Responsibility |
-| --- | --- |
-| Gateway | Validate incoming identity, route MCP traffic, forward delegated identity. |
-| `dsx-exchange-mcp` | Translate MCP resources/tools to local embedded specs and MQTT reads. |
-| NATS/MQTT broker | Authenticate delegated token and enforce topic ACLs. |
+`internal/mqttbus/client.go` exposes `Collect` for bounded subscribe/read flows.
+Each tool call creates a temporary MQTT client, collects messages until a limit
+or timeout, then disconnects. There is no long-lived server-side subscription
+state in the current public MCP surface.
 
 ## Kubernetes Deployment
 
-The Helm chart under `deploy/helm/dsx-exchange-mcp` owns production deployment shape.
+The Helm chart under `deploy/helm/dsx-exchange-mcp` deploys the standalone
+server as its own Deployment and Service. Gateway registration is optional and
+configured in the gateway chart, not here.
 
 Default values include two replicas and the NATS/MQTT endpoint:
 
@@ -447,6 +474,7 @@ replicaCount: 2
 natsURL: tcp://nats.nats.svc:1883
 
 mqtt:
+  authMode: jwt_passthrough
   username: oauthtoken
   connectTimeoutSeconds: 5
   subscribeTimeoutSeconds: 5
@@ -460,6 +488,8 @@ The Deployment maps those values into environment variables:
   value: ":8080"
 - name: NATS_URL
   value: {{ .Values.natsURL | quote }}
+- name: MCP_MQTT_AUTH_MODE
+  value: {{ .Values.mqtt.authMode | quote }}
 - name: MQTT_USERNAME
   value: {{ .Values.mqtt.username | quote }}
 - name: MCP_MAX_MESSAGES
@@ -474,11 +504,11 @@ The chart also configures health probes:
 livenessProbe:
   httpGet:
     path: /healthz/live
-    port: http
+    port: mcp
 readinessProbe:
   httpGet:
     path: /healthz/ready
-    port: http
+    port: mcp
 ```
 
 And a locked-down runtime profile:
@@ -498,7 +528,9 @@ The default `values.yaml` also sets:
 runtimeClassName: kata
 ```
 
-That means pods are intended to run with the configured Kata runtime class in the target cluster.
+Local Kind overrides in `values.kind.yaml` use `MCP_MQTT_AUTH_MODE=noauth` and
+point at the in-cluster Event Bus broker so the backend can be exercised without
+a gateway or bearer token.
 
 ## Observability
 
@@ -536,7 +568,8 @@ slog.Info("mcp tool call",
 )
 ```
 
-These logs are where you correlate Gateway identity, requested topic filter, broker decision, result size, and error code.
+Use these logs to correlate caller identity labels, requested topic filter,
+broker decision, result size, and error code.
 
 ## Local Development
 
@@ -553,6 +586,53 @@ test:
 	go test ./...
 ```
 
+Direct local path:
+
+```text
+make run
+# configure MCP client with http://127.0.0.1:8080/mcp
+```
+
+Kind path (Event Bus + MCP backend, no gateway):
+
+```text
+make -C local skaffold-run
+make port-forward-kind
+# configure MCP client with http://127.0.0.1:18080/mcp
+```
+
+## Optional Gateway Integration
+
+When deployed behind a Latinum MCP Gateway, this server is one upstream backend
+among potentially many. The gateway validates caller JWTs, applies coarse MCP
+authorization, and forwards the original HTTP headers unchanged. From the
+server's perspective the request flow is identical to a direct client call.
+
+```text
+MCP client
+  -> Gateway /mcp
+  -> Kubernetes Service dsx-exchange-mcp:<mcp port>
+  -> pod /mcp
+```
+
+The Helm Service optionally advertises MCP to gateway discovery:
+
+```yaml
+ports:
+  - name: mcp
+    port: 8080
+    targetPort: mcp
+    appProtocol: agentgateway.dev/mcp
+```
+
+A gateway upstream entry targets this service by name, namespace, labels, port,
+and pod selector. In multi-upstream gateway deployments, tool names may appear
+with an upstream prefix (for example
+`dsx-exchange-mcp-mcp_dsx_exchange_subscribe`). The exact external name depends
+on gateway upstream naming.
+
+See `docs/gateway-auth-interactions.md` for the full gateway ↔ upstream ↔ broker
+auth matrix.
 
 ## What To Change For Common Tasks
 
@@ -564,7 +644,9 @@ Start in:
 internal/server/tools.go
 ```
 
-Add the tool registration next to the existing `mcp.AddTool` calls. If the tool touches MQTT, prefer adding focused behavior in `internal/mqttbus` rather than embedding client logic in the server layer.
+Add the tool registration next to the existing `mcp.AddTool` calls. If the tool
+touches MQTT, prefer adding focused behavior in `internal/mqttbus` rather than
+embedding client logic in the server layer.
 
 ### Change topic validation or MQTT error handling
 
@@ -574,7 +656,8 @@ Start in:
 internal/mqttbus/client.go
 ```
 
-This file owns topic filter validation, connection setup, subscribe behavior, message conversion, and broker error classification.
+This file owns topic filter validation, connection setup, subscribe behavior,
+message conversion, and broker error classification.
 
 ### Add or change embedded specs
 
@@ -593,7 +676,7 @@ internal/server/resources.go
 internal/schemaindex/index.go
 ```
 
-### Change Gateway-facing deployment metadata
+### Change Service metadata for gateway discovery
 
 Start in:
 
@@ -602,7 +685,9 @@ deploy/helm/dsx-exchange-mcp/templates/service.yaml
 deploy/helm/dsx-exchange-mcp/values.yaml
 ```
 
-Gateway discovery depends on the Service name, labels, port name, and `appProtocol`.
+Only needed when registering the backend with an MCP gateway. Direct standalone
+clients use the Service ClusterIP or a port-forward and do not depend on
+`appProtocol`.
 
 ### Change runtime limits
 
@@ -614,7 +699,8 @@ cmd/dsx-exchange-mcp/main.go
 internal/server/tools.go
 ```
 
-The chart sets deploy defaults, `main.go` reads env vars, and `tools.go` applies bounds per request.
+The chart sets deploy defaults, `main.go` reads env vars, and `tools.go` applies
+bounds per request.
 
 ## Current Design Boundaries
 
@@ -623,7 +709,10 @@ The current implementation is intentionally thin:
 1. It does not store durable watch state.
 2. It does not maintain cross-pod subscription continuity.
 3. It does not reimplement broker authorization.
-4. It does not expose a long-lived async subscription API yet.
+4. It does not expose a long-lived async subscription API.
 5. It does not persist MQTT messages outside the request.
+6. It does not mint, refresh, or cache caller JWTs — every broker-backed tool
+  call expects fresh credentials on the HTTP request.
 
-That means a pod restart can interrupt an in-flight bounded tool call. Clients should retry tool calls. If future UX requires long-lived background watches, the likely next code boundary is to build around `mqttbus.Stream` with an explicit task/watch model and a bounded external or broker-backed message store.
+That means a pod restart can interrupt an in-flight bounded tool call. Clients
+should retry tool calls.
