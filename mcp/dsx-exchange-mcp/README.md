@@ -93,7 +93,6 @@ cd mcp/dsx-exchange-mcp
 make sync-specs   # copies ../../schemas/ into ./schemas
 make test
 make build
-make build-load
 make run          # listens on :8080
 ```
 
@@ -106,7 +105,6 @@ Images:
 
 ```sh
 make image       # builds dsx-exchange-mcp:dev
-make load-image  # builds dsx-exchange-mcp-load:dev
 ```
 
 Run `make sync-specs` before building the server binary or image when the
@@ -282,7 +280,6 @@ schema discovery plus finite bounded MQTT reads.
 
 - Schema repo — `gitlab-master.nvidia.com/ncp/dsx/event-bus/schema`
 - Current v1 scope — `docs/current-v1-scope.md`
-- Gateway auth interactions — `docs/gateway-auth-interactions.md`
 - Load validation findings — `docs/load-testing.md`
 - MCP spec — https://modelcontextprotocol.io/specification/2025-06-18/
 - Go SDK — https://github.com/modelcontextprotocol/go-sdk
