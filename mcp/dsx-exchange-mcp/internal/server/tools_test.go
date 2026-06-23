@@ -306,6 +306,46 @@ func TestMCPClientListsAndCallsDescribeTopic(t *testing.T) {
 	}
 }
 
+func TestMCPClientCallsFindTopics(t *testing.T) {
+	session, cleanup := newTestMCPClient(t)
+	defer cleanup()
+
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: toolFindTopics,
+		Arguments: map[string]any{
+			"domain":      "bms",
+			"role":        "metadata",
+			"object_type": "Rack",
+			"point_type":  "RackLiquidIsolationStatus",
+			"limit":       10,
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool(%s) returned client error: %v", toolFindTopics, err)
+	}
+	if result.IsError {
+		t.Fatalf("CallTool(%s) returned tool error: %s", toolFindTopics, textContentSummary(result))
+	}
+
+	var out findTopicsOutput
+	if err := json.Unmarshal([]byte(lastTextContent(t, result)), &out); err != nil {
+		t.Fatalf("decode CallTool(%s) JSON content: %v", toolFindTopics, err)
+	}
+	if out.Count != 1 {
+		t.Fatalf("MCP find_topics count = %d, want 1: %#v", out.Count, out.Matches)
+	}
+	got := out.Matches[0]
+	if got.Domain != "bms" || got.Channel != "rackMetadata" {
+		t.Fatalf("MCP find_topics match = %s/%s, want bms/rackMetadata", got.Domain, got.Channel)
+	}
+	if got.TopicFilter != "BMS/v1/PUB/Metadata/Rack/RackLiquidIsolationStatus/#" {
+		t.Fatalf("MCP find_topics topic_filter = %q, want BMS rack metadata filter", got.TopicFilter)
+	}
+	if len(got.RelatedTopics) != 1 || got.RelatedTopics[0].TopicFilter != "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#" {
+		t.Fatalf("MCP find_topics related topics = %#v, want value counterpart", got.RelatedTopics)
+	}
+}
+
 func toolByName(t *testing.T, tools []*mcp.Tool, name string) *mcp.Tool {
 	t.Helper()
 	for _, tool := range tools {
