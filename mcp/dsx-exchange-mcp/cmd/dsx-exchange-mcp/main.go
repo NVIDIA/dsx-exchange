@@ -5,14 +5,10 @@ package main
 
 import (
 	"log/slog"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
-
-	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/auth"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/mqttbus"
 	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/server"
 )
@@ -52,21 +48,6 @@ func main() {
 		os.Exit(2)
 	}
 
-	srv := server.Build(cfg)
-
-	handler := mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server { return srv },
-		&mcp.StreamableHTTPOptions{
-			Stateless:    true,
-			JSONResponse: true,
-		},
-	)
-
-	mux := http.NewServeMux()
-	mux.Handle("/mcp", auth.Middleware(handler))
-	mux.HandleFunc("/healthz/live", healthOK)
-	mux.HandleFunc("/healthz/ready", healthOK)
-
 	logger.Info("dsx-exchange-mcp listening",
 		"addr", addr,
 		"nats", natsURL,
@@ -78,7 +59,7 @@ func main() {
 		"max_duration_s", cfg.MaxDurationS,
 		"mqtt_collect_max_concurrent_per_pod", cfg.MQTTCollectMaxConcurrent,
 	)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := server.Run(addr, cfg); err != nil {
 		logger.Error("server exited", "err", err)
 		os.Exit(1)
 	}
@@ -111,8 +92,4 @@ func envBool(key string, fallback bool) bool {
 		slog.Warn("invalid boolean env var; using fallback", "key", key, "value", v, "fallback", fallback)
 	}
 	return fallback
-}
-
-func healthOK(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
 }

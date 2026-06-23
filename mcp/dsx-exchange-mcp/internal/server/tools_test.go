@@ -433,15 +433,9 @@ func newTestMCPClient(t *testing.T) (*mcp.ClientSession, func()) {
 func newTestMCPClientWithConfig(t *testing.T, cfg Config) (*mcp.ClientSession, func()) {
 	t.Helper()
 	srv := Build(cfg)
-	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
-		return srv
-	}, &mcp.StreamableHTTPOptions{
-		Stateless:    true,
-		JSONResponse: true,
-	})
 
 	mux := http.NewServeMux()
-	mux.Handle("/mcp", auth.Middleware(handler))
+	mux.Handle("/mcp", auth.Middleware(NewHandler(srv)))
 	httpServer := httptest.NewServer(mux)
 
 	client := mcp.NewClient(&mcp.Implementation{
