@@ -1,9 +1,0 @@
-# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-
-# Apply with:
-# kubectl --context kind-dsx-mcp patch agentgatewaybackend mcp-agentgw-mcp \
-#   -n mcp-gateway --type=merge --patch-file agentgatewaybackend-stateful-routing-patch.yaml
-spec:
-  mcp:
-    sessionRouting: Stateful
