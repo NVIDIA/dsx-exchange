@@ -173,6 +173,11 @@ is a direct backend deployment, not an MCP gateway deployment. It is intended
 for manual MCP client checks against the same local Event Bus services used by
 the e2e tests.
 
+This path uses the normal local Event Bus clusters only: `kind-csc`,
+`kind-cpc-1`, and `kind-cpc-2`. The MCP backend runs as a Helm release in
+`kind-csc` under namespace `mcp-backends`; no separate MCP gateway cluster is
+created or required.
+
 After `make skaffold-run`, expose the MCP backend locally:
 
 ```bash

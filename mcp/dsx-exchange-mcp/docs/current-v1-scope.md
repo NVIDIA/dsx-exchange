@@ -6,25 +6,23 @@ SPDX-License-Identifier: Apache-2.0
 # DSX Exchange MCP Current V1 Scope
 
 This note records the current implementation scope for `dsx-exchange-mcp`.
-When older planning docs conflict with this note, use this note as the current
-source of truth.
+Use this note as the current source of truth when older design discussions or
+issue notes conflict with the shipped v1 surface.
 
 ## Document Precedence
 
 Planning docs should be read newest-first. Later docs capture newer product and
-engineering decisions, so they supersede older SDD language when scope or
+engineering decisions, so they supersede older design language when scope or
 priority differs.
 
 For the current branch:
 
 1. `current-v1-scope.md`
 2. `mcp-tasks-vs-explicit-async-tools.md`
-3. `long-running-subscriptions-ux.md`
-4. `dsx-exchange-mcp-sdd.md`
-5. Earlier tradeoff, benchmark, discussion, and eval notes
 
-The SDD remains useful for architecture context, but it is broader than the
-current implementation target.
+The repository no longer keeps historical watch/stateful-session design notes in
+the public MCP docs tree. `Architecture.md`, `README.md`, and this file describe
+the current server shape.
 
 ## In Scope For Current V1
 

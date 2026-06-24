@@ -15,4 +15,3 @@ spec:
     - name: mcp
       port: {{ .Values.service.port }}
       targetPort: mcp
-      appProtocol: agentgateway.dev/mcp

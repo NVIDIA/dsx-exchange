@@ -5,9 +5,9 @@ is intentionally code-centric: which files own which behavior, how a request flo
 through the service, and how configuration shapes runtime behavior.
 
 The server is designed to run **standalone**. Any HTTP MCP client that speaks
-Streamable HTTP can call it directly at `/mcp`. AgentGateway (or any
-other reverse proxy) is an optional front door for production aggregation and
-coarse auth — not a requirement for the server to function.
+Streamable HTTP can call it directly at `/mcp`. A reverse proxy or MCP gateway
+may sit in front of the server in some deployments, but the server does not
+depend on one.
 
 ## Big Picture
 
@@ -603,10 +603,10 @@ make port-forward-kind
 
 ## Optional Gateway Integration
 
-When deployed behind a Latinum MCP Gateway, this server is one upstream backend
-among potentially many. The gateway validates caller JWTs, applies coarse MCP
-authorization, and forwards the original HTTP headers unchanged. From the
-server's perspective the request flow is identical to a direct client call.
+When deployed behind a gateway, this server is one upstream backend among
+potentially many. From the server's perspective the request flow is identical
+to a direct client call: the upstream receives ordinary Streamable HTTP requests
+on `/mcp`.
 
 ```text
 MCP client
@@ -615,24 +615,11 @@ MCP client
   -> pod /mcp
 ```
 
-The Helm Service optionally advertises MCP to gateway discovery:
-
-```yaml
-ports:
-  - name: mcp
-    port: 8080
-    targetPort: mcp
-    appProtocol: agentgateway.dev/mcp
-```
-
 A gateway upstream entry targets this service by name, namespace, labels, port,
 and pod selector. In multi-upstream gateway deployments, tool names may appear
 with an upstream prefix (for example
 `dsx-exchange-mcp-mcp_dsx_exchange_subscribe`). The exact external name depends
 on gateway upstream naming.
-
-See `docs/gateway-auth-interactions.md` for the full gateway ↔ upstream ↔ broker
-auth matrix.
 
 ## What To Change For Common Tasks
 

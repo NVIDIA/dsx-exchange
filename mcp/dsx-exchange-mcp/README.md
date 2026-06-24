@@ -185,6 +185,11 @@ backend:
 make -C local skaffold-run
 ```
 
+The local topology uses only the Event Bus Kind clusters created by
+`local/infra/scripts/setup-clusters.sh`: `kind-csc`, `kind-cpc-1`, and
+`kind-cpc-2`. The MCP server is a Helm release in `kind-csc`, namespace
+`mcp-backends`; no separate MCP gateway cluster is part of this path.
+
 To deploy or redeploy only the MCP backend after the local stack already exists:
 
 ```sh
@@ -268,8 +273,6 @@ logs the tool trace, and compares the model's final tool plan with
 
 Set `DSX_EXCHANGE_MCP_URL` to a local process or port-forwarded Kind `/mcp`
 endpoint. If it is unset, the test starts an in-process MCP server.
-
-See `docs/local-llm-mcp-eval.md`.
 
 ## Maintainer validation
 

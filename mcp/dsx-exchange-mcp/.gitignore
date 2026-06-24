@@ -10,3 +10,18 @@ context/
 /schema/
 /internal/specs/data/*
 !/internal/specs/data/.gitkeep
+
+# Local-only MCP validation helpers; not part of the released server.
+/cmd/dsx-exchange-token-proxy/
+/deploy/local-check/
+/docs/gateway-auth-interactions.md
+/docs/local-deployment-check.md
+/docs/todo.md
+
+# Historical design notes kept locally, not in the public MCP docs tree.
+/docs/dsx-exchange-mcp-sdd.md
+/docs/local-llm-mcp-eval.md
+/docs/long-running-subscriptions-ux.md
+/docs/sdd-discussion-notes.md
+/docs/v1-background-watch-benchmark-plan.md
+/docs/watch-state-tradeoff-note.md
