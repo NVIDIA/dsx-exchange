@@ -23,11 +23,36 @@ SPDX-License-Identifier: Apache-2.0
 - Use `dsx_exchange_describe_topic` when the user provides a topic or topic
   filter and needs schema context, payload shape, parameters, examples, or
   related metadata/value topics.
-- Use `dsx_exchange_read_retained` for retained metadata and last-known retained
-  values. For BMS value topics, read related `/Metadata/` topics first when
-  `describe_topic` returns them.
+- Treat `describe_topic` `schema_no_match` results as a bad schema-catalog
+  argument, not proof that the live broker has no data. Retry with
+  `dsx_exchange_find_topics` using inferred `domain`, `role`, `object_type`,
+  `point_type`, or `query` terms before calling broker-backed tools.
+- Use `dsx_exchange_read_retained` for retained metadata discovery. For BMS
+  value requests, read related `/Metadata/` topics first when `describe_topic`
+  returns them, then use that metadata to decide which `/Value/` topics to
+  sample with `dsx_exchange_subscribe`.
 - Use `dsx_exchange_subscribe` only for bounded live sampling. Always provide a
   finite `max_messages` and `max_duration_s`.
+
+## BMS Discovery
+
+- When the user asks for BMS values by signal name, asset, or point type,
+  prefer `dsx_exchange_find_topics` before `describe_topic`; only describe the
+  returned topic filters.
+- For BMS value sampling, read retained related `/Metadata/` topics first when
+  available. Treat retained metadata as the point/topic inventory, not the live
+  value result. Use it to choose which concrete `/Value/` topics matter, then
+  subscribe to those value filters.
+- Do not call `dsx_exchange_read_retained` on guessed `/Value/` topics.
+
+## Non-BMS Discovery
+
+- For non-BMS schemas such as `power-management`, `nico`, and
+  `spiffe-exchange`, do not infer BMS-style `/Metadata/` and `/Value/`
+  companion topics unless `describe_topic` returns them.
+- Use `dsx_exchange_find_topics` or `dsx_exchange_describe_topic` to get the
+  event topic filter, then use `dsx_exchange_subscribe` for bounded live
+  sampling when the user asks to listen, watch, fetch, or get events.
 
 ## Background Subscribe
 
@@ -63,8 +88,5 @@ topic rate requires a narrower cap:
 
 - Do not use shell MQTT clients such as `mosquitto_sub` unless DSX Exchange MCP
   is unavailable and the user approves the fallback.
-- Do not use removed server-side watch lifecycle tools such as
-  `start_subscription`, `read_subscription`, `subscription_status`, or
-  `stop_subscription`.
 - Do not ask the user for bearer tokens as tool arguments. The MCP client and
   server transport are responsible for passing authentication headers.
