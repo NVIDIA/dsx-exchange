@@ -401,7 +401,7 @@ In `jwt_passthrough` mode, `Collect` requires a bearer token:
 
 ```go
 if strings.TrimSpace(bearer) == "" {
-	return CollectResult{}, &BusError{Code: ErrMissingBearer, Message: "missing caller bearer token"}
+	return CollectResult{}, &BusError{Code: CodeMissingBearer, Message: "missing Authorization bearer for jwt_passthrough MQTT auth mode"}
 }
 ```
 
@@ -431,9 +431,8 @@ The collection loop stops for bounded reasons:
 | `max_messages`     | Hit requested or configured message count.                            |
 | `max_duration`     | Hit requested or configured duration.                                 |
 | `retained_idle`    | Retained-read mode saw no more retained messages for the idle window. |
-| `max_result_bytes` | Payload would exceed configured response size.                        |
-| `client_cancelled` | Request context was cancelled.                                        |
-| `completed`        | Normal completion path.                                               |
+| `result_too_large` | Payload would exceed configured response size.                        |
+| `caller_cancelled` | Request context was cancelled.                                        |
 
 
 Payload conversion is also handled here. UTF-8 payloads are returned as strings;
@@ -442,7 +441,7 @@ non-UTF-8 payloads are base64 encoded:
 ```go
 if utf8.Valid(payload) {
 	msg.Payload = string(payload)
-	msg.PayloadEncoding = "utf-8"
+	msg.PayloadEncoding = "utf8"
 } else {
 	msg.Payload = base64.StdEncoding.EncodeToString(payload)
 	msg.PayloadEncoding = "base64"
