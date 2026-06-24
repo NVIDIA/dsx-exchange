@@ -17,6 +17,4 @@ coverage.out
 # image. The server binary still embeds schemas from ./schemas at build time.
 cmd/dsx-exchange-token-proxy/
 deploy/local-check/
-docs/gateway-auth-interactions.md
-docs/local-deployment-check.md
-docs/todo.md
+docs/

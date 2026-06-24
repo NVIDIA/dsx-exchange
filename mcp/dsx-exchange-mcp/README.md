@@ -280,7 +280,6 @@ Prompt quality is covered by fixture-based Go tests and the opt-in local LLM
 eval. Load validation is maintainer-oriented and intentionally separate from
 the public build/run path.
 
-Use `docs/load-testing.md` only when intentionally running load experiments.
 Raw report bundles are local evidence and should stay under ignored `reports/`.
 
 ## Status
@@ -293,6 +292,5 @@ schema discovery plus finite bounded MQTT reads.
 
 ## References
 
-- Current v1 scope — `docs/current-v1-scope.md`
 - MCP spec — https://modelcontextprotocol.io/specification/2025-06-18/
 - Go SDK — https://github.com/modelcontextprotocol/go-sdk

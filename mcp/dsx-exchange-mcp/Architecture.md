@@ -285,10 +285,6 @@ Responsibility split:
 | `dsx-exchange-mcp`              | Extract credentials, translate MCP tools to embedded specs and bounded MQTT reads |
 | NATS/MQTT broker + auth-callout | Authenticate the delegated token (or noauth profile) and enforce topic ACLs       |
 
-
-For gateway-specific auth interactions when a gateway is deployed, see
-`docs/gateway-auth-interactions.md`.
-
 ## MCP Tools
 
 Tool registration lives in `internal/server/tools.go`.
