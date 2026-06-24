@@ -24,6 +24,8 @@ const (
 	toolReadRetained  = "dsx_exchange_read_retained"
 	toolDescribeTopic = "dsx_exchange_describe_topic"
 	toolFindTopics    = "dsx_exchange_find_topics"
+
+	codeSchemaNoMatch = "schema_no_match"
 )
 
 type subscribeInput struct {
@@ -33,7 +35,7 @@ type subscribeInput struct {
 }
 
 type readRetainedInput struct {
-	TopicFilter string `json:"topic_filter" jsonschema:"MQTT topic filter to read retained messages from. For BMS, use Metadata paths such as BMS/v1/PUB/Metadata/#. Do not use this for live Value paths; use dsx_exchange_subscribe instead."`
+	TopicFilter string `json:"topic_filter" jsonschema:"MQTT topic filter to read retained messages from. For BMS, use Metadata paths such as BMS/v1/PUB/Metadata/# to discover which points and related Value topics matter. Do not use this for live Value paths; use dsx_exchange_subscribe instead."`
 	MaxMessages int    `json:"max_messages,omitempty" jsonschema:"safety cap on returned messages (default 1000)"`
 }
 
@@ -119,8 +121,9 @@ func registerTools(s *mcp.Server, cfg Config) {
 		Name:        toolReadRetained,
 		Annotations: readOnlyOpenWorldAnnotations("Read retained MQTT messages"),
 		Description: "Read currently-retained messages on a DSX Exchange MQTT topic filter. " +
-			"Use this for retained BMS Metadata, for example BMS/v1/PUB/Metadata/#, before " +
-			"deriving specific value topics. Do not use this tool for BMS live Value channels; " +
+			"For BMS, use this for retained Metadata topics, for example BMS/v1/PUB/Metadata/#. " +
+			"Use the returned metadata to decide which related /Value/ topics to sample with dsx_exchange_subscribe. " +
+			"Do not use this tool for BMS live Value channels; " +
 			"a zero-count retained_idle result means no retained messages matched that filter. " +
 			"In jwt_passthrough mode, the caller bearer is passed to MQTT as the configured OAuth " +
 			"username/password=<bearer>; in noauth mode, no MQTT username/password is sent.",
@@ -133,7 +136,8 @@ func registerTools(s *mcp.Server, cfg Config) {
 		Annotations: readOnlyClosedWorldAnnotations("Describe Exchange schema topic"),
 		Description: "Schema Exploration: describe the AsyncAPI channel matching a DSX Exchange topic filter. " +
 			"Returns the schema channel, payload shape, retained/live behavior, examples, and related metadata/value topics. " +
-			"Use this before subscribing when the caller knows roughly which MQTT path they want but needs schema context.",
+			"Use this before subscribing when the caller knows roughly which MQTT path they want but needs schema context. " +
+			"If no embedded AsyncAPI channel matches the filter, this returns a schema_no_match tool error; retry discovery with dsx_exchange_find_topics before using broker-backed tools.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in describeTopicInput) (*mcp.CallToolResult, describeTopicOutput, error) {
 		return describeTopicTool(ctx, in)
 	})
@@ -174,6 +178,9 @@ func describeTopicTool(ctx context.Context, in describeTopicInput) (*mcp.CallToo
 	}
 
 	matches := idx.Describe(topicFilter)
+	if len(matches) == 0 {
+		return describeTopicError(codeSchemaNoMatch, fmt.Sprintf("no embedded AsyncAPI channel matches topic_filter %q; try dsx_exchange_find_topics with domain, role, object_type, point_type, or query before using broker-backed tools", topicFilter))
+	}
 	out := describeTopicOutput{
 		TopicFilter: topicFilter,
 		Count:       len(matches),

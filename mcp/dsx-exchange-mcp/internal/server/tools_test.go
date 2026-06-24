@@ -107,6 +107,32 @@ func TestDescribeTopicToolRequiresFilter(t *testing.T) {
 	}
 }
 
+func TestDescribeTopicToolNoSchemaMatchReturnsToolError(t *testing.T) {
+	result, out, err := describeTopicTool(context.Background(), describeTopicInput{
+		TopicFilter: "Unknown/v1/PUB/Value/Rack/RackPower/#",
+	})
+	if err != nil {
+		t.Fatalf("describeTopicTool returned transport error: %v", err)
+	}
+	if result == nil || !result.IsError {
+		t.Fatalf("describeTopicTool no-match IsError = %v, want true", result != nil && result.IsError)
+	}
+	if out.TopicFilter != "" || out.Count != 0 || len(out.Matches) != 0 {
+		t.Fatalf("describeTopicTool no-match output = %#v, want empty output", out)
+	}
+
+	var body structuredError
+	if err := json.Unmarshal([]byte(lastTextContent(t, result)), &body); err != nil {
+		t.Fatalf("decode no-match error body: %v", err)
+	}
+	if body.Error.Code != codeSchemaNoMatch {
+		t.Fatalf("no-match error code = %q, want %q", body.Error.Code, codeSchemaNoMatch)
+	}
+	if !strings.Contains(body.Error.Message, "no embedded AsyncAPI channel matches") {
+		t.Fatalf("no-match error message = %q, want embedded AsyncAPI match hint", body.Error.Message)
+	}
+}
+
 func TestFindTopicsToolMatchesSelector(t *testing.T) {
 	cfg := Config{}
 	normalizeConfig(&cfg)
@@ -124,6 +150,24 @@ func TestFindTopicsToolMatchesSelector(t *testing.T) {
 	}
 	if got := out.Matches[0].TopicFilter; got != "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#" {
 		t.Fatalf("topic filter = %q, want RackLiquidIsolationStatus value filter", got)
+	}
+}
+
+func TestFindTopicsToolNoMatchRemainsSuccess(t *testing.T) {
+	cfg := Config{}
+	normalizeConfig(&cfg)
+	result, out, err := findTopicsTool(context.Background(), cfg, findTopicsInput{
+		Domain: "unknown-domain",
+		Query:  "definitely-not-a-schema-topic",
+	})
+	if err != nil {
+		t.Fatalf("findTopicsTool returned transport error: %v", err)
+	}
+	if result == nil || result.IsError {
+		t.Fatalf("findTopicsTool no-match IsError = %v, want false", result != nil && result.IsError)
+	}
+	if out.Count != 0 || len(out.Matches) != 0 {
+		t.Fatalf("findTopicsTool no-match output = %#v, want count=0", out)
 	}
 }
 
@@ -375,6 +419,32 @@ func TestMCPClientDescribeTopicInvalidFilterReturnsToolError(t *testing.T) {
 	}
 	if got := textContentSummary(result); !strings.Contains(got, mqttbus.CodeInvalidTopicFilter) {
 		t.Fatalf("invalid filter error content = %q, want code %q", got, mqttbus.CodeInvalidTopicFilter)
+	}
+}
+
+func TestMCPClientDescribeTopicNoSchemaMatchReturnsToolError(t *testing.T) {
+	session, cleanup := newTestMCPClient(t)
+	defer cleanup()
+
+	result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name: toolDescribeTopic,
+		Arguments: map[string]any{
+			"topic_filter": "Unknown/v1/PUB/Value/Rack/RackPower/#",
+		},
+	})
+	if err != nil {
+		t.Fatalf("CallTool no-match filter returned client/protocol error: %v", err)
+	}
+	if !result.IsError {
+		t.Fatalf("CallTool no-match filter IsError=false; content=%s", textContentSummary(result))
+	}
+
+	var body structuredError
+	if err := json.Unmarshal([]byte(lastTextContent(t, result)), &body); err != nil {
+		t.Fatalf("decode no-match error body: %v", err)
+	}
+	if body.Error.Code != codeSchemaNoMatch {
+		t.Fatalf("no-match error code = %q, want %q", body.Error.Code, codeSchemaNoMatch)
 	}
 }
 
