@@ -23,23 +23,39 @@ import (
 
 // OAuth2Authenticator handles OAuth2/JWKS-based authentication
 type OAuth2Authenticator struct {
-	jwks        keyfunc.Keyfunc
-	pm          *config.PermissionsManager
-	issuer      string
-	audience    string
-	jwksURL     string
-	logger      *otelzap.Logger
-	serviceName string
-	cancel      context.CancelFunc
+	jwks              keyfunc.Keyfunc
+	pm                *config.PermissionsManager
+	issuer            string
+	audience          string
+	signingAlgorithms []string
+	logger            *otelzap.Logger
+	serviceName       string
+	cancel            context.CancelFunc
+}
+
+var supportedOAuth2SigningAlgorithms = map[string]struct{}{
+	jwt.SigningMethodRS256.Alg(): {},
+	jwt.SigningMethodRS384.Alg(): {},
+	jwt.SigningMethodRS512.Alg(): {},
+	jwt.SigningMethodES256.Alg(): {},
+	jwt.SigningMethodES384.Alg(): {},
+	jwt.SigningMethodES512.Alg(): {},
+	jwt.SigningMethodPS256.Alg(): {},
+	jwt.SigningMethodPS384.Alg(): {},
+	jwt.SigningMethodPS512.Alg(): {},
+	jwt.SigningMethodEdDSA.Alg(): {},
 }
 
 // NewOAuth2Authenticator creates a new OAuth2 authenticator
-func NewOAuth2Authenticator(jwksURL string, issuer string, audience string, pm *config.PermissionsManager, logger *otelzap.Logger, serviceName string) (*OAuth2Authenticator, error) {
+func NewOAuth2Authenticator(jwksURL string, issuer string, audience string, signingAlgorithms []string, pm *config.PermissionsManager, logger *otelzap.Logger, serviceName string) (*OAuth2Authenticator, error) {
 	if issuer == "" {
 		return nil, fmt.Errorf("OAuth2 issuer is required")
 	}
 	if audience == "" {
 		return nil, fmt.Errorf("OAuth2 audience is required")
+	}
+	if err := validateOAuth2SigningAlgorithms(signingAlgorithms); err != nil {
+		return nil, err
 	}
 
 	// Create JWKS client with automatic refresh - context controls lifecycle
@@ -50,18 +66,34 @@ func NewOAuth2Authenticator(jwksURL string, issuer string, audience string, pm *
 		return nil, fmt.Errorf("failed to create JWKS client: %w", err)
 	}
 
-	logger.Info("OAuth2 authenticator initialized", zap.String("jwks_url", jwksURL))
+	logger.Info("OAuth2 authenticator initialized",
+		zap.String("jwks_url", jwksURL),
+		zap.Strings("signing_algorithms", signingAlgorithms),
+	)
 
 	return &OAuth2Authenticator{
-		jwks:        k,
-		pm:          pm,
-		issuer:      issuer,
-		audience:    audience,
-		jwksURL:     jwksURL,
-		logger:      logger,
-		serviceName: serviceName,
-		cancel:      cancel,
+		jwks:              k,
+		pm:                pm,
+		issuer:            issuer,
+		audience:          audience,
+		signingAlgorithms: signingAlgorithms,
+		logger:            logger,
+		serviceName:       serviceName,
+		cancel:            cancel,
 	}, nil
+}
+
+func validateOAuth2SigningAlgorithms(configured []string) error {
+	if len(configured) == 0 {
+		return fmt.Errorf("OAuth2 signing algorithms are required")
+	}
+
+	for _, algorithm := range configured {
+		if _, ok := supportedOAuth2SigningAlgorithms[algorithm]; !ok {
+			return fmt.Errorf("unsupported OAuth2 signing algorithm %q", algorithm)
+		}
+	}
+	return nil
 }
 
 // CanAuthenticate checks if OAuth2 credentials are present
@@ -91,7 +123,7 @@ func (o *OAuth2Authenticator) Authenticate(ctx context.Context, token string) (*
 		token,
 		&Claims{},
 		o.jwks.Keyfunc,
-		jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}),
+		jwt.WithValidMethods(o.signingAlgorithms),
 		jwt.WithExpirationRequired(),
 		jwt.WithIssuer(o.issuer),
 		jwt.WithAudience(o.audience),

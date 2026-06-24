@@ -11,10 +11,12 @@ BMS/v1/{integration}/Value/Rack/{pointType}/{tagPath}
 ```
 
 Values published by integrations for Rack control points.
+Subscribe to `BMS/v1/PUB/Metadata/Rack/#` and publish only when that metadata payload includes an `integration` field whose value matches the publishing integration identifier.
+That matching metadata payload indicates the integration can publish values to this topic.
 
 **MQTT wildcard examples**
 
-- All integration rack values: `BMS/v1/+/Value/Rack/#`
+- All integration Rack values: `BMS/v1/+/Value/Rack/#`
 
 ### Parameters
 

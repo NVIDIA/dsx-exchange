@@ -16,6 +16,8 @@ jwks:
   url: ""            # JWKS endpoint URL
   issuer: ""         # Expected JWT issuer
   audience: ""       # Expected JWT audience
+  signing-algorithms:
+    - RS256          # Allowed JWT signing algorithms
 
 # mTLS configuration
 mtls:

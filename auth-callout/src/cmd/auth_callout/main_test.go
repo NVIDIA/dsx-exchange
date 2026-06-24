@@ -43,6 +43,28 @@ func TestRunServerDoesNotLogConfiguredNATSSeeds(t *testing.T) {
 	}
 }
 
+func TestDefaultConfigIncludesJWKSSigningAlgorithms(t *testing.T) {
+	// Load overlays env and config-file sources after defaultConfigYAML; clear
+	// those inputs so this test only proves the embedded app defaults.
+	t.Setenv("AUTH_CALLOUT_CONFIG", "")
+	t.Setenv("AUTH_CALLOUT_CONFIG_FILE", "")
+	t.Setenv("AUTH_CALLOUT_HOT_CONFIG", "")
+	t.Setenv("AUTH_CALLOUT_JWKS_SIGNING_ALGORITHMS", "")
+	t.Setenv("JWKS_SIGNING_ALGORITHMS", "")
+
+	manager := appconfig.New(defaultConfigYAML)
+	require.NoError(t, manager.Load())
+
+	type jwksConfig struct {
+		JWKS struct {
+			SigningAlgorithms []string `koanf:"signing-algorithms"`
+		} `koanf:"jwks"`
+	}
+	var config jwksConfig
+	require.NoError(t, manager.Unmarshal(&config))
+	require.Equal(t, []string{"RS256"}, config.JWKS.SigningAlgorithms)
+}
+
 func captureStderr(t *testing.T, fn func()) string {
 	t.Helper()
 

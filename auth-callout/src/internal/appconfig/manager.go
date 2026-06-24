@@ -108,6 +108,7 @@ func applyAliases(k *koanf.Koanf) {
 	setString(k, "jwks.url", "JWKS_URL", envPrefix+"JWKS_URL")
 	setString(k, "jwks.issuer", "JWKS_ISSUER", envPrefix+"JWKS_ISSUER")
 	setString(k, "jwks.audience", "JWKS_AUDIENCE", envPrefix+"JWKS_AUDIENCE")
+	setStringSlice(k, "jwks.signing-algorithms", "JWKS_SIGNING_ALGORITHMS", envPrefix+"JWKS_SIGNING_ALGORITHMS")
 	setString(k, "mtls.ca-path", "MTLS_CA_PATH", envPrefix+"MTLS_CA_PATH")
 	setString(k, "permissions.file", "PERMISSIONS_FILE", envPrefix+"PERMISSIONS_FILE")
 	setString(k, "observability.telemetry.service-name", envPrefix+"SERVICE_NAME")
@@ -117,6 +118,12 @@ func applyAliases(k *koanf.Koanf) {
 func setString(k *koanf.Koanf, key string, names ...string) {
 	if value := envValue(names...); value != "" {
 		k.Set(key, value)
+	}
+}
+
+func setStringSlice(k *koanf.Koanf, key string, names ...string) {
+	if value := envValue(names...); value != "" {
+		k.Set(key, strings.Split(value, ","))
 	}
 }
 

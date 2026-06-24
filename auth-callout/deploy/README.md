@@ -84,6 +84,9 @@ serviceConfig:
     url: "https://keycloak/realms/master/protocol/openid-connect/certs"
     issuer: "https://keycloak/realms/master"
     audience: "dsx-exchange"
+    signing-algorithms:
+      - RS256
+      - ES256
 ```
 
 ### mTLS Configuration

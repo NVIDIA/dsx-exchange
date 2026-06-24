@@ -12,6 +12,7 @@ CFSSL_VERSION="${CFSSL_VERSION:-v1.6.5}"
 NSC_VERSION="${NSC_VERSION:-v2.14.0}"
 NKEYS_VERSION="${NKEYS_VERSION:-v0.4.15}"
 YQ_VERSION="${YQ_VERSION:-v4.53.2}"
+ADDLICENSE_VERSION="${ADDLICENSE_VERSION:-v1.2.0}"
 
 if [ -z "${E2E_PREREQS_BIN:-}" ]; then
   go_bin="$(go env GOBIN 2>/dev/null || true)"
@@ -171,6 +172,7 @@ install_go_tool cfssljson github.com/cloudflare/cfssl/cmd/cfssljson "${CFSSL_VER
 install_go_tool nsc github.com/nats-io/nsc/v2 "${NSC_VERSION}" --version
 install_go_tool nk github.com/nats-io/nkeys/nk "${NKEYS_VERSION}"
 install_go_tool yq github.com/mikefarah/yq/v4 "${YQ_VERSION}" --version
+install_go_tool addlicense github.com/google/addlicense "${ADDLICENSE_VERSION}"
 
 kind version
 kubectl version --client=true
@@ -180,3 +182,4 @@ cfssl version
 nsc --version
 nk -v
 yq --version
+addlicense --help >/dev/null 2>&1

@@ -16,13 +16,24 @@ DSX Exchange provides the repository pieces needed to describe, deploy, and vali
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
+## Requirements
+
+- OS: Linux or macOS with Docker support.
+- Tools: `go`, `make`, `helm`, `kubectl`, `kind`, `docker`, `jq`, `yq`, `cfssl`, `nsc`, `addlicense`.
+- Kubernetes: local Kind clusters for e2e testing.
+- Runtime: Go modules declare their own supported Go versions.
+
+GPU drivers are not required.
+
 ## Getting Started
 
-Clone the repository and run the local validation checks:
+Clone the repository, install the local e2e prerequisites, and run the local
+validation checks:
 
 ```bash
 git clone https://github.com/NVIDIA/dsx-exchange.git
 cd dsx-exchange
+make install-e2e-prereqs
 make test
 ```
 
@@ -35,15 +46,6 @@ Publish looping dummy BMS data into the local CSC MQTT broker:
 ```bash
 make dummy-bms
 ```
-
-## Requirements
-
-- OS: Linux or macOS with Docker support.
-- Tools: `go`, `make`, `helm`, `kubectl`, `kind`, `docker`, `jq`, `yq`, `cfssl`, `nsc`, `addlicense`.
-- Kubernetes: local Kind clusters for e2e testing.
-- Runtime: Go modules declare their own supported Go versions.
-
-GPU drivers are not required.
 
 ## Usage
 

@@ -24,6 +24,7 @@ warns when its version differs from the expected version:
 - nsc v2.14.0
 - nk v0.4.15
 - yq v4.53.2
+- addlicense v1.2.0
 
 ### MacOS Tweaks
 

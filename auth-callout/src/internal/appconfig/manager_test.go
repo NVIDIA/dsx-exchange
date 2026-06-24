@@ -38,6 +38,22 @@ nats:
 	require.Equal(t, "SXFAKE", config.NATS.XKeySeed)
 }
 
+func TestLoadAllowsJWKSAlgorithmsInEnvironment(t *testing.T) {
+	t.Setenv("AUTH_CALLOUT_JWKS_SIGNING_ALGORITHMS", "RS256,ES256")
+
+	manager := New("")
+	require.NoError(t, manager.Load())
+
+	type jwksConfig struct {
+		JWKS struct {
+			SigningAlgorithms []string `koanf:"signing-algorithms"`
+		} `koanf:"jwks"`
+	}
+	var config jwksConfig
+	require.NoError(t, manager.Unmarshal(&config))
+	require.Equal(t, []string{"RS256", "ES256"}, config.JWKS.SigningAlgorithms)
+}
+
 func writeConfigFile(t *testing.T, name, content string) string {
 	t.Helper()
 
