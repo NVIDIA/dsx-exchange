@@ -111,7 +111,20 @@ Run `make sync-specs` before building the server binary or image when the
 monorepo `schemas/` tree has changed. The image uses the already-synced
 `./schemas` tree and does not fetch schemas at runtime.
 
-Environment:
+## MCP client skill
+
+Client-facing agent guidance lives at `skills/dsx-exchange-mcp/SKILL.md`.
+MCP clients or agent runtimes that support skill, rule, or instruction import
+can use that file to teach agents the intended workflow:
+
+- use schema discovery tools inline
+- use retained reads for metadata and last-known retained values
+- run `dsx_exchange_subscribe` through a background agent, subagent, task, or
+  equivalent mechanism when available
+
+The skill is client-agnostic and does not include client-specific setup.
+
+## Environment
 
 | Var | Default | Notes |
 | --- | --- | --- |
@@ -192,7 +205,7 @@ This path intentionally does not require an MCP gateway. The Kind values use
 
 ## Setup checklist
 
-Before an MCP client or load test can call broker-backed tools, verify:
+Before an MCP client or opt-in validation can call broker-backed tools, verify:
 
 | Item | What the operator provides | Where this MCP expects it |
 | --- | --- | --- |
@@ -202,8 +215,8 @@ Before an MCP client or load test can call broker-backed tools, verify:
 | Broker username | OAuth profile username for MQTT CONNECT in `jwt_passthrough` mode | Helm `mqtt.username`, runtime `MQTT_USERNAME` |
 | Broker CA | Root/intermediate CA bundle for broker TLS | Secret referenced by `mqtt.tls.caCertSecret.name/key` |
 | TLS server name | Broker certificate server name, if needed | Helm `mqtt.tls.serverName`, runtime `MQTT_TLS_SERVER_NAME` |
-| Caller JWT | Fresh user/service bearer from approved secret manager flow when using `jwt_passthrough` | MCP `Authorization: Bearer ...`; load secret key `bearer` |
-| Allowed topics | Topics the caller JWT is authorized to read | E2E/load env topic inputs |
+| Caller JWT | Fresh user/service bearer from the deployment's approved identity flow when using `jwt_passthrough` | MCP `Authorization: Bearer ...` |
+| Allowed topics | Topics the caller JWT is authorized to read | E2E env topic inputs |
 
 If schema tools work but broker-backed tools return auth or subscribe errors,
 debug in this order: bearer freshness, broker CA trust, broker URL/server name,
@@ -258,15 +271,14 @@ endpoint. If it is unset, the test starts an in-process MCP server.
 
 See `docs/local-llm-mcp-eval.md`.
 
-## Quality and load validation
+## Maintainer validation
 
-`cmd/dsx-exchange-mcp-load` creates many MCP sessions and records JSON, text,
-and CSV reports with per-operation latency and error attribution. Prompt quality
-is covered by fixture-based Go tests and the opt-in local LLM eval.
+Prompt quality is covered by fixture-based Go tests and the opt-in local LLM
+eval. Load validation is maintainer-oriented and intentionally separate from
+the public build/run path.
 
-Use `docs/load-testing.md` for load-test scenarios, reproduction requirements,
-and summarized findings from the current branch. Raw report bundles are local
-evidence and should stay under ignored `reports/`.
+Use `docs/load-testing.md` only when intentionally running load experiments.
+Raw report bundles are local evidence and should stay under ignored `reports/`.
 
 ## Status
 
@@ -278,8 +290,6 @@ schema discovery plus finite bounded MQTT reads.
 
 ## References
 
-- Schema repo — `gitlab-master.nvidia.com/ncp/dsx/event-bus/schema`
 - Current v1 scope — `docs/current-v1-scope.md`
-- Load validation findings — `docs/load-testing.md`
 - MCP spec — https://modelcontextprotocol.io/specification/2025-06-18/
 - Go SDK — https://github.com/modelcontextprotocol/go-sdk

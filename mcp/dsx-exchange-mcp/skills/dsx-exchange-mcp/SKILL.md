@@ -68,4 +68,3 @@ topic rate requires a narrower cap:
   `stop_subscription`.
 - Do not ask the user for bearer tokens as tool arguments. The MCP client and
   server transport are responsible for passing authentication headers.
-- Do not mention local token proxy workflows in released client guidance.
