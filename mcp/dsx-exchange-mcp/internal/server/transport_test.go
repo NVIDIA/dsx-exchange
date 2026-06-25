@@ -19,7 +19,9 @@ func TestNewHandlerToolsListJSONResponse(t *testing.T) {
 	defer httpServer.Close()
 
 	resp := postJSONRPC(t, httpServer.URL, jsonRPCRequest(1, "tools/list", map[string]any{}))
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("tools/list status = %d, want 200", resp.StatusCode)
@@ -67,7 +69,9 @@ func TestNewHandlerRejectsLongPollGET(t *testing.T) {
 	if err != nil {
 		t.Fatalf("long-poll GET failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode < http.StatusBadRequest {
 		t.Fatalf("long-poll GET status = %d, want non-success", resp.StatusCode)

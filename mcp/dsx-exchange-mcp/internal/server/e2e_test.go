@@ -392,7 +392,9 @@ func (c *mcpHTTPClient) post(ctx context.Context, sessionID string, payload map[
 	if err != nil {
 		return rpcResponse{}, "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	raw, err := io.ReadAll(res.Body)
 	if err != nil {

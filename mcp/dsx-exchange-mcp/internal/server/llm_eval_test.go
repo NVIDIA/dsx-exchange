@@ -313,7 +313,9 @@ func (c localLLMClient) complete(ctx context.Context, req chatCompletionRequest)
 	if err != nil {
 		return chatCompletionResponse{}, fmt.Errorf("call local LLM API at %s: %w", c.baseURL, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -336,7 +338,7 @@ func llmToolDefinitions(tools []mcpToolDefinition, allowLiveTools bool) []chatTo
 	out := make([]chatTool, 0, len(tools))
 	for _, tool := range tools {
 		normalized := normalizeToolName(tool.Name)
-		if normalized != toolDescribeTopic && !(allowLiveTools && (normalized == toolReadRetained || normalized == toolSubscribe)) {
+		if normalized != toolDescribeTopic && (!allowLiveTools || (normalized != toolReadRetained && normalized != toolSubscribe)) {
 			continue
 		}
 		parameters := tool.InputSchema

@@ -21,7 +21,7 @@ help:
 	@printf '  build              sync specs and build bin/%s\n' "$(BINARY)"
 	@printf '  run                sync specs, build, and run the MCP server\n'
 	@printf '  test               sync specs and run Go tests with $(GOFLAGS)\n'
-	@printf '  lint               sync specs and run go vet\n'
+	@printf '  lint               sync specs and run Go linters\n'
 	@printf '  sync-specs         copy schemas from $(SCHEMA_SRC) into ./schemas\n'
 	@printf '  verify-specs       sync specs and verify schema inputs exist\n'
 	@printf '  image              build $(IMAGE_REPOSITORY):$(IMAGE_TAG)\n'
@@ -53,6 +53,7 @@ vendor: tidy
 
 lint: sync-specs
 	go vet $(GOFLAGS) $$(go list $(GOFLAGS) ./...)
+	@command -v golangci-lint >/dev/null 2>&1 && golangci-lint run || echo "golangci-lint not installed, skipping..."
 
 sync-specs:
 	@test -d $(SCHEMA_SRC) || (echo "schema tree not at $(SCHEMA_SRC); set SCHEMA_SRC"; exit 1)
