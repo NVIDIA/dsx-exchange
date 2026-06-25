@@ -8,6 +8,10 @@
 .claude/
 context/
 /schema/
+/schemas/.gitignore
+/schemas/README.md
+/schemas/cloud-events-example.yaml
+/schemas/asyncapi/
 /internal/specs/data/*
 !/internal/specs/data/.gitkeep
 

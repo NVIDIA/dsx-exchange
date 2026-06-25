@@ -63,6 +63,8 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
       - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           go-version: "1.25.5"
@@ -115,6 +117,8 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
       - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           go-version: "1.25.5"
@@ -128,10 +132,8 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - name: Refresh MCP embedded schemas
-        run: make -C mcp/dsx-exchange-mcp sync-specs
-      - name: Verify MCP embedded schemas are current
-        run: git diff --exit-code -- mcp/dsx-exchange-mcp/schemas
+      - name: Verify MCP embedded schemas can be generated
+        run: make -C mcp/dsx-exchange-mcp verify-specs
 
   third-party-licenses:
     name: Third-Party Licenses
@@ -178,7 +180,7 @@ jobs:
         with:
           image: dsx-exchange-mcp
           tags: ci-validation
-          context: mcp/dsx-exchange-mcp
+          context: .
           dockerfile: mcp/dsx-exchange-mcp/Dockerfile
           platforms: linux/amd64
           push: "false"
@@ -197,6 +199,8 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: false
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
       - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           languages: go
@@ -247,7 +251,7 @@ jobs:
         with:
           image: dsx-exchange-mcp
           tags: scan-validation
-          context: mcp/dsx-exchange-mcp
+          context: .
           dockerfile: mcp/dsx-exchange-mcp/Dockerfile
           platforms: linux/amd64
           push: "false"

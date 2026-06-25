@@ -135,7 +135,7 @@ accepts the same `/mcp` requests and reads the same headers. See
 | `internal/server/resources.go`                           | Defines MCP resources backed by embedded DSX specs.                                                                           |
 | `internal/specs/specs.go`                                | Exposes raw spec resources from the embedded `schemas/` tree.                                                                 |
 | `internal/schemaindex/index.go`                          | Parses AsyncAPI channel/message/operation primitives into a topic catalogue for schema exploration tools.                     |
-| `schemas/`                                               | Generated copy of the monorepo root `schemas/`, embedded into the binary by `schemas/embed.go`.                               |
+| `schemas/`                                               | Embed package plus ignored schema files generated from the monorepo root `schemas/` before compile time.                      |
 | `internal/mqttbus/client.go`                             | MQTT/NATS client logic: connect, subscribe, collect messages, classify broker errors.                                         |
 | `internal/auth/caller.go`                               | Pulls caller bearer and optional identity headers from the HTTP request into Go context.                                      |
 | `deploy/helm/dsx-exchange-mcp/templates/deployment.yaml` | Kubernetes Deployment: env vars, probes, security context, runtime class.                                                     |
@@ -368,14 +368,17 @@ mcp.AddResource(srv, &mcp.Resource{
 }, readSpec(domain, uri))
 ```
 
-The embedded specs come from the repository-root `schemas/` package:
+The embedded specs come from generated files under the module-local
+`schemas/` package:
 
 ```go
 //go:embed README.md cloud-events-example.yaml asyncapi/*/*.yaml
 var FS embed.FS
 ```
 
-`make sync-specs` refreshes those files from the monorepo root `schemas/`:
+Go `embed` cannot read files outside its package tree, so `make sync-specs`
+refreshes ignored module-local files from the monorepo root `schemas/` before
+build, test, lint, and run targets compile the module:
 
 ```make
 sync-specs:
@@ -571,15 +574,18 @@ broker decision, result size, and error code.
 Common Make targets:
 
 ```make
-build:
+build: sync-specs
 	go build ./cmd/dsx-exchange-mcp
 
-run: sync-specs build
+run: build
 	go run ./cmd/dsx-exchange-mcp
 
-test:
+test: sync-specs
 	go test ./...
 ```
+
+Raw `go build`, `go test`, or `go vet` from a clean checkout are unsupported
+until `make sync-specs` has populated the ignored generated schema files.
 
 Direct local path:
 
@@ -643,7 +649,8 @@ message conversion, and broker error classification.
 
 ### Add or change embedded specs
 
-Start with:
+Update the repository root `schemas/` tree. Do not commit the generated MCP
+schema copy. To inspect the resulting embedded inputs locally, run:
 
 ```text
 make sync-specs

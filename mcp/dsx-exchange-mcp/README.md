@@ -54,7 +54,7 @@ auth-callout remains the source of truth for JWT validation and topic ACLs.
 |   |-- schemaindex/             parsed AsyncAPI topic catalogue
 |   `-- mqttbus/                 MQTT client wrapper
 |-- deploy/helm/                 Helm chart
-`-- schemas/                     embedded copy of the repository root schemas
+`-- schemas/                     embed package plus generated schema inputs
 ```
 
 For the full server design, schema indexing behavior, authentication flow, and
@@ -66,11 +66,15 @@ Fast local process path:
 
 ```sh
 cd mcp/dsx-exchange-mcp
-make sync-specs
 make test
 make build
 make run
 ```
+
+The Make targets above run `sync-specs` before compiling. Raw `go build`,
+`go test`, or `go vet` from a clean checkout are not supported until
+`make sync-specs` has populated `schemas/` from the repository root schema
+tree.
 
 Configure an MCP client with `http://127.0.0.1:8080/mcp`. Schema resources and
 schema discovery tools work without a broker. MQTT-backed tools also need
@@ -82,6 +86,10 @@ Build the local development image:
 ```sh
 make image
 ```
+
+The image build uses the repository root as its Docker context, then copies
+root `schemas/` directly into the build stage beside `schemas/embed.go`. It
+does not require committing or pre-syncing the generated MCP schema files.
 
 Deploy the local Event Bus stack and MCP backend with the repository Skaffold
 flow:
@@ -108,9 +116,12 @@ pod is installed in `kind-csc`, namespace `mcp-backends`, and uses
 `MCP_MQTT_AUTH_MODE=noauth` with the local Event Bus MQTT endpoint from
 `values.kind.yaml`.
 
-Run `make sync-specs` before building the server binary or image when the
-repository root `schemas/` tree changes. Override the source with
-`SCHEMA_SRC=/path/to/schemas make sync-specs`.
+Root `schemas/` is the source of truth. For local Go commands, `make sync-specs`
+copies that tree into the MCP module-local `schemas/` directory so
+`schemas/embed.go` can embed it at compile time. The copied files are generated
+and ignored by Git. Docker and Skaffold image builds instead copy root
+`schemas/` directly from the repository root build context. Override the local
+copy source with `SCHEMA_SRC=/path/to/schemas make sync-specs`.
 
 ## Environment
 
@@ -148,14 +159,17 @@ username or password.
 
 ## Specs
 
-Specs are pinned at build time. `make sync-specs` copies the repository root
-schema tree into `schemas/`, and `schemas/embed.go` bakes it into the binary.
-The image uses the already-synced `./schemas` tree and does not fetch schemas
-at runtime.
+Specs are pinned at build time. Local Go build/test/lint targets run
+`sync-specs` first, which copies the repository root schema tree into
+module-local `schemas/`, and `schemas/embed.go` bakes those generated files into
+the binary. Docker and Skaffold image builds copy root `schemas/` directly into
+the build stage before compiling. The runtime image contains the compiled binary
+only and does not fetch schemas at runtime.
 
 Empty domain stubs are filtered out at startup so they do not surface as MCP
-resources or schema tool matches. To update specs, re-run `make sync-specs`
-against a refreshed schema checkout and cut a new image.
+resources or schema tool matches. To update specs, edit root `schemas/`. The
+next local Go target regenerates the ignored module-local copy, and the next
+Docker/Skaffold image build picks up root `schemas/` directly.
 
 ## Setup Checklist
 

@@ -14,9 +14,9 @@ build:
     useBuildkit: true
   artifacts:
     - image: localhost:5001/dsx-exchange-mcp
-      context: .
+      context: ../..
       docker:
-        dockerfile: Dockerfile
+        dockerfile: mcp/dsx-exchange-mcp/Dockerfile
         cliFlags:
           - --provenance=false
 deploy:

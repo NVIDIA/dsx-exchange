@@ -12,7 +12,12 @@ ARG LABEL_VERSION=dev
 
 FROM ${BUILDER_IMG}:${BUILDER_TAG} AS build
 WORKDIR /src
-COPY . .
+COPY mcp/dsx-exchange-mcp/go.mod mcp/dsx-exchange-mcp/go.sum ./
+COPY mcp/dsx-exchange-mcp/vendor ./vendor
+COPY mcp/dsx-exchange-mcp/cmd ./cmd
+COPY mcp/dsx-exchange-mcp/internal ./internal
+COPY mcp/dsx-exchange-mcp/schemas/embed.go ./schemas/embed.go
+COPY schemas/. ./schemas/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -mod=vendor -o /out/dsx-exchange-mcp ./cmd/dsx-exchange-mcp
