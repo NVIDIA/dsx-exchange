@@ -4,6 +4,15 @@ MCP server for DSX Exchange schemas, topic discovery, and read-only MQTT access
 to the DSX Event Bus. It runs standalone over Streamable HTTP and serves one
 MCP endpoint for all synced DSX Exchange domains.
 
+## Status
+
+> **Developer preview / experimental.** This MCP server is an early-access
+> component of the [DSX Exchange developer preview](https://docs.nvidia.com/dsx-exchange).
+>
+> CI covers unit tests, lint, schema sync, Docker build, and local Kind
+> deployment. Deployed-broker and LLM prompt-eval checks remain opt-in; see
+> [Validation](#validation).
+
 ## What It Exposes
 
 | Surface | Name | Purpose |

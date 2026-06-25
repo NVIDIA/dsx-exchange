@@ -170,7 +170,7 @@ CSC broker at `tcp://172.18.200.1:1883` unless `CSC_BROKER_URL` is overridden.
 ### DSX Exchange MCP
 
 The local stack also deploys `dsx-exchange-mcp` into the CSC Kind cluster. This
-is a direct backend deployment, not an MCP gateway deployment. It is intended
+is a direct backend deployment; it does not install an MCP gateway. It is intended
 for manual MCP client checks against the same local Event Bus services used by
 the e2e tests.
 
