@@ -1,0 +1,66 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: dsx-exchange-mcp
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  port: 8080
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Per Latinum MCP Gateway SDD: upstream MCP servers run with kata, nonroot,
+# readonly rootfs, and emit JSON logs.
+runtimeClassName: kata
+
+natsURL: tcp://nats.nats.svc:1883
+
+mqtt:
+  authMode: jwt_passthrough
+  username: oauthtoken
+  connectTimeoutSeconds: 5
+  subscribeTimeoutSeconds: 5
+  maxResultBytes: 1048576
+  tls:
+    caCertSecret:
+      name: ""
+      key: ca.crt
+    serverName: ""
+    insecureSkipVerify: false
+
+limits:
+  defaultMaxMessages: 100
+  maxMessages: 1000
+  defaultMaxDurationSeconds: 30
+  maxDurationSeconds: 30
+  mqtt:
+    collectMaxConcurrentPerPod: 100
+  findTopics:
+    defaultLimit: 20
+    maxLimit: 100
+
+acceptInsecureMQTTTLS: false
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: dsx-exchange-mcp
+          topologyKey: kubernetes.io/hostname
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

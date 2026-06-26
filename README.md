@@ -12,6 +12,7 @@ DSX Exchange provides the repository pieces needed to describe, deploy, and vali
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
 - `deploy`: Helm chart for the NATS event bus deployment.
 - `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT tests, and benchmark tooling.
+- `mcp/dsx-exchange-mcp`: MCP server for DSX Exchange schemas, topic discovery, and read-only MQTT tools.
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
@@ -60,6 +61,7 @@ Run component-specific targets from the directory you are changing, and use
 
 ```bash
 make -C auth-callout test
+make -C mcp/dsx-exchange-mcp test
 make check
 ```
 
