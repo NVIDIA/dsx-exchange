@@ -9,11 +9,6 @@ description: >-
   active chat stays responsive.
 ---
 
-<!--
-Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-SPDX-License-Identifier: Apache-2.0
--->
-
 # DSX Exchange MCP
 
 ## Core Workflow
