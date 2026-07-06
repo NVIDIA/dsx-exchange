@@ -47,6 +47,17 @@ jobs:
           ignore: ".git/**,**/*.md,**/*.png,**/*.sum,**/go.mod,**/tmp/**,**/vendor/**,auth-callout/vault-agent/templates/**,docs/schema-viewer/**,LICENSE,THIRD_PARTY_LICENSES*"
           go-version: "1.25.5"
 
+  fern-check:
+    name: Fern Check
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g fern-api@5.65.2
+      - run: fern check
+
   go-lint:
     name: Go Lint (auth-callout)
     runs-on: linux-amd64-cpu4
