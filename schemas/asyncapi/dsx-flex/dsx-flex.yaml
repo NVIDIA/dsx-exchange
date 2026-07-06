@@ -44,13 +44,13 @@ info:
 
     - namespace: grid
     - version: v1
-    - role: isv | poweragent | infra
+    - role: isv | dsx-flex-agent | infra
     - identifier: deployment-unique name assigned during registration
 
     Examples:
 
     - ISV: //grid/v1/isv/acme-energy
-    - Power Agent: //grid/v1/poweragent/dps-prod
+    - Power Agent: //grid/v1/dsx-flex-agent/maxlps
     - Infra Agent: //grid/v1/infra/ima-prod
 
     ## Event Types
@@ -114,7 +114,7 @@ channels:
         qos: 1
 
   powerStateStatusChannel:
-    address: grid/v1/poweragent/{identifier}/powerstate/status
+    address: grid/v1/dsx-flex-agent/{identifier}/powerstate/status
     parameters:
       identifier:
         $ref: '#/components/parameters/identifier'
@@ -122,7 +122,7 @@ channels:
       powerStateStatus:
         $ref: '#/components/messages/PowerStateStatusMessage'
     description: |
-      Power Management Agent publishes full snapshots of current power state
+      DSX Flex Agent publishes full snapshots of current power state
       for all feeds. Includes compliance, ramp state, and active/scheduled targets.
       Published on state transitions and as periodic heartbeats.
     bindings:
@@ -130,7 +130,7 @@ channels:
         qos: 1
 
   powerBreachAlertChannel:
-    address: grid/v1/poweragent/{identifier}/powerbreach
+    address: grid/v1/dsx-flex-agent/{identifier}/powerbreach
     parameters:
       identifier:
         $ref: '#/components/parameters/identifier'
@@ -138,7 +138,7 @@ channels:
       powerBreachAlert:
         $ref: '#/components/messages/PowerBreachAlertMessage'
     description: |
-      Power Management Agent publishes breach alerts when measured power exceeds
+      DSX Flex Agent publishes breach alerts when measured power exceeds
       the active load target. Breach lifecycle: active → escalated → resolved.
       All events in a single breach share the same breach_id.
     bindings:
@@ -165,7 +165,7 @@ operations:
     action: send
     channel:
       $ref: '#/channels/loadTargetSetChannel'
-    summary: ISV → Power Management Agent (set load target command)
+    summary: ISV → DSX Flex Agent (set load target command)
     messages:
       - $ref: '#/channels/loadTargetSetChannel/messages/loadTargetSet'
 
@@ -173,7 +173,7 @@ operations:
     action: receive
     channel:
       $ref: '#/channels/loadTargetSetChannel'
-    summary: Power Management Agent subscribes to load target commands
+    summary: DSX Flex Agent subscribes to load target commands
     messages:
       - $ref: '#/channels/loadTargetSetChannel/messages/loadTargetSet'
 
@@ -181,7 +181,7 @@ operations:
     action: send
     channel:
       $ref: '#/channels/powerStateStatusChannel'
-    summary: Power Management Agent → ISVs (power state snapshot)
+    summary: DSX Flex Agent → ISVs (power state snapshot)
     messages:
       - $ref: '#/channels/powerStateStatusChannel/messages/powerStateStatus'
 
@@ -197,7 +197,7 @@ operations:
     action: send
     channel:
       $ref: '#/channels/powerBreachAlertChannel'
-    summary: Power Management Agent → Infra Agent + ISVs (breach alert)
+    summary: DSX Flex Agent → Infra Agent + ISVs (breach alert)
     messages:
       - $ref: '#/channels/powerBreachAlertChannel/messages/powerBreachAlert'
 
@@ -213,7 +213,7 @@ operations:
     action: send
     channel:
       $ref: '#/channels/powerBreachEnforcementChannel'
-    summary: Infra Agent → Power Management Agent + ISVs (enforcement outcome)
+    summary: Infra Agent → DSX Flex Agent + ISVs (enforcement outcome)
     messages:
       - $ref: '#/channels/powerBreachEnforcementChannel/messages/powerBreachEnforcement'
 
@@ -221,7 +221,7 @@ operations:
     action: receive
     channel:
       $ref: '#/channels/powerBreachEnforcementChannel'
-    summary: Power Management Agent and ISVs subscribe to enforcement outcomes
+    summary: DSX Flex Agent and ISVs subscribe to enforcement outcomes
     messages:
       - $ref: '#/channels/powerBreachEnforcementChannel/messages/powerBreachEnforcement'
 
@@ -267,8 +267,8 @@ components:
           type: boolean
           default: false
           description: |
-            If true, DPS sheds load non-disruptively by adjusting DPM-enabled jobs.
-            If the constraint cannot be satisfied, DPS sheds as much as possible and
+            If true, DSX Flex Agent sheds load non-disruptively by adjusting DPM-enabled jobs.
+            If the constraint cannot be satisfied, DSX Flex Agent sheds as much as possible and
             leaves the feed in a non-compliant state until workloads terminate.
 
     LoadConstraint:
@@ -655,12 +655,12 @@ components:
           description: MUST be a UUIDv4 — globally unique identifier for this event instance.
         source:
           type: string
-          pattern: ^//grid/v1/(isv|poweragent|infra)/[^/]+$
+          pattern: ^//grid/v1/(isv|dsx-flex-agent|infra)/[^/]+$
           description: |
             Stable URI identifying the publisher. Format: //grid/v1/<role>/<identifier>.
             Examples:
               - //grid/v1/isv/acme-energy
-              - //grid/v1/poweragent/dps-prod
+              - //grid/v1/dsx-flex-agent/maxlps
               - //grid/v1/infra/ima-prod
         type:
           type: string
@@ -682,7 +682,7 @@ components:
           description: |
             CloudEvents extension attribute. UUIDv4 correlation identifier.
             Generated by the ISV on grid.loadtarget.set.v1. Echoed by the
-            Power Management Agent in status events for correlation.
+            DSX Flex Agent in status events for correlation.
         traceparent:
           type: string
           pattern: ^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$
@@ -783,7 +783,7 @@ components:
     PowerStateStatusMessage:
       name: PowerStateStatusMessage
       title: Power State Status
-      summary: Power Management Agent publishes full power state snapshot.
+      summary: DSX Flex Agent publishes full power state snapshot.
       contentType: application/cloudevents+json
       payload:
         $ref: '#/components/schemas/PowerStateStatusEvent'
@@ -791,7 +791,7 @@ components:
     PowerBreachAlertMessage:
       name: PowerBreachAlertMessage
       title: Power Breach Alert
-      summary: Power Management Agent publishes breach alert with shed hints.
+      summary: DSX Flex Agent publishes breach alert with shed hints.
       contentType: application/cloudevents+json
       payload:
         $ref: '#/components/schemas/PowerBreachAlertEvent'
