@@ -30,3 +30,6 @@ code_generation:
           Keep docstrings selective and short. Document non-obvious what or why;
           do not restate signatures, parameters, returns, or control flow that
           are clear from skimming the code.
+      - path: docs/*.mdx
+        instructions: |
+          Do not require SPDX license headers for these files.
