@@ -337,39 +337,39 @@ navigation:
       - section: Power Management
         contents:
           - page: Overview
-            path: ../docs/schema-power-management.mdx
+            path: ../docs/schema-dsx-flex.mdx
             slug: overview
           - section: Operations
             contents:
               - page: Publish Load Target Set
-                path: ../docs/schema-power-management-publishloadtargetset.mdx
+                path: ../docs/schema-dsx-flex-publishloadtargetset.mdx
                 slug: publishloadtargetset
               - page: Publish Power Breach Alert
-                path: ../docs/schema-power-management-publishpowerbreachalert.mdx
+                path: ../docs/schema-dsx-flex-publishpowerbreachalert.mdx
                 slug: publishpowerbreachalert
               - page: Publish Power Breach Enforcement
-                path: ../docs/schema-power-management-publishpowerbreachenforcement.mdx
+                path: ../docs/schema-dsx-flex-publishpowerbreachenforcement.mdx
                 slug: publishpowerbreachenforcement
               - page: Publish Power State Status
-                path: ../docs/schema-power-management-publishpowerstatestatus.mdx
+                path: ../docs/schema-dsx-flex-publishpowerstatestatus.mdx
                 slug: publishpowerstatestatus
               - page: Subscribe Load Target Set
-                path: ../docs/schema-power-management-subscribeloadtargetset.mdx
+                path: ../docs/schema-dsx-flex-subscribeloadtargetset.mdx
                 slug: subscribeloadtargetset
               - page: Subscribe Power Breach Alert
-                path: ../docs/schema-power-management-subscribepowerbreachalert.mdx
+                path: ../docs/schema-dsx-flex-subscribepowerbreachalert.mdx
                 slug: subscribepowerbreachalert
               - page: Subscribe Power Breach Enforcement
-                path: ../docs/schema-power-management-subscribepowerbreachenforcement.mdx
+                path: ../docs/schema-dsx-flex-subscribepowerbreachenforcement.mdx
                 slug: subscribepowerbreachenforcement
               - page: Subscribe Power State Status
-                path: ../docs/schema-power-management-subscribepowerstatestatus.mdx
+                path: ../docs/schema-dsx-flex-subscribepowerstatestatus.mdx
                 slug: subscribepowerstatestatus
           - page: Messages
-            path: ../docs/schema-power-management-messages.mdx
+            path: ../docs/schema-dsx-flex-messages.mdx
             slug: messages
           - page: Schemas
-            path: ../docs/schema-power-management-schemas.mdx
+            path: ../docs/schema-dsx-flex-schemas.mdx
             slug: schemas
       - section: NICo Host State
         slug: nico
