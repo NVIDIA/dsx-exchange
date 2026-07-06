@@ -1,9 +1,98 @@
+# DSXFlex 1.7.0
+
+Real-time power management and emergency control plane for data center grid events.
+
+## Protocol Binding
+
+This API uses the MQTT [Protocol Binding for CloudEvents v1.0.2](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/bindings/mqtt-protocol-binding.md).
+
+**MQTT 3.1.1 Structured Content Mode:**
+
+- Content mode is always "structured" (MQTT 3.1.1 lacks custom metadata support)
+- The entire CloudEvents message is in the MQTT PUBLISH payload as JSON
+- Content-Type `application/cloudevents+json` is implied (no header in MQTT 3.1.1)
+- All CloudEvents attributes and data are in the JSON payload
+
+## CloudEvents Message Format
+
+All messages conform to [CloudEvents 1.0.2 specification](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md) with W3C [Distributed Tracing Extension](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/extensions/distributed-tracing.md).
+
+Each MQTT PUBLISH payload contains a JSON object with:
+
+- **specversion**: "1.0.2" (REQUIRED)
+- **id**: UUIDv4 unique event identifier (REQUIRED)
+- **source**: URI format //grid/v1/&lt;role>/&lt;identifier> (REQUIRED)
+- **type**: Event type e.g., grid.loadtarget.set.v1 (REQUIRED)
+- **time**: ISO 8601 timestamp (REQUIRED)
+- **datacontenttype**: "application/json" (REQUIRED)
+- **subject**: Resource subject e.g., loadtarget (REQUIRED)
+- **traceparent**: W3C Trace Context for distributed tracing (REQUIRED)
+- **tracestate**: Optional vendor-specific trace context
+- **correlationid**: UUIDv4 correlation identifier (OPTIONAL, CloudEvents extension)
+- **data**: JWS-signed payload (string - see Data Field Security below)
+
+## Source Format
+
+The source attribute is a stable URI that identifies the publisher of an event.
+Format: //&lt;namespace>/&lt;version>/&lt;role>/&lt;identifier>
+
+- namespace: grid
+- version: v1
+- role: isv | poweragent | infra
+- identifier: deployment-unique name assigned during registration
+
+Examples:
+
+- ISV: //grid/v1/isv/acme-energy
+- Power Agent: //grid/v1/poweragent/dps-prod
+- Infra Agent: //grid/v1/infra/ima-prod
+
+## Event Types
+
+- grid.loadtarget.set.v1 — ISV sets load target (fire-and-forget command)
+- grid.powerstate.status.v1 — Power Agent publishes power state snapshots
+- grid.powerbreach.alert.v1 — Power Agent publishes breach alerts
+- grid.powerbreach.enforcement.v1 — Infra Agent publishes enforcement outcomes
+
+## Security
+
+- Transport: MQTT 3.1.1 with TLS (mTLS or OAuth2 SSA)
+- Data Field: MUST be signed (JWS RFC 7515) — broker never sees verified plaintext
+
+## Data Field Security (JWS)
+
+The `data` field uses cryptographic protection per RFC 7515 (JWS):
+
+1. **Sign (JWS)**: The JSON payload is signed using JWS (JSON Web Signature)
+   - Algorithm: ES256 (ECDSA using P-256 and SHA-256) or RS256
+   - Provides: Data integrity and authenticity
+   - The `kid` (Key ID) in JWS header identifies the signing key
+
+2. **Result**: The `data` field contains a JWS compact serialization string:
+   `<JWS Header>.<Payload>.<Signature>`
+
+**Processing Order:**
+
+- Sender: JSON payload → JWS sign → data field
+- Receiver: data field → JWS verify → JSON payload
+
+## Distributed Tracing
+
+All participants MUST propagate traceparent/tracestate for end-to-end visibility.
+
+**Default Content Type:** `application/cloudevents+json`
+
+## Raw AsyncAPI Spec
+
+<Accordion title="View / copy the raw AsyncAPI YAML">
+
+````yaml
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 asyncapi: 3.1.0
 info:
-  title: Power Management
+  title: DSXFlex
   version: 1.7.0
   description: |
     Real-time power management and emergency control plane for data center grid events.
@@ -823,3 +912,6 @@ components:
     mTLS:
       type: X509
       description: Mutual TLS with client certificate signed by cluster CA.
+````
+
+</Accordion>

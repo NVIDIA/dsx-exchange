@@ -115,13 +115,13 @@ A load target for a feed — active or scheduled.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `active` | boolean | Yes | true if this target is currently being enforced. |
-| `load_constraint` | [LoadConstraint](schema-power-management-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
+| `load_constraint` | [LoadConstraint](schema-dsxflex-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
 | `load_constraint.value` | number (double) | Yes | Target power limit (must be > 0). |
 | `load_constraint.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
-| `interval` | [Interval](schema-power-management-schemas.mdx#interval) | Yes | Time window for load target scheduling. |
+| `interval` | [Interval](schema-dsxflex-schemas.mdx#interval) | Yes | Time window for load target scheduling. |
 | `interval.start_time` | string (date-time) | No | ISO 8601 UTC start time. Defaults to now if omitted. |
 | `interval.end_time` | string (date-time) | No | ISO 8601 UTC end time. If omitted, target remains in effect until replaced. |
-| `strategy` | [Strategy](schema-power-management-schemas.mdx#strategy) | Yes | Load shedding strategy configuration. |
+| `strategy` | [Strategy](schema-dsxflex-schemas.mdx#strategy) | Yes | Load shedding strategy configuration. |
 | `strategy.best_effort` | boolean | No | If true, DPS sheds load non-disruptively by adjusting DPM-enabled jobs. If the constraint cannot be satisfied, DPS sheds as much as possible and leaves the feed in a non-compliant state until workl... |
 | `correlation_id` | string (uuid) | Yes | The correlationid from the grid.loadtarget.set.v1 that created this target. |
 
@@ -133,7 +133,7 @@ Current power state for a single feed.
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
-| `metadata` | [FeedMetadata](schema-power-management-schemas.mdx#feedmetadata) | Yes | Static feed configuration. Values don't change during a curtailment event. |
+| `metadata` | [FeedMetadata](schema-dsxflex-schemas.mdx#feedmetadata) | Yes | Static feed configuration. Values don't change during a curtailment event. |
 | `metadata.power_minimum` | object | Yes | Power measurement with value and unit. |
 | `metadata.power_minimum.value` | number (double) | Yes | Power value (must be >= 0). |
 | `metadata.power_minimum.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
@@ -143,7 +143,7 @@ Current power state for a single feed.
 | `metadata.default_constraint` | object | Yes | Power measurement with value and unit. |
 | `metadata.default_constraint.value` | number (double) | Yes | Power value (must be >= 0). |
 | `metadata.default_constraint.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
-| `targets` | array&lt;[FeedTarget](schema-power-management-schemas.mdx#feedtarget)&gt; | Yes | All load targets for this feed — active and scheduled. Empty array if no targets exist. |
+| `targets` | array&lt;[FeedTarget](schema-dsxflex-schemas.mdx#feedtarget)&gt; | Yes | All load targets for this feed — active and scheduled. Empty array if no targets exist. |
 | `calculated_load` | object | Yes | Power measurement with value and unit. |
 | `calculated_load.value` | number (double) | Yes | Power value (must be >= 0). |
 | `calculated_load.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
@@ -173,7 +173,7 @@ The load target being breached.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `correlation_id` | string (uuid) | Yes | The correlationid from the grid.loadtarget.set.v1 that established this target. |
-| `load_constraint` | [LoadConstraint](schema-power-management-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
+| `load_constraint` | [LoadConstraint](schema-dsxflex-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
 | `load_constraint.value` | number (double) | Yes | Target power limit (must be > 0). |
 | `load_constraint.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
 
@@ -196,7 +196,7 @@ Payload for grid.powerstate.status.v1.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `snapshot_time` | string (date-time) | Yes | ISO 8601 UTC timestamp of this snapshot. |
-| `feeds` | map&lt;string, [FeedState](schema-power-management-schemas.mdx#feedstate)&gt; | Yes | Map of feed_tag to power state. |
+| `feeds` | map&lt;string, [FeedState](schema-dsxflex-schemas.mdx#feedstate)&gt; | Yes | Map of feed_tag to power state. |
 
 ---
 
@@ -209,19 +209,19 @@ Payload for grid.powerbreach.alert.v1.
 | `feed_tag` | string | Yes | The feed identifier where the breach was detected. |
 | `status` | string | Yes | Breach lifecycle state. Values: `active`, `escalated`, `resolved` |
 | `severity` | string | Yes | Breach severity level: - warning — excess between threshold and 20% over target - critical — excess exceeds 20% over target Values: `warning`, `critical` |
-| `breach` | [BreachDetails](schema-power-management-schemas.mdx#breachdetails) | Yes | Breach identification and timing. |
+| `breach` | [BreachDetails](schema-dsxflex-schemas.mdx#breachdetails) | Yes | Breach identification and timing. |
 | `breach.breach_id` | string (uuid) | Yes | Unique identifier for this breach instance (UUIDv4). Remains the same across active → escalated → resolved for the same breach. |
 | `breach.detected_at` | string (date-time) | Yes | ISO 8601 UTC timestamp when the breach was first detected. |
 | `breach.resolved_at` | string (date-time) | No | ISO 8601 UTC timestamp when the breach was resolved. Present only when status is resolved. |
-| `target` | [BreachTarget](schema-power-management-schemas.mdx#breachtarget) | Yes | The load target being breached. |
+| `target` | [BreachTarget](schema-dsxflex-schemas.mdx#breachtarget) | Yes | The load target being breached. |
 | `target.correlation_id` | string (uuid) | Yes | The correlationid from the grid.loadtarget.set.v1 that established this target. |
-| `target.load_constraint` | [LoadConstraint](schema-power-management-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
+| `target.load_constraint` | [LoadConstraint](schema-dsxflex-schemas.mdx#loadconstraint) | Yes | Power limit constraint. |
 | `target.load_constraint.value` | number (double) | Yes | Target power limit (must be > 0). |
 | `target.load_constraint.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
 | `measured_load` | object | Yes | Power measurement with value and unit. |
 | `measured_load.value` | number (double) | Yes | Power value (must be >= 0). |
 | `measured_load.unit` | string | Yes | Unit of measurement. Values: `watt`, `kilowatt`, `megawatt` |
-| `shed_hints` | array&lt;[ShedHint](schema-power-management-schemas.mdx#shedhint)&gt; | No | Ordered list of load shedding recommendations. Present when status is active or escalated. Absent when resolved. |
+| `shed_hints` | array&lt;[ShedHint](schema-dsxflex-schemas.mdx#shedhint)&gt; | No | Ordered list of load shedding recommendations. Present when status is active or escalated. Absent when resolved. |
 | `infrastructure_actions` | array&lt;string&gt; | Yes | Ordered list of escalating infrastructure-level actions. Empty array when status is resolved. Ordered from least to most disruptive. |
 
 ---
@@ -237,7 +237,7 @@ Payload for grid.powerbreach.enforcement.v1.
 | `action` | string | Yes | What phase of enforcement this represents. Values: `applied`, `reverted` |
 | `code` | string | Yes | Overall enforcement outcome. Values: `success`, `partial`, `error` |
 | `diag_msg` | string | No | Human-readable diagnostic message. |
-| `results` | array&lt;[EnforcementResult](schema-power-management-schemas.mdx#enforcementresult)&gt; | Yes | Per-resource enforcement outcome. |
+| `results` | array&lt;[EnforcementResult](schema-dsxflex-schemas.mdx#enforcementresult)&gt; | Yes | Per-resource enforcement outcome. |
 | `timestamp` | string (date-time) | Yes | ISO 8601 UTC timestamp when enforcement completed. |
 
 ---
@@ -319,7 +319,7 @@ The plaintext JSON payload is signed with JWS (RFC 7515).
 | `correlationid` | string (uuid) | No | CloudEvents extension attribute. UUIDv4 correlation identifier. Generated by the ISV on grid.loadtarget.set.v1. Echoed by the Power Management Agent in status events for correlation. |
 | `traceparent` | string | Yes | REQUIRED per W3C Trace Context and CloudEvents Distributed Tracing Extension. Format: version-traceid-parentid-flags. |
 | `tracestate` | string | No | OPTIONAL per W3C Trace Context. Carries vendor-specific contextual information across tracing systems. |
-| `data` | [JwsCompactSerialization](schema-power-management-schemas.mdx#jwscompactserialization) or [SetLoadTargetData](schema-power-management-schemas.mdx#setloadtargetdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to SetLoadTargetData schema (type: object). |
+| `data` | [JwsCompactSerialization](schema-dsxflex-schemas.mdx#jwscompactserialization) or [SetLoadTargetData](schema-dsxflex-schemas.mdx#setloadtargetdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to SetLoadTargetData schema (type: object). |
 
 ---
 
@@ -343,7 +343,7 @@ The plaintext JSON payload is signed with JWS (RFC 7515).
 | `correlationid` | string (uuid) | No | CloudEvents extension attribute. UUIDv4 correlation identifier. Generated by the ISV on grid.loadtarget.set.v1. Echoed by the Power Management Agent in status events for correlation. |
 | `traceparent` | string | Yes | REQUIRED per W3C Trace Context and CloudEvents Distributed Tracing Extension. Format: version-traceid-parentid-flags. |
 | `tracestate` | string | No | OPTIONAL per W3C Trace Context. Carries vendor-specific contextual information across tracing systems. |
-| `data` | [JwsCompactSerialization](schema-power-management-schemas.mdx#jwscompactserialization) or [PowerStateStatusData](schema-power-management-schemas.mdx#powerstatestatusdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerStateStatusData schema (type: object). |
+| `data` | [JwsCompactSerialization](schema-dsxflex-schemas.mdx#jwscompactserialization) or [PowerStateStatusData](schema-dsxflex-schemas.mdx#powerstatestatusdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerStateStatusData schema (type: object). |
 
 ---
 
@@ -367,7 +367,7 @@ The plaintext JSON payload is signed with JWS (RFC 7515).
 | `correlationid` | string (uuid) | No | CloudEvents extension attribute. UUIDv4 correlation identifier. Generated by the ISV on grid.loadtarget.set.v1. Echoed by the Power Management Agent in status events for correlation. |
 | `traceparent` | string | Yes | REQUIRED per W3C Trace Context and CloudEvents Distributed Tracing Extension. Format: version-traceid-parentid-flags. |
 | `tracestate` | string | No | OPTIONAL per W3C Trace Context. Carries vendor-specific contextual information across tracing systems. |
-| `data` | [JwsCompactSerialization](schema-power-management-schemas.mdx#jwscompactserialization) or [PowerBreachAlertData](schema-power-management-schemas.mdx#powerbreachalertdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerBreachAlertData schema (type: object). |
+| `data` | [JwsCompactSerialization](schema-dsxflex-schemas.mdx#jwscompactserialization) or [PowerBreachAlertData](schema-dsxflex-schemas.mdx#powerbreachalertdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerBreachAlertData schema (type: object). |
 
 ---
 
@@ -391,6 +391,6 @@ The plaintext JSON payload is signed with JWS (RFC 7515).
 | `correlationid` | string (uuid) | No | CloudEvents extension attribute. UUIDv4 correlation identifier. Generated by the ISV on grid.loadtarget.set.v1. Echoed by the Power Management Agent in status events for correlation. |
 | `traceparent` | string | Yes | REQUIRED per W3C Trace Context and CloudEvents Distributed Tracing Extension. Format: version-traceid-parentid-flags. |
 | `tracestate` | string | No | OPTIONAL per W3C Trace Context. Carries vendor-specific contextual information across tracing systems. |
-| `data` | [JwsCompactSerialization](schema-power-management-schemas.mdx#jwscompactserialization) or [PowerBreachEnforcementData](schema-power-management-schemas.mdx#powerbreachenforcementdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerBreachEnforcementData schema (type: object). |
+| `data` | [JwsCompactSerialization](schema-dsxflex-schemas.mdx#jwscompactserialization) or [PowerBreachEnforcementData](schema-dsxflex-schemas.mdx#powerbreachenforcementdata) | Yes | WIRE FORMAT: JWS compact serialization string (type: string). PLAINTEXT CONTENT: After JWS verification, the payload conforms to PowerBreachEnforcementData schema (type: object). |
 
 ---
