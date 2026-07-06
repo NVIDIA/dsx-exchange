@@ -55,7 +55,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install -g fern-api
+      - run: npm install -g fern-api@5.65.2
       - run: fern check
 
   go-lint:
