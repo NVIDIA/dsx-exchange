@@ -233,4 +233,4 @@ async state stream without making the bus part of the synchronous request path.
 - [BMS Integration](bms-integration.md)
 - [BMS Event Bus Schema](schema-bms.mdx)
 - [NICo Host State Schema](schema-nico.mdx)
-- [Power Management Schema](schema-power-management.mdx)
+- [Power Management Schema](schema-dsx-flex.mdx)
