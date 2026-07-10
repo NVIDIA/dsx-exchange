@@ -334,7 +334,7 @@ navigation:
           - page: Schemas
             path: ../docs/schema-bms-schemas.mdx
             slug: schemas
-      - section: Power Management
+      - section: DSX Flex
         contents:
           - page: Overview
             path: ../docs/schema-dsx-flex.mdx
