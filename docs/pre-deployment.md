@@ -316,9 +316,9 @@ Gateway listener names must match the `sectionName` in the Helm `gateway.routes`
 
 ## External References
 
-- Vault KV Secret Engine: https://developer.hashicorp.com/vault/docs/secrets/kv
-- Vault PKI Secret Engine: https://developer.hashicorp.com/vault/docs/secrets/pki
-- Vault Secrets Operator: https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso
-- cert-manager Vault Issuer: https://cert-manager.io/docs/configuration/vault/
-- NATS NKey Auth: https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/nkey_auth
-- NATS Auth Callout: https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout
+- [Vault KV Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/kv)
+- [Vault PKI Secret Engine](https://developer.hashicorp.com/vault/docs/secrets/pki)
+- [Vault Secrets Operator](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso)
+- [cert-manager Vault Issuer](https://cert-manager.io/docs/configuration/vault/)
+- [NATS NKey Auth](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/nkey_auth)
+- [NATS Auth Callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
