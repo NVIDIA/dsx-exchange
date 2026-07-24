@@ -4,12 +4,13 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: auth-callout-image
+  name: local-images
 build:
   tagPolicy:
     inputDigest: {}
   local:
-    push: true
+    concurrency: 0
+    push: false
     useDockerCLI: true
     useBuildkit: true
   artifacts:
@@ -20,6 +21,15 @@ build:
         cliFlags:
           - --provenance=false
 profiles:
+  - name: build-mirror
+    activation:
+      - env: SKAFFOLD_BUILD_MIRROR_REGISTRY=.+
+    patches:
+      - op: add
+        path: /build/artifacts/0/docker/buildArgs
+        value:
+          BUILDER_IMG: "{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang"
+          FINAL_IMG: "{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/gcr.io/distroless/static-debian12"
   - name: ci-dockerhub-mirror
     activation:
       - env: SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY=.+

@@ -3,7 +3,7 @@
 
 # Auth-callout Service Makefile
 
-.PHONY: add-license-headers build check-license-headers clean clean-modcache deps-update dev dev-build dev-debug dev-debug-suspend dev-debug-suspend-with-delve-logs dev-debug-with-delve-logs dev-lint devspace-all devspace-macos docker-build docker-run fmt godoc help init-hooks init-project install-tools lint pre-commit-run release run run-service test test-helm test-integration test-integration-devspace third-party-licenses version
+.PHONY: add-license-headers build check-license-headers clean clean-modcache deps-update dev dev-build dev-debug dev-debug-suspend dev-debug-suspend-with-delve-logs dev-debug-with-delve-logs dev-lint devspace-all devspace-macos docker-build docker-run fmt godoc help init-hooks init-project install-go-licenses install-tools lint pre-commit-run release run run-service test test-helm test-integration test-integration-devspace third-party-licenses version
 
 # Variables
 BINARY_NAME=auth-callout
@@ -225,8 +225,10 @@ $(GO_LICENSES):
 	@mkdir -p "$(TOOLS_BIN)"
 	GOBIN="$(TOOLS_BIN)" GOFLAGS= $(GOCMD) install github.com/google/go-licenses@$(GO_LICENSES_VERSION)
 
-third-party-licenses: $(GO_LICENSES) ## Regenerate THIRD_PARTY_LICENSES.csv
-	PATH="$(TOOLS_BIN):$$PATH" bash scripts/regenerate-third-party-licenses.sh ../THIRD_PARTY_LICENSES.csv
+install-go-licenses: $(GO_LICENSES)
+
+third-party-licenses: ## Regenerate repository-wide THIRD_PARTY_LICENSES.csv
+	$(MAKE) -C .. third-party-licenses
 
 version: ## Show current version
 	@echo "auth-callout version $$(git describe --tags --abbrev=0 2>/dev/null || echo 'no-tag')"

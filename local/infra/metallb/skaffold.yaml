@@ -4,15 +4,42 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: metallb-csc
+  name: metallb-single-cluster
 .metallbHelm: &metallb_helm
   releases:
     - name: metallb
-      remoteChart: metallb
-      repo: https://metallb.github.io/metallb
-      version: 0.15.2
+      chartPath: ../../../.cache/helm/metallb-0.15.2.tgz
       namespace: metallb-system
       createNamespace: true
+      skipBuildDependencies: true
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metallb_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-config-single-cluster
+requires:
+  - configs:
+      - metallb-single-cluster
+manifests:
+  rawYaml:
+    - ../sites/csc/address-pools.yaml
+    - ../sites/cpc-1/address-pools.yaml
+    - ../sites/cpc-2/address-pools.yaml
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metallb-csc
 deploy:
   kubeContext: kind-csc
   statusCheck: true
@@ -28,7 +55,7 @@ requires:
       - metallb-csc
 manifests:
   rawYaml:
-    - csc-pool.yaml
+    - ../sites/csc/address-pools.yaml
 deploy:
   kubeContext: kind-csc
   statusCheck: true
@@ -54,7 +81,7 @@ requires:
       - metallb-cpc-1
 manifests:
   rawYaml:
-    - cpc-1-pool.yaml
+    - ../sites/cpc-1/address-pools.yaml
 deploy:
   kubeContext: kind-cpc-1
   statusCheck: true
@@ -80,7 +107,7 @@ requires:
       - metallb-cpc-2
 manifests:
   rawYaml:
-    - cpc-2-pool.yaml
+    - ../sites/cpc-2/address-pools.yaml
 deploy:
   kubeContext: kind-cpc-2
   statusCheck: true

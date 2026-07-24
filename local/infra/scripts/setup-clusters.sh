@@ -7,7 +7,6 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-KIND_CONFIG_DIR="${KIND_CONFIG_DIR:-${PROJECT_ROOT}/infra/kind}"
 
 # Check prerequisites
 command -v kind >/dev/null 2>&1 || { echo "ERROR: kind is required but not installed" >&2; exit 1; }
@@ -47,8 +46,6 @@ if [ "$KIND_NETWORK_EXISTS" = false ]; then
     kind
 fi
 
-echo "Creating clusters in parallel..."
-
 create_cluster() {
   local cluster_name=$1
   local config_file=$2
@@ -66,35 +63,20 @@ create_cluster() {
   fi
 }
 
-pids=()
+if [[ "${MULTI_CLUSTER:-0}" == "1" ]]; then
+  clusters=(csc cpc-1 cpc-2)
+else
+  clusters=(dsx-exchange)
+fi
 
-# Create all clusters in parallel
-create_cluster "csc" "${KIND_CONFIG_DIR}/csc.yaml" &
-pids+=("$!")
-create_cluster "cpc-1" "${KIND_CONFIG_DIR}/cpc-1.yaml" &
-pids+=("$!")
-create_cluster "cpc-2" "${KIND_CONFIG_DIR}/cpc-2.yaml" &
-pids+=("$!")
-
-# Wait for all cluster creations to complete
-for pid in "${pids[@]}"; do
-  wait "${pid}"
+for cluster in "${clusters[@]}"; do
+  create_cluster "${cluster}" "${PROJECT_ROOT}/infra/kind/${cluster}.yaml"
 done
 
-# Wait for all clusters to be ready (in parallel)
-echo "Waiting for clusters to be ready..."
-pids=()
-kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-csc" &
-pids+=("$!")
-kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-cpc-1" &
-pids+=("$!")
-kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-cpc-2" &
-pids+=("$!")
-
-for pid in "${pids[@]}"; do
-  wait "${pid}"
+for cluster in "${clusters[@]}"; do
+  kubectl wait --for=condition=Ready nodes --all --timeout=2m --context "kind-${cluster}"
 done
 
 echo "Clusters created successfully"
 
-"${SCRIPT_DIR}/setup-local-registry.sh"
+KIND_CLUSTERS="${clusters[*]}" "${SCRIPT_DIR}/setup-local-registry.sh"

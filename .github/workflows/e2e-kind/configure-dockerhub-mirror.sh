@@ -93,51 +93,6 @@ configure_skaffold_build_mirror() {
   echo "SKAFFOLD_DOCKERHUB_MIRROR_REGISTRY=${registry}" >> "${GITHUB_ENV}"
 }
 
-configure_kind_containerd_mirror() {
-  local source_config
-  local config
-  local kind_config_dir
-  local tmp_config
-
-  kind_config_dir="${RUNNER_TEMP:-/tmp}/dsx-e2e-kind-config"
-  mkdir -p "${kind_config_dir}"
-
-  for source_config in local/infra/kind/*.yaml; do
-    config="${kind_config_dir}/$(basename "${source_config}")"
-    cp "${source_config}" "${config}"
-
-    if grep -q 'registry\.mirrors\."docker\.io"' "${config}"; then
-      echo "Kind config already contains docker.io mirror patch: ${config}"
-      continue
-    fi
-
-    if grep -q '^containerdConfigPatches:' "${config}"; then
-      tmp_config="$(mktemp)"
-      awk -v mirror="${mirror}" '
-        /^containerdConfigPatches:/ {
-          print
-          print "  - |-"
-          print "    [plugins.\"io.containerd.grpc.v1.cri\".registry.mirrors.\"docker.io\"]"
-          print "      endpoint = [\"" mirror "\"]"
-          next
-        }
-        { print }
-      ' "${config}" > "${tmp_config}"
-      mv "${tmp_config}" "${config}"
-    else
-      cat >> "${config}" <<EOF
-
-containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-      endpoint = ["${mirror}"]
-EOF
-    fi
-  done
-
-  echo "KIND_CONFIG_DIR=${kind_config_dir}" >> "${GITHUB_ENV}"
-}
-
 require_command "docker"
 require_command "jq"
 require_command "sudo"
@@ -145,6 +100,3 @@ require_github_env
 
 configure_host_docker_mirror
 configure_skaffold_build_mirror
-
-echo "Writing CI Kind configs with Docker Hub containerd mirrors..."
-configure_kind_containerd_mirror

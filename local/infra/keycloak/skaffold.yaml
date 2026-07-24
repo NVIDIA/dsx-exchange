@@ -4,11 +4,45 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: keycloak-operator
-manifests:
+  name: keycloak-operator-single-cluster
+.keycloakOperatorManifests: &keycloak_operator_manifests
   kustomize:
     paths:
       - operator
+.keycloakManifests: &keycloak_manifests
+  rawYaml:
+    - realm-import.yaml
+    - keycloak.yaml
+    - httproute.yaml
+manifests: *keycloak_operator_manifests
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-single-cluster
+requires:
+  - configs:
+      - keycloak-operator-single-cluster
+  - path: ../sites/skaffold.yaml
+    configs:
+      - site-csc-single-cluster
+manifests: *keycloak_manifests
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: keycloak-operator-csc
+manifests: *keycloak_operator_manifests
 deploy:
   kubeContext: kind-csc
   statusCheck: true
@@ -18,18 +52,14 @@ deploy:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: keycloak
+  name: keycloak-csc
 requires:
   - configs:
-      - keycloak-operator
-  - path: ../envoy-gateway/skaffold.yaml
+      - keycloak-operator-csc
+  - path: ../sites/skaffold.yaml
     configs:
-      - envoy-gateway-config-csc
-manifests:
-  rawYaml:
-    - realm-import.yaml
-    - keycloak.yaml
-    - httproute.yaml
+      - site-csc-multi-cluster
+manifests: *keycloak_manifests
 deploy:
   kubeContext: kind-csc
   statusCheck: true

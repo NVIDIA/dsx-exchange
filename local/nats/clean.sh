@@ -10,28 +10,35 @@ cluster=${1:-all}
 
 clean_namespace() {
   local context=$1
-  echo "Cleaning NATS namespace in ${context}..."
+  local namespace=$2
+  echo "Cleaning ${namespace} in ${context}..."
 
   # Delete Stream resources
-  kubectl delete streams --all -n event-bus --context "${context}" --ignore-not-found=true --force
+  kubectl delete streams --all -n "${namespace}" --context "${context}" --ignore-not-found=true --force
 
   # Delete namespace
-  kubectl delete namespace event-bus --context "${context}" --ignore-not-found=true
+  kubectl delete namespace "${namespace}" --context "${context}" --ignore-not-found=true
 }
 
 if [ "${cluster}" = "all" ]; then
   for c in csc cpc-1 cpc-2; do
-    if kind get clusters 2>/dev/null | grep -q "^${c}$"; then
-      clean_namespace "kind-${c}" &
+    if kind get clusters 2>/dev/null | grep -q '^dsx-exchange$'; then
+      clean_namespace "kind-dsx-exchange" "${c}-event-bus"
+    elif kind get clusters 2>/dev/null | grep -q "^${c}$"; then
+      clean_namespace "kind-${c}" "${c}-event-bus"
     fi
   done
-  wait
 
   # Remove all generated keys, nsc data, certificates, and secrets
   echo "Removing generated keys, nsc data, certificates, and secrets..."
   rm -rf "${SCRIPT_DIR}/keys" "${SCRIPT_DIR}/nsc" "${SCRIPT_DIR}/certs" "${SCRIPT_DIR}/secrets"
 else
-  clean_namespace "kind-${cluster}"
+  if kind get clusters 2>/dev/null | grep -q '^dsx-exchange$'; then
+    context=kind-dsx-exchange
+  else
+    context="kind-${cluster}"
+  fi
+  clean_namespace "${context}" "${cluster}-event-bus"
 
   # Remove cluster-specific keys, nsc data, certificates, and secrets
   echo "Removing generated keys, nsc data, certificates, and secrets for ${cluster}..."

@@ -13,48 +13,20 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.25.5"
-  KIND_VERSION: "v0.31.0"
-  KUBECTL_VERSION: "v1.31.9"
-  HELM_VERSION: "v4.2.0"
   DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
+  MISE_LOCKED: "1"
 
 jobs:
   e2e-kind:
-    name: Run
+    name: Run Kind E2E
     runs-on: linux-amd64-cpu32
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        id: setup-go
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: |
-            auth-callout/go.sum
-            auth-callout/tests/go.sum
-            local/mqtt-client/go.sum
-            local/mqttbs/go.sum
-
-      - name: Cache e2e tools
-        uses: actions/cache@v4
-        with:
-          path: ~/go/bin
-          key: e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('local/infra/scripts/install-e2e-prereqs.sh') }}
-          restore-keys: |
-            e2e-tools-${{ runner.os }}-${{ runner.arch }}-${{ steps.setup-go.outputs.go-version }}-
-
-      - name: Install e2e tools
-        run: |
-          set -euo pipefail
-
-          make install-e2e-prereqs
-          go_bin="$(go env GOBIN)"
-          if [ -z "${go_bin}" ]; then
-            go_bin="$(go env GOPATH)/bin"
-          fi
-          echo "${go_bin}" >> "${GITHUB_PATH}"
+          version: 2026.7.7
 
       - name: Configure Docker Hub mirror
         run: bash .github/workflows/e2e-kind/configure-dockerhub-mirror.sh
@@ -74,7 +46,13 @@ jobs:
           set +e
           command -v kubectl >/dev/null 2>&1 || exit 0
 
-          for context in kind-csc kind-cpc-1 kind-cpc-2; do
+          if [[ "${MULTI_CLUSTER:-0}" == "1" ]]; then
+            contexts=(kind-csc kind-cpc-1 kind-cpc-2)
+          else
+            contexts=(kind-dsx-exchange)
+          fi
+
+          for context in "${contexts[@]}"; do
             echo "== ${context}: nodes =="
             kubectl get nodes --context "${context}" -o wide
 

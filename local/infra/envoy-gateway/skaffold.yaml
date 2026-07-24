@@ -4,14 +4,15 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: envoy-gateway-crds-csc
+  name: envoy-gateway-crds-single-cluster
 .envoyGatewayCrdsManifests: &envoy_gateway_crds_manifests
   helm:
     releases:
       - name: eg-crds
-        remoteChart: oci://docker.io/envoyproxy/gateway-crds-helm
-        version: v1.5.4
+        chartPath: ../../../.cache/helm/gateway-crds-helm-v1.5.4.tgz
         namespace: envoy-gateway-system
+        createNamespace: true
+        skipBuildDependencies: true
         setValues:
           crds.gatewayAPI.enabled: true
           crds.gatewayAPI.channel: experimental
@@ -19,16 +20,42 @@ metadata:
 .envoyGatewayHelm: &envoy_gateway_helm
   releases:
     - name: eg
-      remoteChart: oci://docker.io/envoyproxy/gateway-helm
-      version: v1.5.4
+      chartPath: ../../../.cache/helm/gateway-helm-v1.5.4.tgz
       namespace: envoy-gateway-system
       createNamespace: true
+      skipBuildDependencies: true
       valuesFiles:
         - values.yaml
-.envoyGatewayConfigManifests: &envoy_gateway_config_manifests
-  rawYaml:
-    - gatewayclass.yaml
-    - gateway.yaml
+manifests: *envoy_gateway_crds_manifests
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+        - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-single-cluster
+requires:
+  - path: ../metallb/skaffold.yaml
+    configs:
+      - metallb-config-single-cluster
+  - configs:
+      - envoy-gateway-crds-single-cluster
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *envoy_gateway_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-crds-csc
 manifests: *envoy_gateway_crds_manifests
 deploy:
   kubeContext: kind-csc
@@ -54,20 +81,6 @@ deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600
   helm: *envoy_gateway_helm
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: envoy-gateway-config-csc
-requires:
-  - configs:
-      - envoy-gateway-csc
-manifests: *envoy_gateway_config_manifests
-deploy:
-  kubeContext: kind-csc
-  statusCheck: true
-  statusCheckDeadlineSeconds: 180
-  kubectl: {}
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -102,20 +115,6 @@ deploy:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: envoy-gateway-config-cpc-1
-requires:
-  - configs:
-      - envoy-gateway-cpc-1
-manifests: *envoy_gateway_config_manifests
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 180
-  kubectl: {}
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
   name: envoy-gateway-crds-cpc-2
 manifests: *envoy_gateway_crds_manifests
 deploy:
@@ -146,11 +145,61 @@ deploy:
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: envoy-gateway-config-cpc-2
+  name: envoy-gateway-class-single-cluster
+requires:
+  - configs:
+      - envoy-gateway-single-cluster
+manifests:
+  rawYaml:
+    - gatewayclass.yaml
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-class-csc
+requires:
+  - configs:
+      - envoy-gateway-csc
+manifests:
+  rawYaml:
+    - gatewayclass.yaml
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-class-cpc-1
+requires:
+  - configs:
+      - envoy-gateway-cpc-1
+manifests:
+  rawYaml:
+    - gatewayclass.yaml
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: envoy-gateway-class-cpc-2
 requires:
   - configs:
       - envoy-gateway-cpc-2
-manifests: *envoy_gateway_config_manifests
+manifests:
+  rawYaml:
+    - gatewayclass.yaml
 deploy:
   kubeContext: kind-cpc-2
   statusCheck: true

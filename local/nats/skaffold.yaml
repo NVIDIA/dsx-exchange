@@ -4,7 +4,16 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: nats
+  name: nats-single-cluster
+requires:
+  - path: skaffold.releases.yaml
+    configs:
+      - nats-sites-single-cluster
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-multi-cluster
 requires:
   - path: skaffold.releases.yaml
     configs:

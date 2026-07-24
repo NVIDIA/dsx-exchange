@@ -487,6 +487,7 @@ nats-mtls:
 # NACK subchart values
 nack:
   nameOverride: nack
+  namespaced: true
   resources:
     requests:
       cpu: 10m

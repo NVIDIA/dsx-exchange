@@ -1,0 +1,20 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+[tools]
+go = "1.26.4"
+node = "20.20.2"
+kind = "v0.32.0"
+kubectl = "v1.34.0"
+helm = "v4.2.2"
+skaffold = "v2.21.0"
+jq = "1.8.2"
+k6 = "v1.3.0"
+yq = "v4.52.5"
+"npm:fern-api" = "5.65.2"
+"go:github.com/cloudflare/cfssl/cmd/cfssl" = "v1.6.5"
+"go:github.com/cloudflare/cfssl/cmd/cfssljson" = "v1.6.5"
+"go:github.com/google/addlicense" = "v1.2.0"
+"go:github.com/google/go-licenses/v2" = "v2.0.1"
+"go:github.com/nats-io/nkeys/nk" = "v0.4.15"
+"go:github.com/nats-io/nsc/v2" = "v2.14.0"

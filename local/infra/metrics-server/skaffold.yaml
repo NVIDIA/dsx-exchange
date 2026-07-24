@@ -4,17 +4,26 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: metrics-server-csc
+  name: metrics-server-single-cluster
 .metricsServerHelm: &metrics_server_helm
   releases:
     - name: metrics-server
-      remoteChart: metrics-server
-      repo: https://kubernetes-sigs.github.io/metrics-server/
-      version: 3.13.0
+      chartPath: ../../../.cache/helm/metrics-server-3.13.0.tgz
       namespace: kube-system
+      skipBuildDependencies: true
       setValues:
         image.tag: v0.8.1
         args[0]: --kubelet-insecure-tls
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *metrics_server_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: metrics-server-csc
 deploy:
   kubeContext: kind-csc
   statusCheck: true

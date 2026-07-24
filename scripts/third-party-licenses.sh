@@ -6,14 +6,14 @@
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-auth_dir="$(cd "$script_dir/.." && pwd)"
-repo_dir="$(cd "$auth_dir/.." && pwd)"
+repo_dir="$(cd "$script_dir/.." && pwd)"
+auth_dir="$repo_dir/auth-callout"
 
 output="${1:-$repo_dir/THIRD_PARTY_LICENSES.csv}"
 go_licenses="$auth_dir/tmp/bin/go-licenses"
 if [[ ! -x "$go_licenses" ]]; then
 	if ! go_licenses="$(command -v go-licenses)"; then
-		echo "go-licenses not found; run 'make -C auth-callout install-tools' first" >&2
+		echo "go-licenses not found; run 'make third-party-licenses'" >&2
 		exit 1
 	fi
 fi

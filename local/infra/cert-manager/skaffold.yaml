@@ -4,11 +4,22 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: cert-manager-csc
+  name: cert-manager-single-cluster
 .certManagerManifests: &cert_manager_manifests
   kustomize:
     paths:
       - .
+manifests: *cert_manager_manifests
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: cert-manager-csc
 manifests: *cert_manager_manifests
 deploy:
   kubeContext: kind-csc

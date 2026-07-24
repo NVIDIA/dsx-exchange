@@ -9,7 +9,7 @@ metadata:
 spec:
   parentRefs:
     - name: shared-gateway
-      namespace: envoy-gateway-system
+      namespace: csc-gateway
   rules:
     - matches:
         - path:
@@ -18,4 +18,3 @@ spec:
       backendRefs:
         - name: keycloak-service
           port: 8080
-
