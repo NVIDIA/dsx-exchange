@@ -1,0 +1,8 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+server = "https://cr.agentgateway.dev"
+
+[host."http://kind-registry:5000/v2/cr.agentgateway.dev"]
+  capabilities = ["pull", "resolve"]
+  override_path = true

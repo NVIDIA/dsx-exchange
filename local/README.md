@@ -9,21 +9,21 @@ For architecture details, see [docs/architecture.md](../docs/architecture.md).
 ### Prerequisites
 
 - Docker Desktop or equivalent
-- [Go](https://go.dev/doc/install) 1.25+ — required by `go.mod`
+- [mise](https://mise.jdx.dev/) — installs the locked repository toolchain
 - Make
 
-`make install-e2e-prereqs` installs missing local e2e tools into
-`E2E_PREREQS_BIN`. If a tool is already on `PATH`, the target reuses it and
-warns when its version differs from the expected version:
+`make install-e2e-prereqs` installs the tools pinned by the root `mise.toml`
+and `mise.lock`, including:
 
-- [Kind](https://kind.sigs.k8s.io/) v0.31.0
-- [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.31.9
-- [Helm](https://helm.sh/) v4.2.0
+- [Go](https://go.dev/) 1.26.4
+- [Kind](https://kind.sigs.k8s.io/) v0.32.0
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.34.0
+- [Helm](https://helm.sh/) v4.2.2
 - [Skaffold](https://skaffold.dev/) v2.21.0
 - cfssl/cfssljson v1.6.5
 - nsc v2.14.0
 - nk v0.4.15
-- yq v4.53.2
+- yq v4.52.5
 - addlicense v1.2.0
 
 ### MacOS Tweaks
@@ -60,13 +60,28 @@ Use `make skaffold-run` for deploy-only local setup.
 
 ### Skaffold
 
-The root `skaffold.yaml` imports `local/infra/skaffold.yaml` and
-`local/nats/skaffold.yaml`. Skaffold deploys the cluster infrastructure, builds
-the auth-callout image, and installs the event-bus chart. Host scripts still
-handle prerequisites, Kind cluster creation, the local registry, and generated
-NATS secret material. The local Skaffold entrypoints import smaller domain files
-for MetalLB, Envoy Gateway, cert-manager, metrics-server, Prometheus, Keycloak,
-auth-callout image build, secret manifests, and NATS releases.
+The root `skaffold.yaml` defaults to one `dsx-exchange` Kind cluster. CSC,
+CPC-1, and CPC-2 remain separate logical sites through stable event-bus and
+Gateway namespaces. Cluster-scoped controllers are installed once, while each
+site keeps its fixed Envoy address and event-bus Helm release. Set
+`MULTI_CLUSTER=1` to place those same site packages in `csc`, `cpc-1`, and
+`cpc-2` Kind clusters on a heavyweight host.
+
+Root Mise handles prerequisites; host scripts select the topology, create Kind,
+configure the local registry, and generate NATS secret material. The root
+Skaffold graph imports shared controller packages, reusable site packages, the
+shared image build, secret manifests, and NATS releases.
+
+Zot persistently caches upstream images. Skaffold owns one auth-callout build
+artifact, reuses its local build cache when the source is unchanged, and uses
+native Kind image loading for the active physical cluster. Pull-through routing
+is selected by the image's upstream registry and accepts any repository from
+that registry.
+Pinned local dependencies are cached under the ignored root `.cache/`
+directory. Normal cleanup keeps both caches. Before Skaffold starts, Make
+stages cached subcharts into the event-bus chart's standard ignored `charts/`
+directory, so deploys never
+refresh Helm repositories.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -102,6 +117,8 @@ For the testing strategy (functional and performance coverage), see
 ## Targets
 
 - `make test`: deploy the stack, then run functional and performance tests.
+- `make local-up`: deploy three logical sites to one Kind cluster.
+- `MULTI_CLUSTER=1 make local-up`: deploy one logical site per Kind cluster.
 - `make test-dev`: run the same tests against an already running local stack.
 - `make skaffold-run`: deploy the stack without running tests.
 - `make skaffold-dev`: run Skaffold dev for the complete local stack.
@@ -127,7 +144,7 @@ Run standardized MQTT broker benchmarks following the [Open MQTT Benchmark Suite
 ```bash
 # Run individual scenarios
 cd mqttbs
-GATEWAY_IP=$(kubectl --context kind-csc get gateway shared-gateway -n envoy-gateway-system -o jsonpath='{.status.addresses[0].value}')
+GATEWAY_IP=$(kubectl --context kind-dsx-exchange get gateway shared-gateway -n csc-gateway -o jsonpath='{.status.addresses[0].value}')
 ./mqttbs run connection-10k --broker tcp://$GATEWAY_IP:1883
 ./mqttbs run fanout-1k --broker tcp://$GATEWAY_IP:1883 --duration 30s
 ./mqttbs run p2p-1k --broker tcp://$GATEWAY_IP:1883

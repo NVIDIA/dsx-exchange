@@ -1,6 +1,6 @@
 module github.com/NVIDIA/dsx-exchange/auth-callout/tests
 
-go 1.25
+go 1.26.4
 
 require github.com/stretchr/testify v1.11.1
 

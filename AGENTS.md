@@ -46,16 +46,18 @@ outside the sandbox and record what passed or failed:
       process reaches watch mode and keeps the stack deployed after exit.
 - [ ] While `skaffold-dev` is running, edit an event-bus chart/value file;
       confirm the NATS release updates in CSC, CPC-1, and CPC-2. If only one
-      cluster updates, this check failed.
+      logical site updates, this check failed.
 - [ ] While `skaffold-dev` is running, edit an infra manifest/value file;
-      confirm the affected resource updates in the expected clusters. If the
-      changed cluster is not reconciled, this check failed.
+      confirm the affected resource updates in the expected logical sites.
+      If the changed site is not reconciled, this check failed.
 - [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
-      image rebuilds once, is pushed to the local registry, and the event-bus
-      pods use it.
+      image rebuilds once, is loaded into the active Kind cluster, and the
+      event-bus pods use it.
 
-Verify each observed rollout or resource update with `kubectl` using the
-`kind-csc`, `kind-cpc-1`, and `kind-cpc-2` contexts. Leave the local stack
+Verify each observed rollout or resource update in the default topology with
+`kubectl --context kind-dsx-exchange` and the `csc-*`, `cpc-1-*`, and `cpc-2-*`
+namespaces. `MULTI_CLUSTER=1` uses the `kind-csc`, `kind-cpc-1`, and
+`kind-cpc-2` contexts and belongs on a heavyweight host. Leave the local stack
 deployed when the user asks to inspect it.
 
 ## Commit conventions

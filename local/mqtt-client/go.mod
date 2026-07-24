@@ -1,6 +1,6 @@
 module github.com/NVIDIA/dsx-exchange/local/mqtt-client
 
-go 1.25
+go 1.26.4
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2

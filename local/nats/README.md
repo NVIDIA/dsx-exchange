@@ -70,8 +70,8 @@ Key NATS metrics:
 ### Pod Not Starting
 
 ```bash
-kubectl get events -n event-bus --context kind-csc
-kubectl logs -n event-bus <pod-name> --context kind-csc
+kubectl get events -n csc-event-bus --context kind-dsx-exchange
+kubectl logs -n csc-event-bus <pod-name> --context kind-dsx-exchange
 ```
 
 ### MQTT Connection Failed

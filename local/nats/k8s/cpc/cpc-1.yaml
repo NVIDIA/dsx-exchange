@@ -6,6 +6,16 @@
 global:
   eventBus:
     clusterId: "1"
+    gateway:
+      routes:
+        mqtt:
+          gatewayNamespace: cpc-1-gateway
+        natsClient:
+          gatewayNamespace: cpc-1-gateway
+        natsLeafnode:
+          gatewayNamespace: cpc-1-gateway
+        mqttMtls:
+          gatewayNamespace: cpc-1-gateway
     # CPC-1 specific mTLS permissions
     auth:
       permissions:

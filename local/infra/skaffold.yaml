@@ -4,12 +4,24 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: infra
+  name: infra-single-cluster
 requires:
-  - configs:
-      - infra-csc
-      - infra-cpc-1
-      - infra-cpc-2
+  - path: cert-manager/skaffold.yaml
+    configs:
+      - cert-manager-single-cluster
+  - path: metrics-server/skaffold.yaml
+    configs:
+      - metrics-server-single-cluster
+  - path: prometheus/skaffold.yaml
+    configs:
+      - prometheus-single-cluster
+  - path: keycloak/skaffold.yaml
+    configs:
+      - keycloak-single-cluster
+  - path: sites/skaffold.yaml
+    configs:
+      - site-cpc-1-single-cluster
+      - site-cpc-2-single-cluster
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -19,9 +31,6 @@ requires:
   - path: cert-manager/skaffold.yaml
     configs:
       - cert-manager-csc
-  - path: envoy-gateway/skaffold.yaml
-    configs:
-      - envoy-gateway-config-csc
   - path: metrics-server/skaffold.yaml
     configs:
       - metrics-server-csc
@@ -30,7 +39,7 @@ requires:
       - prometheus-csc
   - path: keycloak/skaffold.yaml
     configs:
-      - keycloak
+      - keycloak-csc
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -40,15 +49,15 @@ requires:
   - path: cert-manager/skaffold.yaml
     configs:
       - cert-manager-cpc-1
-  - path: envoy-gateway/skaffold.yaml
-    configs:
-      - envoy-gateway-config-cpc-1
   - path: metrics-server/skaffold.yaml
     configs:
       - metrics-server-cpc-1
   - path: prometheus/skaffold.yaml
     configs:
       - prometheus-cpc-1
+  - path: sites/skaffold.yaml
+    configs:
+      - site-cpc-1-multi-cluster
 ---
 apiVersion: skaffold/v4beta14
 kind: Config
@@ -58,12 +67,12 @@ requires:
   - path: cert-manager/skaffold.yaml
     configs:
       - cert-manager-cpc-2
-  - path: envoy-gateway/skaffold.yaml
-    configs:
-      - envoy-gateway-config-cpc-2
   - path: metrics-server/skaffold.yaml
     configs:
       - metrics-server-cpc-2
   - path: prometheus/skaffold.yaml
     configs:
       - prometheus-cpc-2
+  - path: sites/skaffold.yaml
+    configs:
+      - site-cpc-2-multi-cluster

@@ -13,6 +13,16 @@ global:
     clusterType: csc
     # List of CPC IDs that will connect as leaves
     cpcIds: ["1", "2"]
+    gateway:
+      routes:
+        mqtt:
+          gatewayNamespace: csc-gateway
+        natsClient:
+          gatewayNamespace: csc-gateway
+        natsLeafnode:
+          gatewayNamespace: csc-gateway
+        mqttMtls:
+          gatewayNamespace: csc-gateway
 
     # Auth permissions for CSC account
     auth:

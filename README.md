@@ -18,9 +18,10 @@ The event bus itself is schema agnostic. Schemas document externally visible con
 ## Requirements
 
 - OS: Linux or macOS with Docker support.
-- Tools: `go`, `make`, `helm`, `kubectl`, `kind`, `docker`, `jq`, `yq`, `cfssl`, `nsc`, `addlicense`.
+- Tools: `mise`, `make`, and Docker. Mise installs the remaining tools from the
+  locked root toolchain.
 - Kubernetes: local Kind clusters for e2e testing.
-- Runtime: Go modules declare their own supported Go versions.
+- Runtime: Go modules use the Go version pinned in `mise.toml`.
 
 GPU drivers are not required.
 

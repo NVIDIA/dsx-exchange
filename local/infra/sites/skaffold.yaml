@@ -1,0 +1,110 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-csc-single-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-single-cluster
+manifests:
+  kustomize:
+    paths:
+      - csc/gateway
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-cpc-1-single-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-single-cluster
+manifests:
+  kustomize:
+    paths:
+      - cpc-1/gateway
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-cpc-2-single-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-single-cluster
+manifests:
+  kustomize:
+    paths:
+      - cpc-2/gateway
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-csc-multi-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-csc
+manifests:
+  kustomize:
+    paths:
+      - csc/gateway
+deploy:
+  kubeContext: kind-csc
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-cpc-1-multi-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-cpc-1
+manifests:
+  kustomize:
+    paths:
+      - cpc-1/gateway
+deploy:
+  kubeContext: kind-cpc-1
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: site-cpc-2-multi-cluster
+requires:
+  - path: ../envoy-gateway/skaffold.yaml
+    configs:
+      - envoy-gateway-class-cpc-2
+manifests:
+  kustomize:
+    paths:
+      - cpc-2/gateway
+deploy:
+  kubeContext: kind-cpc-2
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}

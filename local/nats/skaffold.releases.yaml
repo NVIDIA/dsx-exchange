@@ -4,21 +4,63 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: nats-csc
+  name: nats-sites-single-cluster
 .natsReleaseBase: &nats_release_base
-  name: nats-event-bus
   chartPath: ../../deploy/nats-event-bus
-  namespace: event-bus
   createNamespace: true
   wait: true
+  skipBuildDependencies: true
   setValues:
     auth-callout.image.repository: localhost:5001/auth-callout
     auth-callout.image.tag: local
-    auth-callout.image.pullPolicy: Always
+    auth-callout.image.pullPolicy: IfNotPresent
 requires:
-  - path: skaffold.auth-callout-image.yaml
+  - path: ../skaffold/images.yaml
     configs:
-      - auth-callout-image
+      - local-images
+  - path: skaffold.secrets.yaml
+    configs:
+      - nats-secrets-single-cluster
+  - path: ../infra/skaffold.yaml
+    configs:
+      - infra-single-cluster
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    concurrency: 0
+    releases:
+      - <<: *nats_release_base
+        name: nats-event-bus-csc
+        namespace: csc-event-bus
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/csc/values.yaml
+      - <<: *nats_release_base
+        name: nats-event-bus-cpc-1
+        namespace: cpc-1-event-bus
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/cpc/values.yaml
+          - k8s/cpc/cpc-1.yaml
+      - <<: *nats_release_base
+        name: nats-event-bus-cpc-2
+        namespace: cpc-2-event-bus
+        valuesFiles:
+          - k8s/local-dev-values.yaml
+          - k8s/cpc/values.yaml
+          - k8s/cpc/cpc-2.yaml
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-csc
+requires:
+  - path: ../skaffold/images.yaml
+    configs:
+      - local-images
   - path: skaffold.secrets.yaml
     configs:
       - nats-secrets-csc
@@ -31,11 +73,10 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
-    flags:
-      depBuild:
-        - --repository-config=local/helm/repositories.yaml
     releases:
       - <<: *nats_release_base
+        name: nats-event-bus-csc
+        namespace: csc-event-bus
         valuesFiles:
           - k8s/local-dev-values.yaml
           - k8s/csc/values.yaml
@@ -45,9 +86,9 @@ kind: Config
 metadata:
   name: nats-cpc-1
 requires:
-  - path: skaffold.auth-callout-image.yaml
+  - path: ../skaffold/images.yaml
     configs:
-      - auth-callout-image
+      - local-images
   - path: skaffold.secrets.yaml
     configs:
       - nats-secrets-cpc-1
@@ -60,11 +101,10 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
-    flags:
-      depBuild:
-        - --repository-config=local/helm/repositories.yaml
     releases:
       - <<: *nats_release_base
+        name: nats-event-bus-cpc-1
+        namespace: cpc-1-event-bus
         valuesFiles:
           - k8s/local-dev-values.yaml
           - k8s/cpc/values.yaml
@@ -75,9 +115,9 @@ kind: Config
 metadata:
   name: nats-cpc-2
 requires:
-  - path: skaffold.auth-callout-image.yaml
+  - path: ../skaffold/images.yaml
     configs:
-      - auth-callout-image
+      - local-images
   - path: skaffold.secrets.yaml
     configs:
       - nats-secrets-cpc-2
@@ -90,11 +130,10 @@ deploy:
   statusCheckDeadlineSeconds: 600
   tolerateFailuresUntilDeadline: true
   helm:
-    flags:
-      depBuild:
-        - --repository-config=local/helm/repositories.yaml
     releases:
       - <<: *nats_release_base
+        name: nats-event-bus-cpc-2
+        namespace: cpc-2-event-bus
         valuesFiles:
           - k8s/local-dev-values.yaml
           - k8s/cpc/values.yaml

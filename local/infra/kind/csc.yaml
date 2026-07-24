@@ -6,8 +6,8 @@ apiVersion: kind.x-k8s.io/v1alpha4
 name: csc
 containerdConfigPatches:
   - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5001"]
-      endpoint = ["http://kind-registry:5000"]
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
 networking:
   # CSC - Common Services Cluster
   # Internal addresses can overlap since clusters communicate via gateway only
@@ -17,7 +17,7 @@ networking:
   disableDefaultCNI: false
 nodes:
 - role: control-plane
-  image: kindest/node:v1.31.9
+  image: kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256
   kubeadmConfigPatches:
   - |
     kind: InitConfiguration
@@ -25,7 +25,7 @@ nodes:
       kubeletExtraArgs:
         node-labels: "layer=csc,topology.kubernetes.io/zone=zone-a"
 - role: worker
-  image: kindest/node:v1.31.9
+  image: kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256
   kubeadmConfigPatches:
   - |
     kind: JoinConfiguration
@@ -33,7 +33,7 @@ nodes:
       kubeletExtraArgs:
         node-labels: "layer=csc,topology.kubernetes.io/zone=zone-b"
 - role: worker
-  image: kindest/node:v1.31.9
+  image: kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256
   kubeadmConfigPatches:
   - |
     kind: JoinConfiguration
@@ -41,7 +41,7 @@ nodes:
       kubeletExtraArgs:
         node-labels: "layer=csc,topology.kubernetes.io/zone=zone-c"
 - role: worker
-  image: kindest/node:v1.31.9
+  image: kindest/node:v1.34.8@sha256:02722c2dedddcfc00febf5d27fbeb9b7b2c14294c82109ff4a85d89ac9ba3256
   kubeadmConfigPatches:
   - |
     kind: JoinConfiguration

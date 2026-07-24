@@ -10,9 +10,17 @@ resourceSelector:
     - groupKind: "Stream.jetstream.nats.io"
       labels: [".*"]
 requires:
-  - path: local/infra/skaffold.yaml
+  - path: local/skaffold/images.yaml
     configs:
-      - infra
+      - local-images
   - path: local/nats/skaffold.yaml
     configs:
-      - nats
+      - nats-single-cluster
+profiles:
+  - name: multi-cluster
+    activation:
+      - env: MULTI_CLUSTER=1
+    patches:
+      - op: replace
+        path: /requires/1/configs/0
+        value: nats-multi-cluster

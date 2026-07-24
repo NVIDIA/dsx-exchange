@@ -4,17 +4,26 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: prometheus-csc
+  name: prometheus-single-cluster
 .prometheusHelm: &prometheus_helm
   releases:
     - name: prometheus
-      remoteChart: kube-prometheus-stack
-      repo: https://prometheus-community.github.io/helm-charts
-      version: 86.1.0
+      chartPath: ../../../.cache/helm/kube-prometheus-stack-86.1.0.tgz
       namespace: monitoring
       createNamespace: true
+      skipBuildDependencies: true
       valuesFiles:
         - values.yaml
+deploy:
+  kubeContext: kind-dsx-exchange
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm: *prometheus_helm
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus-csc
 deploy:
   kubeContext: kind-csc
   statusCheck: true

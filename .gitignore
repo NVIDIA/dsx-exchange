@@ -8,3 +8,5 @@
 /local/nats/secrets/
 
 .vscode/
+# Local dependency cache populated by local Make targets.
+/.cache/
