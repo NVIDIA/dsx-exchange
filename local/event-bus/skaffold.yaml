@@ -1,0 +1,119 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: event-bus-images
+build:
+  tagPolicy:
+    inputDigest: {}
+  local:
+    concurrency: 0
+    push: false
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+  - image: localhost:5001/auth-callout
+    context: ../../auth-callout
+    docker:
+      dockerfile: build/package/Dockerfile
+      cliFlags:
+      - --provenance=false
+profiles:
+- name: event-bus-build-mirror
+  activation:
+  - env: SKAFFOLD_BUILD_MIRROR_REGISTRY=.+
+  patches:
+  - op: add
+    path: /build/artifacts/0/docker/buildArgs
+    value:
+      BUILDER_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang'
+      FINAL_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/gcr.io/distroless/static-debian12'
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: nats-secrets
+manifests:
+  hooks:
+    before:
+    - host:
+        command:
+        - sh
+        - -c
+        - local/event-bus/prepare-secrets.sh
+  kustomize:
+    paths:
+    - ./k8s/secret-generators/csc
+    - ./k8s/secret-generators/cpc-1
+    - ./k8s/secret-generators/cpc-2
+    buildArgs:
+    - --load-restrictor=LoadRestrictionsNone
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: event-bus
+resourceSelector:
+  allow:
+  - groupKind: Stream.jetstream.nats.io
+    labels:
+    - .*
+requires:
+- configs:
+  - event-bus-images
+- configs:
+  - nats-secrets
+- path: ../infra/skaffold.yaml
+  configs:
+  - infra
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    concurrency: 0
+    releases:
+    - chartPath: ../../deploy/nats-event-bus
+      createNamespace: true
+      skipBuildDependencies: true
+      setValues:
+        auth-callout.image.repository: localhost:5001/auth-callout
+        auth-callout.image.tag: local
+        auth-callout.image.pullPolicy: IfNotPresent
+      name: nats-event-bus-csc
+      namespace: csc-event-bus
+      valuesFiles:
+      - ./k8s/local-dev-values.yaml
+      - ./k8s/csc/values.yaml
+    - chartPath: ../../deploy/nats-event-bus
+      createNamespace: true
+      skipBuildDependencies: true
+      setValues:
+        auth-callout.image.repository: localhost:5001/auth-callout
+        auth-callout.image.tag: local
+        auth-callout.image.pullPolicy: IfNotPresent
+      name: nats-event-bus-cpc-1
+      namespace: cpc-1-event-bus
+      valuesFiles:
+      - ./k8s/local-dev-values.yaml
+      - ./k8s/cpc/values.yaml
+      - ./k8s/cpc/cpc-1.yaml
+    - chartPath: ../../deploy/nats-event-bus
+      createNamespace: true
+      skipBuildDependencies: true
+      setValues:
+        auth-callout.image.repository: localhost:5001/auth-callout
+        auth-callout.image.tag: local
+        auth-callout.image.pullPolicy: IfNotPresent
+      name: nats-event-bus-cpc-2
+      namespace: cpc-2-event-bus
+      valuesFiles:
+      - ./k8s/local-dev-values.yaml
+      - ./k8s/cpc/values.yaml
+      - ./k8s/cpc/cpc-2.yaml

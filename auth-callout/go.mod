@@ -1,6 +1,9 @@
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/NVIDIA/dsx-exchange/auth-callout
 
-go 1.25.4
+go 1.26.5
 
 require (
 	github.com/MicahParks/jwkset v0.11.0

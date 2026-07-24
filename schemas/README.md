@@ -24,7 +24,7 @@ Each logical component is given a directory with a single YAML specification fil
 Run the repository checks before opening a pull request:
 
 ```bash
-make check-license-headers
+make check
 ```
 
 See `make help` for additional targets.

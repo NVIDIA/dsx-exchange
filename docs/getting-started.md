@@ -6,7 +6,7 @@ Before starting, ensure all infrastructure prerequisites, secrets, and certifica
 
 ## Evaluation Install (~10 minutes)
 
-To evaluate DSX Exchange locally without Vault, VSO, or production certificate infrastructure, use the `local/` evaluation framework. This creates Kind clusters and deploys a fully functional event bus:
+To evaluate DSX Exchange locally without Vault, VSO, or production certificate infrastructure, use the `local/` evaluation framework. This creates a Kind cluster and deploys a fully functional event bus:
 
 ```bash
 make test
@@ -15,7 +15,7 @@ make test
 See `local/README.md` for the full set of evaluation targets including functional tests, performance benchmarks, and MQTT client tooling.
 
 Use the local setup as the runnable end-to-end example. Its Helm values live in
-`local/nats/k8s/`: shared local settings in `local-dev-values.yaml`, CSC settings
+`local/event-bus/k8s/`: shared local settings in `local-dev-values.yaml`, CSC settings
 in `csc/values.yaml`, shared CPC settings in `cpc/values.yaml`, and per-cluster
 CPC overrides in `cpc/cpc-1.yaml` and `cpc/cpc-2.yaml`. Use these files as the
 concrete reference for value layering. Do not copy them to production unchanged
@@ -84,9 +84,9 @@ helm install dsx ./deploy/nats-event-bus \
   -f <your-csc-values.yaml>
 ```
 
-For a working CSC reference, see `local/nats/k8s/local-dev-values.yaml` and
-`local/nats/k8s/csc/values.yaml`. Those are the values applied by
-`make -C local skaffold-run`.
+For a working CSC reference, see `local/event-bus/k8s/local-dev-values.yaml` and
+`local/event-bus/k8s/csc/values.yaml`. Those are the values applied by
+`make local-up`.
 
 CSC values configure the cluster type, list of CPC IDs that will connect, and auth permissions:
 
@@ -135,9 +135,9 @@ helm install dsx ./deploy/nats-event-bus \
   -f <your-cpc-1-values.yaml>
 ```
 
-For a working CPC reference, see `local/nats/k8s/local-dev-values.yaml`,
-`local/nats/k8s/cpc/values.yaml`, and `local/nats/k8s/cpc/cpc-1.yaml`. Those are
-the values applied by `make -C local skaffold-run`.
+For a working CPC reference, see `local/event-bus/k8s/local-dev-values.yaml`,
+`local/event-bus/k8s/cpc/values.yaml`, and `local/event-bus/k8s/cpc/cpc-1.yaml`. Those are
+the values applied by `make local-up`.
 
 CPC values set the cluster type, cluster ID, CSC endpoint, and cross-layer routing:
 

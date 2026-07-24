@@ -1,0 +1,21 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: sites
+requires:
+- path: ../envoy-gateway/skaffold.yaml
+  configs:
+  - envoy-gateway-class
+manifests:
+  kustomize:
+    paths:
+    - ../sites/csc/gateway
+    - ../sites/cpc-1/gateway
+    - ../sites/cpc-2/gateway
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 180
+  kubectl: {}

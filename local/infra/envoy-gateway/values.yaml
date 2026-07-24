@@ -14,7 +14,7 @@ config:
 deployment:
   envoyGateway:
     # Envoy Gateway controller. The shared Gateway's Envoy proxy resources are
-    # set in gateway.yaml through EnvoyProxy.
+    # set by each logical site's EnvoyProxy.
     resources:
       requests:
         cpu: 100m

@@ -1,6 +1,9 @@
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/NVIDIA/dsx-exchange/local/mqttbs
 
-go 1.25
+go 1.26.5
 
 require (
 	github.com/VictoriaMetrics/metrics v1.40.2

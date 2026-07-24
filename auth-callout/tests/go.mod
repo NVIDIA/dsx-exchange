@@ -1,6 +1,9 @@
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/NVIDIA/dsx-exchange/auth-callout/tests
 
-go 1.25
+go 1.26.5
 
 require github.com/stretchr/testify v1.11.1
 

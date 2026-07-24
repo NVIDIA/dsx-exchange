@@ -1,10 +1,41 @@
+# Local secrets and generated deploy values.
+.env
+.env.*
+!.env.example
+/.cache/
+/.mise/
+
+# Local editor and OS state.
+.claude/
+.desloppify/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+scorecard.png
+
+# Helm dependency output.
+/deploy/dsx-agent-gateway/charts/
 /deploy/nats-event-bus/Chart.lock
 /deploy/nats-event-bus/charts/
-/local/.skaffold-build-artifacts.json
-/local/mqtt-client/tests/performance/reports/
-/local/nats/certs/
-/local/nats/keys/
-/local/nats/nsc/
-/local/nats/secrets/
+/local/agent-gateway/charts/demoidp/Chart.lock
+/local/agent-gateway/charts/demoidp/charts/
+/local/agent-gateway/charts/test-backends/Chart.lock
+/local/agent-gateway/charts/test-backends/charts/
 
-.vscode/
+# Generated local infrastructure and test output.
+/local/mqtt-client/tests/performance/reports/
+/local/event-bus/certs/
+/local/event-bus/keys/
+/local/event-bus/nsc/
+/local/event-bus/secrets/
+/local/agent-gateway/secret-generators/demoidp/generated/
+/tests/agent-gateway/artifacts/*
+!/tests/agent-gateway/artifacts/perf-baseline.json
+
+# Local Go build and test output.
+*.prof
+*.test
+coverage.out

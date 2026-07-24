@@ -6,7 +6,7 @@ This directory contains the infrastructure configuration for the DSX Event Bus e
 
 The infrastructure consists of:
 
-- Kind clusters (CSC + CPC 1..N)
+- one Kind cluster
 - MetalLB for LoadBalancer services
 - Envoy Gateway controllers
 - Metrics Server for resource metrics (CPU/memory)
@@ -22,46 +22,29 @@ from the host. Linux hosts normally reach the Docker bridge IPs directly. See
 From the repository root:
 
 ```bash
-make -C local test
+make test
 ```
 
 See [local/README.md](../README.md) for deploy-only, dev, test, and benchmark
 targets.
 
-## Cluster Details
+## Local topology
 
-### CSC - Common Services Cluster
+The `kind-dsx-exchange` cluster runs all logical sites. Stable namespaces keep
+site resources isolated:
 
-**Network:**
-
-- Pod subnet: 10.244.0.0/16 (overlaps with CPC clusters)
-- Service subnet: 10.96.0.0/12 (overlaps with CPC clusters)
-- **Note**: Internal addresses overlap intentionally - clusters communicate only via Envoy Gateway LoadBalancer services
-
-**Nodes:**
-
-- 1 control-plane
-- 3 workers (labeled with topology zones)
-
-### CPC - Control Plane Cluster (1..N)
-
-**Network:**
-
-- Pod subnet: 10.244.0.0/16 (overlaps with CSC and other CPC clusters)
-- Service subnet: 10.96.0.0/12 (overlaps with CSC and other CPC clusters)
-- **Note**: Internal addresses overlap intentionally - clusters communicate only via Envoy Gateway LoadBalancer services
-
-**Nodes:**
-
-- 1 control-plane
-- 3 workers (labeled with topology zones)
+- CSC: `csc-gateway`, `csc-event-bus`
+- CPC-1: `cpc-1-gateway`, `cpc-1-event-bus`
+- CPC-2: `cpc-2-gateway`, `cpc-2-event-bus`
 
 ## MetalLB Setup
 
-MetalLB provides LoadBalancer service type support in Kind clusters.
+MetalLB provides LoadBalancer service type support in Kind.
 
 **Why MetalLB?**
-Since clusters have overlapping internal networks, they cannot directly route to each other. MetalLB provides unique external IPs from the Docker network that enable inter-cluster communication through Envoy Gateway.
+MetalLB provides stable external IPs from the Docker network. CPC leaf
+connections use the CSC Envoy address, so local tests still exercise the
+Gateway path.
 
 **Gateway IPs (on Docker network 172.18.0.0/16):**
 
@@ -69,7 +52,7 @@ Since clusters have overlapping internal networks, they cannot directly route to
 - CPC-1: 172.18.201.1
 - CPC-2: 172.18.202.1
 
-These IPs are **separate and non-overlapping**, allowing clusters to reach each other's Envoy Gateway services via the Docker network.
+These IPs are **separate and non-overlapping**.
 
 **Configuration:**
 
@@ -77,7 +60,7 @@ These IPs are **separate and non-overlapping**, allowing clusters to reach each 
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: envoy-pool
+  name: csc-envoy-pool
   namespace: metallb-system
 spec:
   addresses:
@@ -88,7 +71,7 @@ spec:
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: default-pool
+  name: csc-default-pool
   namespace: metallb-system
 spec:
   addresses:
@@ -98,12 +81,12 @@ spec:
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
-  name: envoy-l2-advert
+  name: csc-l2-advert
   namespace: metallb-system
 spec:
   ipAddressPools:
-    - envoy-pool
-    - default-pool
+    - csc-envoy-pool
+    - csc-default-pool
   interfaces:
     - eth0
 ```
@@ -114,8 +97,8 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 
 **Usage:**
 
-The shared Gateway (`shared-gateway`) is deployed in the `envoy-gateway-system`
-namespace. It provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS
+Each site owns a `shared-gateway` in its stable `*-gateway` namespace. It
+provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS
 passthrough listener for mTLS MQTT (port 8883), and an HTTP listener (port 80)
 for Keycloak.
 
@@ -130,7 +113,7 @@ metadata:
 spec:
   parentRefs:
     - name: shared-gateway
-      namespace: envoy-gateway-system
+      namespace: csc-gateway
   rules:
     - matches:
         - path:
@@ -143,7 +126,8 @@ spec:
 
 ## cert-manager
 
-cert-manager provides automatic certificate management for TLS certificates. It's deployed to all clusters for future TLS support.
+cert-manager provides automatic certificate management for TLS certificates.
+It is installed once per physical cluster.
 
 ## Metrics Server
 
@@ -153,22 +137,24 @@ Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and p
 
 ```bash
 # View node metrics
-kubectl top nodes --context kind-csc
+kubectl top nodes --context kind-dsx-exchange
 
 # View pod metrics
-kubectl top pods -n event-bus --context kind-csc
+kubectl top pods -n csc-event-bus --context kind-dsx-exchange
 ```
 
 ## Keycloak (OAuth2 Authentication)
 
-Keycloak provides OAuth2/OpenID Connect authentication for testing the event bus auth callout service. A single Keycloak instance runs in the CSC cluster, and all clusters (CSC, CPC-1, CPC-2) access it via the external MetalLB LoadBalancer IP (172.18.200.1). Host-side local tests use the same Envoy Gateway path.
+Keycloak provides OAuth2/OpenID Connect authentication for testing the event
+bus auth callout service. A single instance attaches to the CSC Gateway, and
+all sites access it through `172.18.200.1`.
 
 **Configuration:**
 
 - **Realm**: `event-bus` (auto-imported at startup via ConfigMap `keycloak-realm-import`)
 - **Grant Type**: Client Credentials (machine-to-machine authentication)
 - **Scope**: `mqtt` (required for MQTT access)
-- **Clients** (service accounts with client credentials enabled, shared across all clusters):
+- **Clients** (service accounts with client credentials enabled, shared across all sites):
   - `mqtt-client` / `mqtt-client-secret` (full access to test topics)
   - `mqtt-publisher` / `mqtt-publisher-secret` (publish only)
   - `mqtt-subscriber` / `mqtt-subscriber-secret` (subscribe only)
@@ -182,11 +168,11 @@ Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's 
 curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
 ```
 
-**Token Endpoint (all clusters):**
+**Token Endpoint (all sites):**
 
 - `http://172.18.200.1/realms/event-bus/protocol/openid-connect/token`
 
-**JWKS Endpoint (used by auth-callout in all clusters):**
+**JWKS Endpoint (used by auth-callout in all sites):**
 
 - `http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs`
 
@@ -210,10 +196,10 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
 
 **Architecture:**
 
-- Single Keycloak instance in CSC cluster
-- All clusters access via external IP (172.18.200.1)
+- Single Keycloak instance behind the CSC Gateway
+- All sites access via external IP (172.18.200.1)
 - Simplified configuration with shared OAuth2 clients
-- Consistent authentication across all clusters
+- Consistent authentication across all sites
 
 **Note:** This is a minimal development setup using:
 
@@ -224,7 +210,8 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
 
 ## Prometheus
 
-The local stack installs a lightweight kube-prometheus-stack in each cluster.
+The local stack installs a lightweight kube-prometheus-stack once per physical
+cluster.
 
 **Components:**
 
@@ -235,7 +222,7 @@ The local stack installs a lightweight kube-prometheus-stack in each cluster.
 
 ```bash
 # Port-forward to Prometheus
-kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 --context kind-csc
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 --context kind-dsx-exchange
 
 # Open http://localhost:9090
 ```
@@ -307,42 +294,9 @@ cpc2_gw --> csc_gw : LoadBalancer\nservices
 
 **Key Design Points:**
 
-1. **Overlapping Internal Networks**: All clusters use the same internal address space (10.244.0.0/16 for pods, 10.96.0.0/12 for services). This is intentional and mirrors real-world separate clusters.
-
-2. **Gateway-Only Communication**: Clusters are completely isolated. All inter-cluster communication flows through Envoy Gateway LoadBalancer services with unique external IPs.
-
-3. **Network Isolation**: Each cluster is a separate Kind cluster on the same Docker network but with isolated internal networking. They cannot directly route to each other's pod or service IPs.
-
-4. **External Access**: Envoy Gateway uses the documented `.1` MetalLB address in each cluster. Additional LoadBalancer services can use the rest of each cluster's MetalLB range.
-
-5. **Federation Model**: Event bus federation happens via:
-   - CPC -> CSC: MQTT bridge through Envoy Gateway LoadBalancer
-
-## Topology Awareness
-
-Worker nodes are labeled with topology zones for anti-affinity:
-
-- `topology.kubernetes.io/zone=zone-a`
-- `topology.kubernetes.io/zone=zone-b`
-- `topology.kubernetes.io/zone=zone-c`
-
-**Usage in Deployments:**
-
-```yaml
-spec:
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-          - key: app
-            operator: In
-            values:
-            - nats
-        topologyKey: topology.kubernetes.io/zone
-```
-
-This ensures high availability by spreading pods across different zones.
+The local topology validates namespace isolation, routing, chart wiring,
+reconciliation, caching, and watchers. CPC-to-CSC federation traverses the CSC
+Envoy Gateway address.
 
 ## Resource Requirements
 
@@ -358,10 +312,8 @@ This ensures high availability by spreading pods across different zones.
 - Memory: 16 GB
 - Disk: 50 GB
 
-**Per Cluster:**
-
-- Control plane: ~1 CPU, ~2 GB RAM
-- Each worker: ~500m CPU, ~1 GB RAM
+The Kind control-plane node uses approximately 1 CPU and 2 GB RAM before
+application workloads.
 
 ## Troubleshooting
 
@@ -377,38 +329,38 @@ docker system info
 # - Memory: 8GB+
 
 # Clean up and retry
-make -C local clean
-make -C local setup-clusters
+make clean
+make local-up
 ```
 
 ### MetalLB Not Working
 
 ```bash
 # Check MetalLB pods
-kubectl get pods -n metallb-system --context kind-csc
+kubectl get pods -n metallb-system --context kind-dsx-exchange
 
 # Check logs
-kubectl logs -n metallb-system -l app=metallb --context kind-csc
+kubectl logs -n metallb-system -l app=metallb --context kind-dsx-exchange
 
 # Verify IP pools
-kubectl get ipaddresspools -n metallb-system --context kind-csc
+kubectl get ipaddresspools -n metallb-system --context kind-dsx-exchange
 ```
 
 ### Envoy Gateway Not Working
 
 ```bash
 # Check Envoy Gateway controller
-kubectl get pods -n envoy-gateway-system --context kind-csc
+kubectl get pods -n envoy-gateway-system --context kind-dsx-exchange
 
 # Check Gateway resources
-kubectl get gateway -A --context kind-csc
-kubectl get httproute -A --context kind-csc
+kubectl get gateway -A --context kind-dsx-exchange
+kubectl get httproute -A --context kind-dsx-exchange
 
 # Check Gateway status
-kubectl describe gateway shared-gateway -n envoy-gateway-system --context kind-csc
+kubectl describe gateway shared-gateway -n csc-gateway --context kind-dsx-exchange
 
 # Get LoadBalancer IP from Gateway resource
-GATEWAY_IP=$(kubectl get gateway shared-gateway -n envoy-gateway-system --context kind-csc -o jsonpath='{.status.addresses[0].value}')
+GATEWAY_IP=$(kubectl get gateway shared-gateway -n csc-gateway --context kind-dsx-exchange -o jsonpath='{.status.addresses[0].value}')
 echo "Gateway IP: $GATEWAY_IP"
 
 # Test gateway HTTP listener
@@ -419,14 +371,14 @@ curl http://${GATEWAY_IP}/
 
 ```bash
 # Check Keycloak pods
-kubectl get pods -n keycloak --context kind-csc
+kubectl get pods -n keycloak --context kind-dsx-exchange
 
 # Check logs
-kubectl logs -n keycloak -l app.kubernetes.io/name=keycloak --context kind-csc
+kubectl logs -n keycloak -l app.kubernetes.io/name=keycloak --context kind-dsx-exchange
 
 # Check realm import ConfigMap. The import key is realm-event-bus.json and the
 # Keycloak realm inside that file is event-bus.
-kubectl get configmap keycloak-realm-import -n keycloak --context kind-csc -o yaml
+kubectl get configmap keycloak-realm-import -n keycloak --context kind-dsx-exchange -o yaml
 
 # Test token endpoint via external IP using client credentials
 curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token" \
@@ -441,25 +393,20 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
 
 ```bash
 # Check ServiceMonitor resources
-kubectl get servicemonitor -A --context kind-csc
+kubectl get servicemonitor -A --context kind-dsx-exchange
 
 # Check Prometheus targets
 # Access Prometheus UI and check Status -> Targets
 
 # Verify service labels match ServiceMonitor selector
-kubectl get svc -n event-bus -o yaml --context kind-csc
+kubectl get svc -n csc-event-bus -o yaml --context kind-dsx-exchange
 ```
 
 ## Cleanup
 
 ```bash
-# Delete all clusters
-make -C local clean
-
-# Or delete individually
-kind delete cluster --name csc
-kind delete cluster --name cpc-1
-kind delete cluster --name cpc-2
+# Delete the local cluster
+make clean
 ```
 
 ## Next Steps
@@ -469,17 +416,17 @@ After the local stack is ready:
 1. Reconcile the local stack after config or image changes:
 
    ```bash
-   make -C local skaffold-run
+   make local-up
    ```
 
 2. Run tests:
 
    ```bash
-   make -C local test
+   make test-dev
    ```
 
 3. Inspect Prometheus targets:
 
    ```bash
-   kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 --context kind-csc
+   kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090 --context kind-dsx-exchange
    ```

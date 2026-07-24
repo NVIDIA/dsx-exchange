@@ -19,8 +19,8 @@ Local Kind e2e deploys and functional tests must run outside the sandbox. The
 local e2e path builds Docker images, updates Docker buildx state under
 `~/.docker`, uses a local registry, and deploys the local stack with Skaffold.
 In the sandbox this has failed with Docker buildx permission errors and
-host-side networking timeouts. Use the local Make targets with unsandboxed
-execution, for example `make -C local skaffold-run` and `make -C local test`.
+host-side networking timeouts. Use the root Make targets with unsandboxed
+execution, for example `make local-up` and `make test`.
 
 For local deploy and infrastructure scripts, prefer direct validation over
 meta-level tests. Do not add shell tests whose main purpose is to inspect deploy
@@ -35,28 +35,28 @@ When changing the local Skaffold or Makefile flow, validate the affected paths
 outside the sandbox and record what passed or failed:
 
 - [ ] Run `make check` from the repo root.
-- [ ] Run `make -C local skaffold-run` from a clean Kind state.
-- [ ] Run `make -C local skaffold-run` again against the same state; confirm
+- [ ] Run `make local-up` from a clean Kind state.
+- [ ] Run `make local-up` again against the same state; confirm
       image builds are cached and unchanged services are not rolled.
-- [ ] Run `make -C local test`; confirm deploy, functional tests, and
+- [ ] Run `make test`; confirm deploy, functional tests, and
       performance tests pass.
-- [ ] Run `make -C local test-dev` against the deployed stack; confirm it only
+- [ ] Run `make test-dev` against the deployed stack; confirm it only
       runs the functional and performance tests.
-- [ ] Run `make -C local skaffold-dev`; confirm exactly one Skaffold dev
+- [ ] Run `make skaffold-dev`; confirm exactly one Skaffold dev
       process reaches watch mode and keeps the stack deployed after exit.
 - [ ] While `skaffold-dev` is running, edit an event-bus chart/value file;
       confirm the NATS release updates in CSC, CPC-1, and CPC-2. If only one
-      cluster updates, this check failed.
+      logical site updates, this check failed.
 - [ ] While `skaffold-dev` is running, edit an infra manifest/value file;
-      confirm the affected resource updates in the expected clusters. If the
-      changed cluster is not reconciled, this check failed.
+      confirm the affected resource updates in the expected logical sites.
+      If the changed site is not reconciled, this check failed.
 - [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
-      image rebuilds once, is pushed to the local registry, and the event-bus
-      pods use it.
+      image rebuilds once, is loaded into the active Kind cluster, and the
+      event-bus pods use it.
 
-Verify each observed rollout or resource update with `kubectl` using the
-`kind-csc`, `kind-cpc-1`, and `kind-cpc-2` contexts. Leave the local stack
-deployed when the user asks to inspect it.
+Verify each observed rollout or resource update in the default topology with
+`kubectl --context kind-dsx-exchange` and the `csc-*`, `cpc-1-*`, and `cpc-2-*`
+namespaces. Leave the local stack deployed when the user asks to inspect it.
 
 ## Commit conventions
 
@@ -73,14 +73,16 @@ Keep commit message body lines under 100 characters; commitlint enforces this.
 
 ## License headers
 
-Every source file requires an SPDX header:
+Every comment-capable source and configuration file requires an SPDX header:
 
-```
+```text
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 ```
 
-CI checks this. Run `make add-license-headers` to fix.
+CI checks this. Markdown remains headerless, and
+`local/infra/local-registry/zot-config.json` is excluded because JSON cannot
+carry comments. Run `make add-license-headers` to fix supported files.
 
 ## Third-party licenses
 

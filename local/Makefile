@@ -1,85 +1,33 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: help install-e2e-prereqs test test-dev
-.PHONY: skaffold-run skaffold-dev
-.PHONY: clean status validate dummy-bms benchmark benchmark-full
-.PHONY: setup-clusters
+SHELL := /bin/bash
+.SHELLFLAGS := -euo pipefail -c
 
-PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
-FUNCTIONAL_E2E_TIMEOUT ?= 3m
-BENCHMARK_BASIC_FLAGS ?= --duration 5s --connection-clients 50 --connection-rate 25 --fanout-subscribers 20 --p2p-clients 20 --fanin-publishers 20 --fanin-subscribers 3 --fanin-topics 20
-CSC_BROKER_URL ?= tcp://172.18.200.1:1883
+ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
+MISE ?= mise
+MISE_EXEC := MISE_LOCKED=1 "$(MISE)" exec --cd "$(ROOT_DIR)" --
 SKAFFOLD ?= skaffold
-SKAFFOLD_FLAGS ?= --cleanup=false --label=skaffold.dev/run-id=local-e2e
-GO_PATH ?= $(shell go env GOPATH 2>/dev/null)
-GO_BIN ?= $(shell go env GOBIN 2>/dev/null)
-E2E_PREREQS_BIN ?= $(if $(GO_BIN),$(GO_BIN),$(if $(GO_PATH),$(GO_PATH)/bin,$(HOME)/.local/bin))
-export PATH := $(E2E_PREREQS_BIN):$(PATH)
+SKAFFOLD_FLAGS ?= --cleanup=false --digest-source=tag --iterative-status-check=true --label=skaffold.dev/run-id=local-e2e
+override SKAFFOLD_FLAGS += --kube-context=kind-dsx-exchange
+SKAFFOLD_BUILD_MIRROR_REGISTRY ?= localhost:5001
 
-help: ## Show this help message
-	@echo "DSX Event Bus - Evaluation Framework"
-	@echo ""
-	@echo "Available targets:"
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-35s %s\n", $$1, $$2}'
+.PHONY: clean install-e2e-prereqs prepare-local-dependencies setup-cluster skaffold-dev skaffold-run
 
-# ============================================================================
-# Infrastructure Setup
-# ============================================================================
+install-e2e-prereqs:
+	MISE_LOCKED=1 "$(MISE)" --cd "$(ROOT_DIR)" install --locked
 
-install-e2e-prereqs: ## Install local Kind e2e CLI prerequisites into E2E_PREREQS_BIN
-	E2E_PREREQS_BIN="$(E2E_PREREQS_BIN)" bash ./infra/scripts/install-e2e-prereqs.sh
+prepare-local-dependencies:
+	$(MISE_EXEC) bash local/scripts/prepare-dependencies.sh
 
-test: ## Run the full local Kind e2e suite
-	$(MAKE) skaffold-run
-	$(MAKE) test-dev
+setup-cluster:
+	$(MISE_EXEC) bash local/scripts/setup-cluster.sh
 
-test-dev: ## Run the local e2e tests against an already running local stack
-	cd mqtt-client && go test -count=1 -v ./tests/functional/ -timeout $(FUNCTIONAL_E2E_TIMEOUT)
-	cd mqtt-client && $(PERFORMANCE_E2E_ENV) go test -count=1 -v ./tests/performance/ -timeout 10m
+skaffold-run: install-e2e-prereqs prepare-local-dependencies setup-cluster
+	$(MISE_EXEC) env SKAFFOLD_BUILD_MIRROR_REGISTRY="$(SKAFFOLD_BUILD_MIRROR_REGISTRY)" "$(SKAFFOLD)" run -f skaffold.yaml --module local-stack $(SKAFFOLD_FLAGS)
 
-setup-clusters:
-	./infra/scripts/setup-clusters.sh
+skaffold-dev: install-e2e-prereqs prepare-local-dependencies setup-cluster
+	$(MISE_EXEC) env SKAFFOLD_BUILD_MIRROR_REGISTRY="$(SKAFFOLD_BUILD_MIRROR_REGISTRY)" "$(SKAFFOLD)" dev -f skaffold.yaml --module local-stack $(SKAFFOLD_FLAGS)
 
-skaffold-run: install-e2e-prereqs ## Deploy the complete local dev stack
-	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" run -f skaffold.yaml $(SKAFFOLD_FLAGS)
-
-skaffold-dev: install-e2e-prereqs ## Run Skaffold dev for the complete local dev stack
-	$(MAKE) setup-clusters
-	cd .. && "$(SKAFFOLD)" dev -f skaffold.yaml $(SKAFFOLD_FLAGS)
-
-clean: ## Delete Kind clusters and generated local e2e artifacts
-	./infra/scripts/cleanup.sh
-	rm -rf nats/keys nats/nsc nats/certs nats/secrets mqtt-client/tests/performance/reports
-	rm -rf ../deploy/nats-event-bus/charts ../deploy/nats-event-bus/Chart.lock
-
-# ============================================================================
-# Testing
-# ============================================================================
-
-dummy-bms: ## Publish looping dummy BMS data to the CSC MQTT broker
-	cd mqtt-client && go run ./cmd/dummy-bms --broker "$(CSC_BROKER_URL)" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
-
-# ============================================================================
-# Monitoring & Debugging
-# ============================================================================
-
-status: ## Check deployment status
-	@echo "CSC Cluster:"
-	@kubectl get pods -n event-bus --context kind-csc 2>/dev/null || echo "  NATS: Not deployed"
-	@echo ""
-	@echo "CPC-1 Cluster:"
-	@kubectl get pods -n event-bus --context kind-cpc-1 2>/dev/null || echo "  NATS: Not deployed"
-	@echo ""
-	@echo "CPC-2 Cluster:"
-	@kubectl get pods -n event-bus --context kind-cpc-2 2>/dev/null || echo "  NATS: Not deployed"
-
-validate: ## Validate the deployed local stack
-	./validate.sh
-
-benchmark: ## Run the MQTT benchmark smoke suite
-	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)" $(BENCHMARK_BASIC_FLAGS)
-
-benchmark-full: ## Run the full MQTT benchmark suite
-	cd mqttbs && go run ./cmd/mqttbs run basic-suite --broker "$(CSC_BROKER_URL)"
+clean:
+	$(MISE_EXEC) bash local/scripts/cleanup.sh

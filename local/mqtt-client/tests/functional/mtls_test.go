@@ -40,7 +40,7 @@ func getTCPBrokerURL() string {
 func getMTLSCertPaths() (cert, key, ca string) {
 	certDir := os.Getenv("MTLS_CERT_DIR")
 	if certDir == "" {
-		certDir = "../../../nats/certs/csc" // Default to local certs (from mqtt-client/tests/functional)
+		certDir = "../../../event-bus/certs/csc" // Default to local certs (from mqtt-client/tests/functional)
 	}
 	return fmt.Sprintf("%s/client.pem", certDir),
 		fmt.Sprintf("%s/client-key.pem", certDir),
@@ -59,9 +59,9 @@ func getMTLSEndpoints() []mtlsEndpoint {
 		return []mtlsEndpoint{{name: "configured", broker: broker, certDir: strings.TrimSuffix(cert, "/client.pem")}}
 	}
 	return []mtlsEndpoint{
-		{name: "CSC", broker: "ssl://172.18.200.1:8883", certDir: "../../../nats/certs/csc"},
-		{name: "CPC-1", broker: "ssl://172.18.201.1:8883", certDir: "../../../nats/certs/cpc-1"},
-		{name: "CPC-2", broker: "ssl://172.18.202.1:8883", certDir: "../../../nats/certs/cpc-2"},
+		{name: "CSC", broker: "ssl://172.18.200.1:8883", certDir: "../../../event-bus/certs/csc"},
+		{name: "CPC-1", broker: "ssl://172.18.201.1:8883", certDir: "../../../event-bus/certs/cpc-1"},
+		{name: "CPC-2", broker: "ssl://172.18.202.1:8883", certDir: "../../../event-bus/certs/cpc-2"},
 	}
 }
 

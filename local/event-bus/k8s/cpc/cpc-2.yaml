@@ -1,0 +1,31 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# CPC-2 specific overrides
+
+global:
+  eventBus:
+    clusterId: "2"
+    gateway:
+      routes:
+        mqtt:
+          gatewayNamespace: cpc-2-gateway
+        natsClient:
+          gatewayNamespace: cpc-2-gateway
+        natsLeafnode:
+          gatewayNamespace: cpc-2-gateway
+        mqttMtls:
+          gatewayNamespace: cpc-2-gateway
+    # CPC-2 specific mTLS permissions
+    auth:
+      permissions:
+        mtls:
+          mqtt-client:
+            identity: "CN=mqtt-client.cpc-2"
+            account: "CPC"
+            # MQTT persistence uses the server's internal account client.
+            permissions:
+              pub:
+                allow: ["test.>"]
+              sub:
+                allow: ["test.>"]

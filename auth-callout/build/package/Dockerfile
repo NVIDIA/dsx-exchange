@@ -7,7 +7,7 @@
 
 # Builder image
 ARG BUILDER_IMG=golang
-ARG BUILDER_TAG=1.25.5
+ARG BUILDER_TAG=1.26.5
 
 # Final image
 ARG FINAL_IMG=gcr.io/distroless/static-debian12

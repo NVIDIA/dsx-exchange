@@ -5,14 +5,7 @@ apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
   name: local-stack
-resourceSelector:
-  allow:
-    - groupKind: "Stream.jetstream.nats.io"
-      labels: [".*"]
 requires:
-  - path: local/infra/skaffold.yaml
-    configs:
-      - infra
-  - path: local/nats/skaffold.yaml
-    configs:
-      - nats
+- path: local/event-bus/skaffold.yaml
+  configs:
+  - event-bus

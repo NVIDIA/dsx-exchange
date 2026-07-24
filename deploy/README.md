@@ -218,13 +218,13 @@ helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
 helm install dsx ./nats-event-bus -n dsx --create-namespace
 
 # Run the local setup from the repository root
-make -C local skaffold-run
+make local-up
 ```
 
-The local setup uses the values in `local/nats/k8s/`.
-Use `local/nats/k8s/local-dev-values.yaml`, `local/nats/k8s/csc/values.yaml`,
-`local/nats/k8s/cpc/values.yaml`, and the per-CPC files in
-`local/nats/k8s/cpc/` as the working reference for value layering.
+The local setup uses the values in `local/event-bus/k8s/`.
+Use `local/event-bus/k8s/local-dev-values.yaml`, `local/event-bus/k8s/csc/values.yaml`,
+`local/event-bus/k8s/cpc/values.yaml`, and the per-CPC files in
+`local/event-bus/k8s/cpc/` as the working reference for value layering.
 
 ## Umbrella Chart Configuration
 

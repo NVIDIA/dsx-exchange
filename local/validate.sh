@@ -40,54 +40,50 @@ cluster_ip() {
   esac
 }
 
-validate_cluster() {
-  local cluster=$1
-  local context="kind-${cluster}"
+validate_site() {
+  local site=$1
+  local event_bus_namespace
+  local gateway_ns
   local expected_ip
-  expected_ip=$(cluster_ip "${cluster}")
+  event_bus_namespace="${site}-event-bus"
+  gateway_ns="${site}-gateway"
+  expected_ip=$(cluster_ip "${site}")
 
   echo ""
-  echo "Validating ${cluster}"
+  echo "Validating ${site}"
 
-	check "${cluster} Kind cluster exists" bash -c "kind get clusters | grep -qx '${cluster}'"
-  check "${cluster} API server" kubectl cluster-info --context "${context}"
-  check "${cluster} nodes ready" kubectl wait --for=condition=Ready nodes --all --context "${context}" --timeout=30s
+  check "${site} NATS ready" kubectl rollout status statefulset/nats -n "${event_bus_namespace}" --context kind-dsx-exchange --timeout=30s
+  check "${site} auth-callout ready" kubectl rollout status deployment/auth-callout -n "${event_bus_namespace}" --context kind-dsx-exchange --timeout=30s
 
-  check "${cluster} MetalLB controller ready" kubectl rollout status deployment/metallb-controller -n metallb-system --context "${context}" --timeout=30s
-  check "${cluster} Envoy controller ready" kubectl rollout status deployment/envoy-gateway -n envoy-gateway-system --context "${context}" --timeout=30s
-  check "${cluster} metrics-server ready" kubectl rollout status deployment/metrics-server -n kube-system --context "${context}" --timeout=30s
-  check "${cluster} NATS ready" kubectl rollout status statefulset/nats -n event-bus --context "${context}" --timeout=30s
-  check "${cluster} auth-callout ready" kubectl rollout status deployment/auth-callout -n event-bus --context "${context}" --timeout=30s
-
-  check "${cluster} Envoy pool exists" kubectl get ipaddresspool envoy-pool -n metallb-system --context "${context}"
-  check "${cluster} default pool exists" kubectl get ipaddresspool default-pool -n metallb-system --context "${context}"
-  check "${cluster} Gateway programmed" kubectl wait --for=condition=Programmed gateway/shared-gateway -n envoy-gateway-system --context "${context}" --timeout=30s
+  check "${site} Envoy pool exists" kubectl get ipaddresspool "${site}-envoy-pool" -n metallb-system --context kind-dsx-exchange
+  check "${site} default pool exists" kubectl get ipaddresspool "${site}-default-pool" -n metallb-system --context kind-dsx-exchange
+  check "${site} Gateway programmed" kubectl wait --for=condition=Programmed gateway/shared-gateway -n "${gateway_ns}" --context kind-dsx-exchange --timeout=30s
 
   local gateway_ip
-  gateway_ip=$(kubectl get gateway shared-gateway -n envoy-gateway-system --context "${context}" -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || true)
+  gateway_ip=$(kubectl get gateway shared-gateway -n "${gateway_ns}" --context kind-dsx-exchange -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || true)
   if [ "${gateway_ip}" = "${expected_ip}" ]; then
-    echo "PASS: ${cluster} Gateway IP ${expected_ip}"
+    echo "PASS: ${site} Gateway IP ${expected_ip}"
   else
-    echo "FAIL: ${cluster} Gateway IP expected ${expected_ip}, got ${gateway_ip:-none}"
+    echo "FAIL: ${site} Gateway IP expected ${expected_ip}, got ${gateway_ip:-none}"
     failures=$((failures + 1))
   fi
 
   local stream_json
-  if stream_json=$(kubectl exec -n event-bus nats-0 --context "${context}" -c nats -- \
+  if stream_json=$(kubectl exec -n "${event_bus_namespace}" nats-0 --context kind-dsx-exchange -c nats -- \
     wget -qO- 'http://localhost:8222/jsz?streams=true&config=true'); then
     for stream in '$MQTT_msgs' '$MQTT_rmsgs' '$MQTT_sess' '$MQTT_qos2in' '$MQTT_out'; do
-      check_json "${cluster} ${stream} memory replicated stream" "${stream_json}" \
+      check_json "${site} ${stream} memory replicated stream" "${stream_json}" \
         --arg stream "${stream}" '[.account_details[].stream_detail[]? | select(.name == $stream and .config.storage == "memory" and .config.num_replicas == 3)] | length > 0'
     done
   else
-    echo "FAIL: ${cluster} stream config readable"
+    echo "FAIL: ${site} stream config readable"
     failures=$((failures + 1))
   fi
 
   local leafz
   local leaf_connections=false
   for pod in nats-0 nats-1 nats-2; do
-    if leafz=$(kubectl exec -n event-bus "${pod}" --context "${context}" -c nats -- \
+    if leafz=$(kubectl exec -n "${event_bus_namespace}" "${pod}" --context kind-dsx-exchange -c nats -- \
       wget -qO- http://localhost:8222/leafz) &&
       jq -e '.leafs | length > 0' >/dev/null <<<"${leafz}"; then
       leaf_connections=true
@@ -96,15 +92,22 @@ validate_cluster() {
   done
 
   if [ "${leaf_connections}" = true ]; then
-    echo "PASS: ${cluster} leaf connections present"
+    echo "PASS: ${site} leaf connections present"
   else
-    echo "FAIL: ${cluster} leaf connections present"
+    echo "FAIL: ${site} leaf connections present"
     failures=$((failures + 1))
   fi
 }
 
-for cluster in csc cpc-1 cpc-2; do
-  validate_cluster "${cluster}"
+check "Kind cluster exists" bash -c "kind get clusters | grep -qx dsx-exchange"
+check "API server" kubectl cluster-info --context kind-dsx-exchange
+check "node ready" kubectl wait --for=condition=Ready nodes --all --context kind-dsx-exchange --timeout=30s
+check "MetalLB controller ready" kubectl rollout status deployment/metallb-controller -n metallb-system --context kind-dsx-exchange --timeout=30s
+check "Envoy controller ready" kubectl rollout status deployment/envoy-gateway -n envoy-gateway-system --context kind-dsx-exchange --timeout=30s
+check "metrics-server ready" kubectl rollout status deployment/metrics-server -n kube-system --context kind-dsx-exchange --timeout=30s
+
+for site in csc cpc-1 cpc-2; do
+  validate_site "${site}"
 done
 
 echo ""

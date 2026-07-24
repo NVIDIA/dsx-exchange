@@ -29,7 +29,7 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
 - `local/` — Kind-based evaluation environment
   - `mqtt-client/` — Go MQTT functional/performance tests and dummy BMS publisher
   - `mqttbs/` — MQTT benchmark tool (connection, fanout, fanin, p2p scenarios)
-  - `nats/` — per-cluster NATS deployment scripts and local value overrides
+  - `event-bus/` — per-site NATS values, secret generators, and local tests
   - `infra/` — Kind cluster, MetalLB, Envoy Gateway, cert-manager, Keycloak setup scripts
 - `fern/` — Fern docs configuration (renders docs/ as hosted site)
 - `docs/` — canonical documentation (see below)
@@ -156,7 +156,7 @@ Everything that must be in place before deploying the DSX Event Bus. This covers
 
 ## Host Prerequisites
 
-A multi-cluster deployment (CSC + CPCs) creates enough kubelets, containerd shims, gateway controllers, and fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
+The local stack can create enough fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
 
 Verify these sysctl parameters on each node before creating clusters:
 
@@ -296,8 +296,8 @@ Each Kubernetes cluster (one CSC, one or more CPCs) runs its own event bus insta
 ## Evaluation Install (~10 minutes)
 
 ```bash
-make -C local install-e2e-prereqs
-make -C local skaffold-run
+mise install --locked
+make local-up
 make test-dev
 ```
 

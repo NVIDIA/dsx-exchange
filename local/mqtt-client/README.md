@@ -136,13 +136,22 @@ The performance tests expose Prometheus metrics:
 ## Quick Start
 
 ```bash
-# From local/, run the full local e2e suite against the MetalLB Envoy Gateway IPs.
+# From the repository root, run the full local e2e suite against the
+# MetalLB Envoy Gateway IPs.
 make test
 make dummy-bms
 
-# Run MQTT benchmarks instead of the e2e smoke profile.
-make benchmark
-make benchmark-full
+# Run the smoke-sized MQTT benchmark suite.
+go -C local/mqttbs run ./cmd/mqttbs run basic-suite \
+  --broker tcp://172.18.200.1:1883 \
+  --duration 5s \
+  --connection-clients 50 \
+  --connection-rate 25 \
+  --fanout-subscribers 20 \
+  --p2p-clients 20 \
+  --fanin-publishers 20 \
+  --fanin-subscribers 3 \
+  --fanin-topics 20
 
 # Direct test runs use the MetalLB Envoy Gateway IPs.
 export CSC_BROKER_URL=tcp://172.18.200.1:1883

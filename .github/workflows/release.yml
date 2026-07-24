@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: NVIDIA/dsx-github-actions/.github/actions/semantic-release@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+      - uses: NVIDIA/dsx-github-actions/.github/actions/semantic-release@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           extra-plugins: conventional-changelog-conventionalcommits
