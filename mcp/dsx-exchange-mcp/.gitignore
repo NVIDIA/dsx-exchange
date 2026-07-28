@@ -1,0 +1,21 @@
+/bin/
+/reports/
+*.test
+*.out
+.env
+.idea/
+.vscode/
+.claude/
+context/
+/schema/
+/schemas/.gitignore
+/schemas/README.md
+/schemas/cloud-events-example.yaml
+/schemas/asyncapi/
+/internal/specs/data/*
+!/internal/specs/data/.gitkeep
+
+# Local-only MCP validation helpers and notes; not part of the released server.
+/cmd/dsx-exchange-token-proxy/
+/deploy/local-check/
+/docs/

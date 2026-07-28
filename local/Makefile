@@ -68,6 +68,7 @@ dummy-bms: ## Publish looping dummy BMS data to the CSC MQTT broker
 status: ## Check deployment status
 	@echo "CSC Cluster:"
 	@kubectl get pods -n event-bus --context kind-csc 2>/dev/null || echo "  NATS: Not deployed"
+	@kubectl get pods -n mcp-backends --context kind-csc 2>/dev/null || echo "  MCP: Not deployed"
 	@echo ""
 	@echo "CPC-1 Cluster:"
 	@kubectl get pods -n event-bus --context kind-cpc-1 2>/dev/null || echo "  NATS: Not deployed"

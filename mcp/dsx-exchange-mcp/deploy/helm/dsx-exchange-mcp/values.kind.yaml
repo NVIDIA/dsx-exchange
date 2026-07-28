@@ -1,0 +1,49 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Local Kind values for manual MCP client validation.
+# Deploys the backend directly; no MCP gateway is required.
+
+image:
+  repository: localhost:5001/dsx-exchange-mcp
+  tag: local
+  pullPolicy: Always
+
+replicaCount: 1
+runtimeClassName: ""
+
+natsURL: tcp://nats.event-bus.svc.cluster.local:1883
+
+mqtt:
+  authMode: noauth
+  username: ""
+  connectTimeoutSeconds: 5
+  subscribeTimeoutSeconds: 5
+  maxResultBytes: 1048576
+  tls:
+    caCertSecret:
+      name: ""
+      key: ca.crt
+    serverName: ""
+    insecureSkipVerify: false
+
+limits:
+  defaultMaxMessages: 100
+  maxMessages: 1000
+  defaultMaxDurationSeconds: 30
+  maxDurationSeconds: 30
+  mqtt:
+    collectMaxConcurrentPerPod: 100
+
+podDisruptionBudget:
+  enabled: false
+
+affinity: null
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

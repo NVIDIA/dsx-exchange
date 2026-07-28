@@ -1,0 +1,21 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# This Dockerfile builds from the repository root context so it can copy both
+# the MCP module and the root schemas/ source of truth.
+**
+!mcp/
+!mcp/dsx-exchange-mcp/
+!mcp/dsx-exchange-mcp/Dockerfile
+!mcp/dsx-exchange-mcp/go.mod
+!mcp/dsx-exchange-mcp/go.sum
+!mcp/dsx-exchange-mcp/vendor/
+!mcp/dsx-exchange-mcp/vendor/**
+!mcp/dsx-exchange-mcp/cmd/
+!mcp/dsx-exchange-mcp/cmd/**
+!mcp/dsx-exchange-mcp/internal/
+!mcp/dsx-exchange-mcp/internal/**
+!mcp/dsx-exchange-mcp/schemas/
+!mcp/dsx-exchange-mcp/schemas/embed.go
+!schemas/
+!schemas/**

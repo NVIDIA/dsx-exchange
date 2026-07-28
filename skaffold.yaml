@@ -16,3 +16,6 @@ requires:
   - path: local/nats/skaffold.yaml
     configs:
       - nats
+  - path: mcp/dsx-exchange-mcp/skaffold.yaml
+    configs:
+      - dsx-exchange-mcp

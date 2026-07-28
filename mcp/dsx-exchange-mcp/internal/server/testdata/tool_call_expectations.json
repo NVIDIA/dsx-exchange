@@ -1,0 +1,255 @@
+[
+  {
+    "id": "bms-rack-temperature-latest",
+    "domain": "bms",
+    "question": "Grab me all of the most recent rack temperature data.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackLiquidSupplyTemperature/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackLiquidReturnTemperature/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_read_retained",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackLiquidSupplyTemperature/#",
+          "max_messages": 1000
+        }
+      },
+      {
+        "tool": "dsx_exchange_read_retained",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackLiquidReturnTemperature/#",
+          "max_messages": 1000
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackLiquidSupplyTemperature/#",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackLiquidReturnTemperature/#",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "bms",
+      "channels": ["rackMetadata"],
+      "related_topics": [
+        "BMS/v1/PUB/Value/Rack/RackLiquidSupplyTemperature/#",
+        "BMS/v1/PUB/Value/Rack/RackLiquidReturnTemperature/#"
+      ]
+    }
+  },
+  {
+    "id": "bms-rack-liquid-isolation-status",
+    "domain": "bms",
+    "question": "Show me rack liquid isolation status updates.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_read_retained",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackLiquidIsolationStatus/#",
+          "max_messages": 1000
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackLiquidIsolationStatus/#",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "bms",
+      "channels": ["rackBmsValue"],
+      "related_topics": ["BMS/v1/PUB/Metadata/Rack/RackLiquidIsolationStatus/#"]
+    }
+  },
+  {
+    "id": "bms-rack-power",
+    "domain": "bms",
+    "question": "What topic should I use for rack power telemetry?",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_read_retained",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Metadata/Rack/RackPower/#",
+          "max_messages": 1000
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "bms",
+      "channels": ["rackBmsValue"],
+      "related_topics": ["BMS/v1/PUB/Metadata/Rack/RackPower/#"]
+    }
+  },
+  {
+    "id": "power-breach-alerts",
+    "domain": "power-management",
+    "question": "Listen for power breach alerts from power agents.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "grid/v1/poweragent/+/powerbreach"
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "grid/v1/poweragent/+/powerbreach",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "power-management",
+      "channels": ["powerBreachAlertChannel"],
+      "related_topics": []
+    }
+  },
+  {
+    "id": "power-state-status",
+    "domain": "power-management",
+    "question": "Find current power state status events.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "grid/v1/poweragent/+/powerstate/status"
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "grid/v1/poweragent/+/powerstate/status",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "power-management",
+      "channels": ["powerStateStatusChannel"],
+      "related_topics": []
+    }
+  },
+  {
+    "id": "power-enforcement-outcomes",
+    "domain": "power-management",
+    "question": "Which topic has infrastructure enforcement outcomes for power breaches?",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "grid/v1/infra/+/powerbreach/enforcement"
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "grid/v1/infra/+/powerbreach/enforcement",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "power-management",
+      "channels": ["powerBreachEnforcementChannel"],
+      "related_topics": []
+    }
+  },
+  {
+    "id": "bms-rack-power-background-watch",
+    "domain": "bms",
+    "question": "Run a background subscription for rack power telemetry using a 30 second sampling window. Collect up to 100 messages.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#"
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "BMS/v1/PUB/Value/Rack/RackPower/#",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "bms",
+      "channels": ["rackBmsValue"],
+      "related_topics": ["BMS/v1/PUB/Metadata/Rack/RackPower/#"]
+    }
+  },
+  {
+    "id": "nico-machine-state",
+    "domain": "nico",
+    "question": "Subscribe to NICO machine state changes.",
+    "expected_tool_calls": [
+      {
+        "tool": "dsx_exchange_describe_topic",
+        "arguments": {
+          "topic_filter": "NICO/v1/machine/+/state"
+        }
+      },
+      {
+        "tool": "dsx_exchange_subscribe",
+        "arguments": {
+          "topic_filter": "NICO/v1/machine/+/state",
+          "max_messages": 100,
+          "max_duration_s": 30
+        }
+      }
+    ],
+    "expected_schema": {
+      "domain": "nico",
+      "channels": ["managedHostState"],
+      "related_topics": []
+    }
+  }
+]

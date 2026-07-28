@@ -69,6 +69,19 @@ jobs:
           go-flags: "-mod=vendor"
           working-directory: auth-callout
 
+  go-lint-mcp:
+    name: Go Lint (mcp/dsx-exchange-mcp)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          go-version: "1.25.5"
+          go-flags: "-mod=vendor"
+          working-directory: mcp/dsx-exchange-mcp
+
   unit-test:
     name: Unit Test (auth-callout)
     runs-on: linux-amd64-cpu4
@@ -110,6 +123,29 @@ jobs:
         working-directory: local/mqttbs
         run: go test ./...
 
+  unit-test-mcp:
+    name: Unit Test (mcp/dsx-exchange-mcp)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          go-version: "1.25.5"
+          go-flags: "-mod=vendor"
+          test-flags: "-v -count=1 -timeout=10m"
+          working-directory: mcp/dsx-exchange-mcp
+
+
+  schema-sync-mcp:
+    name: Schema Sync (mcp/dsx-exchange-mcp)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify MCP embedded schemas can be generated
+        run: make -C mcp/dsx-exchange-mcp verify-specs
+
   third-party-licenses:
     name: Third-Party Licenses
     runs-on: linux-amd64-cpu4
@@ -119,7 +155,9 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: true
-          cache-dependency-path: auth-callout/go.sum
+          cache-dependency-path: |
+            auth-callout/go.sum
+            mcp/dsx-exchange-mcp/go.sum
       - name: Regenerate THIRD_PARTY_LICENSES.csv via Makefile
         # Uses auth-callout/scripts/regenerate-third-party-licenses.sh which
         # filters local packages and applies multi-license overrides.
@@ -144,6 +182,20 @@ jobs:
           platforms: linux/amd64
           push: "false"
 
+  docker-build-mcp:
+    name: Docker Build (mcp/dsx-exchange-mcp)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          image: dsx-exchange-mcp
+          tags: ci-validation
+          context: .
+          dockerfile: mcp/dsx-exchange-mcp/Dockerfile
+          platforms: linux/amd64
+          push: "false"
+
   codeql-scan:
     name: CodeQL SAST
     runs-on: linux-amd64-cpu4
@@ -158,6 +210,8 @@ jobs:
         with:
           go-version: "1.25.5"
           cache: false
+      - name: Generate MCP embedded schemas
+        run: make -C mcp/dsx-exchange-mcp sync-specs
       - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
         with:
           languages: go
@@ -198,6 +252,24 @@ jobs:
         with:
           image: dsx-exchange-auth-callout:scan-validation
 
+  security-container-scan-mcp:
+    name: Container Scan (mcp/dsx-exchange-mcp)
+    needs: docker-build-mcp
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          image: dsx-exchange-mcp
+          tags: scan-validation
+          context: .
+          dockerfile: mcp/dsx-exchange-mcp/Dockerfile
+          platforms: linux/amd64
+          push: "false"
+      - uses: NVIDIA/dsx-github-actions/.github/actions/security-container-scan@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          image: dsx-exchange-mcp:scan-validation
+
   helm-validate-auth-callout:
     name: Helm Validate (auth-callout)
     runs-on: linux-amd64-cpu4
@@ -220,18 +292,32 @@ jobs:
           # Full dependency build happens on GitLab publish pipeline.
           template: "false"
 
+  helm-validate-mcp:
+    name: Helm Validate (mcp/dsx-exchange-mcp)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/helm-validate@07b465c2147fcbda4836cb869263577ea4719273 # v1.16.1
+        with:
+          chart-path: mcp/dsx-exchange-mcp/deploy/helm/dsx-exchange-mcp
+
   e2e-kind:
     name: E2E (Kind)
     needs:
       - license-headers
       - go-lint
+      - go-lint-mcp
       - unit-test
       - unit-test-local-mqtt
       - unit-test-local-mqttbs
+      - unit-test-mcp
+      - schema-sync-mcp
       - third-party-licenses
       - docker-build
+      - docker-build-mcp
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
+      - helm-validate-mcp
     uses: ./.github/workflows/e2e-kind.yml
 
   slack-notify:
@@ -241,16 +327,22 @@ jobs:
       - commitlint
       - license-headers
       - go-lint
+      - go-lint-mcp
       - unit-test
       - unit-test-local-mqtt
       - unit-test-local-mqttbs
+      - unit-test-mcp
+      - schema-sync-mcp
       - third-party-licenses
       - docker-build
+      - docker-build-mcp
       - codeql-scan
       - trufflehog-scan
       - security-container-scan
+      - security-container-scan-mcp
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
+      - helm-validate-mcp
       - e2e-kind
     runs-on: linux-amd64-cpu4
     environment: notifications

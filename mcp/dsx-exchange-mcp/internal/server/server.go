@@ -1,0 +1,68 @@
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+package server
+
+import (
+	"context"
+	"strings"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/auth"
+	"github.com/NVIDIA/dsx-exchange/mcp/dsx-exchange-mcp/internal/mqttbus"
+)
+
+type Config struct {
+	MQTT                     mqttbus.Config
+	DefaultMaxMessages       int
+	MaxMessages              int
+	DefaultDurationS         int
+	MaxDurationS             int
+	MQTTCollectMaxConcurrent int
+	FindTopicsDefaultLimit   int
+	FindTopicsMaxLimit       int
+
+	collectAdmission *admissionLimiter
+}
+
+// Build constructs the singleton MCP server. The same *mcp.Server is returned
+// from the StreamableHTTPHandler factory for every request; per-request state
+// (caller bearer) flows through ctx via the auth middleware.
+func Build(cfg Config) *mcp.Server {
+	srv := mcp.NewServer(
+		&mcp.Implementation{
+			Name:    "dsx-exchange-mcp",
+			Version: "0.1.0",
+		},
+		nil,
+	)
+
+	normalizeConfig(&cfg)
+	cfg.collectAdmission = newAdmissionLimiter(cfg.MQTTCollectMaxConcurrent)
+	srv.AddReceivingMiddleware(callerContextMiddleware())
+	registerTools(srv, cfg)
+	registerResources(srv)
+	return srv
+}
+
+func callerContextMiddleware() func(mcp.MethodHandler) mcp.MethodHandler {
+	return func(next mcp.MethodHandler) mcp.MethodHandler {
+		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+			sessionID := ""
+			if session := req.GetSession(); session != nil {
+				sessionID = strings.TrimSpace(session.ID())
+			}
+			if extra := req.GetExtra(); extra != nil {
+				caller := auth.CallerFromHeaders(extra.Header)
+				if caller.SessionID == "" {
+					caller.SessionID = sessionID
+				}
+				ctx = auth.WithCaller(ctx, caller)
+			} else if sessionID != "" {
+				ctx = auth.WithSessionID(ctx, sessionID)
+			}
+			return next(ctx, method, req)
+		}
+	}
+}
