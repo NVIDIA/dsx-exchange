@@ -57,6 +57,8 @@ data:
       ]
       mappings: {
         "$JS.API.>": "$JS.CSC.API.>"
+        "$KV.>": "$JS.CSC.API.$KV.>"
+        "$OBJ.>": "$JS.CSC.API.$OBJ.>"
         "$MQTT.sess.*.>": "$MQTT.sess.CSC.>"
       }
     }
@@ -93,6 +95,8 @@ data:
 {{ include "nats-event-bus.natsConfFields" (omit $config "enabled" "leaf" "jetstream" "mappings") | indent 6 }}
       mappings: {
         "$JS.API.>": "$JS.CSC.API.>"
+        "$KV.>": "$JS.CSC.API.$KV.>"
+        "$OBJ.>": "$JS.CSC.API.$OBJ.>"
       }
     }
     {{- end }}

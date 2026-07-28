@@ -23,6 +23,9 @@ data:
       jetstream: false
       mappings: {
         "$JS.API.>": "$JS.CSC.API.>"
+        # Keep domain mappings consistent with the main NATS account.
+        "$KV.>": "$JS.CSC.API.$KV.>"
+        "$OBJ.>": "$JS.CSC.API.$OBJ.>"
         "$MQTT.sess.*.>": "$MQTT.sess.CSC.>"
       }
     }
@@ -31,6 +34,9 @@ data:
       jetstream: false
       mappings: {
         "$JS.API.>": "$JS.CPC.API.>"
+        # Keep domain mappings consistent with the main NATS account.
+        "$KV.>": "$JS.CPC.API.$KV.>"
+        "$OBJ.>": "$JS.CPC.API.$OBJ.>"
         "$MQTT.sess.*.>": "$MQTT.sess.CPC.>"
       }
     }

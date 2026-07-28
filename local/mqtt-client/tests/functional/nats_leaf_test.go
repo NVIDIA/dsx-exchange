@@ -108,18 +108,114 @@ func TestLaunchLayerJetStreamStoresLeafMessages(t *testing.T) {
 }
 
 func TestLaunchLayerJetStreamAPIProxiesToCSC(t *testing.T) {
-	clusters := getNATSClusters()
-	csc := findNATSCluster(clusters, "CSC")
-	if csc == nil {
-		t.Fatal("CSC NATS cluster not found")
+	endpoints := launchLayerTestEndpoints(t)
+	for i, creator := range endpoints {
+		t.Run(creator.cluster.name, func(t *testing.T) {
+			testLaunchLayerJetStreamAPI(
+				t,
+				creator,
+				endpoints[(i+1)%len(endpoints)],
+				endpoints[(i+2)%len(endpoints)],
+				endpoints,
+			)
+		})
+	}
+}
+
+func TestLaunchLayerJetStreamKVProxiesToCSC(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	endpoints := launchLayerTestEndpoints(t)
+	cpc1Conn, cpc1JS := connectLaunchLayerJetStream(t, ctx, endpoints[1])
+	defer cpc1Conn.Close()
+	cpc2Conn, cpc2JS := connectLaunchLayerJetStream(t, ctx, endpoints[2])
+	defer cpc2Conn.Close()
+	cscConn, cscJS := connectLaunchLayerJetStream(t, ctx, endpoints[0])
+	defer cscConn.Close()
+
+	// Create through CPC-1.
+	bucketName := testResourceName("LL_KV")
+	if _, err := cpc1JS.CreateKeyValue(&nats.KeyValueConfig{
+		Bucket: bucketName, Storage: nats.MemoryStorage, Replicas: 1,
+	}); err != nil {
+		t.Fatalf("create KV bucket through CPC-1: %v", err)
+	}
+	defer cpc1JS.DeleteKeyValue(bucketName)
+
+	cpc2KV, err := cpc2JS.KeyValue(bucketName)
+	if err != nil {
+		t.Fatalf("bind KV bucket through CPC-2: %v", err)
+	}
+	cscKV, err := cscJS.KeyValue(bucketName)
+	if err != nil {
+		t.Fatalf("bind KV bucket through CSC: %v", err)
 	}
 
-	streamOwner := launchLayerCSC(t, *csc)
-	for _, cluster := range clusters {
-		cluster := cluster
-		t.Run(cluster.name, func(t *testing.T) {
-			testLaunchLayerJetStreamAPI(t, launchLayerCluster(t, cluster), streamOwner)
-		})
+	// Write through CPC-2 and read through CSC.
+	key := "cross-cluster"
+	first := []byte("from-cpc-2")
+	revision, err := cpc2KV.Put(key, first)
+	if err != nil {
+		t.Fatalf("put KV value through CPC-2: %v", err)
+	}
+	requireKVValue(t, cscKV, key, first)
+
+	// Update through CSC and read through CPC-2.
+	second := []byte("from-csc")
+	if _, err := cscKV.Update(key, second, revision); err != nil {
+		t.Fatalf("update KV value through CSC: %v", err)
+	}
+	requireKVValue(t, cpc2KV, key, second)
+	if err := cpc2KV.Delete(key); err != nil {
+		t.Fatalf("delete KV value through CPC-2: %v", err)
+	}
+}
+
+func TestLaunchLayerJetStreamObjectStoreProxiesToCSC(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	endpoints := launchLayerTestEndpoints(t)
+	cpc1Conn, cpc1JS := connectLaunchLayerJetStream(t, ctx, endpoints[1])
+	defer cpc1Conn.Close()
+	cpc2Conn, cpc2JS := connectLaunchLayerJetStream(t, ctx, endpoints[2])
+	defer cpc2Conn.Close()
+	cscConn, cscJS := connectLaunchLayerJetStream(t, ctx, endpoints[0])
+	defer cscConn.Close()
+
+	// Create through CPC-1.
+	bucketName := testResourceName("LL_OBJ")
+	if _, err := cpc1JS.CreateObjectStore(&nats.ObjectStoreConfig{
+		Bucket: bucketName, Storage: nats.MemoryStorage, Replicas: 1,
+	}); err != nil {
+		t.Fatalf("create Object Store through CPC-1: %v", err)
+	}
+	defer cpc1JS.DeleteObjectStore(bucketName)
+
+	cpc2Store, err := cpc2JS.ObjectStore(bucketName)
+	if err != nil {
+		t.Fatalf("bind Object Store through CPC-2: %v", err)
+	}
+	cscStore, err := cscJS.ObjectStore(bucketName)
+	if err != nil {
+		t.Fatalf("bind Object Store through CSC: %v", err)
+	}
+
+	// Write through CPC-2 and read through CSC.
+	objectName, payload := "cross-cluster", []byte("object-from-cpc-2")
+	if _, err := cpc2Store.PutBytes(objectName, payload); err != nil {
+		t.Fatalf("put object through CPC-2: %v", err)
+	}
+	got, err := cscStore.GetBytes(objectName)
+	if err != nil {
+		t.Fatalf("get object through CSC: %v", err)
+	}
+	if string(got) != string(payload) {
+		t.Fatalf("object payload %q, want %q", got, payload)
+	}
+	if err := cpc2Store.Delete(objectName); err != nil {
+		t.Fatalf("delete object through CPC-2: %v", err)
 	}
 }
 
@@ -193,62 +289,144 @@ func testLaunchLayerJetStream(t *testing.T, source launchLayerEndpoint, streamOw
 	}
 }
 
-func testLaunchLayerJetStreamAPI(t *testing.T, endpoint launchLayerEndpoint, streamOwner launchLayerEndpoint) {
+func testLaunchLayerJetStreamAPI(
+	t *testing.T,
+	creator launchLayerEndpoint,
+	updater launchLayerEndpoint,
+	deleter launchLayerEndpoint,
+	endpoints []launchLayerEndpoint,
+) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 
-	ownerConn := connectLaunchLayer(t, streamOwner)
-	defer ownerConn.Close()
+	creatorConn, creatorJS := connectLaunchLayerJetStream(t, ctx, creator)
+	defer creatorConn.Close()
 
-	ownerJS, err := ownerConn.JetStream(nats.Context(ctx))
-	if err != nil {
-		t.Fatalf("failed to create JetStream context for %s: %v", streamOwner.cluster.name, err)
-	}
-
-	conn := connectLaunchLayer(t, endpoint)
-	defer conn.Close()
-
-	js, err := conn.JetStream(nats.Context(ctx))
-	if err != nil {
-		t.Fatalf("failed to create JetStream context for %s: %v", endpoint.cluster.name, err)
-	}
-
+	// Create through CSC, CPC-1, and CPC-2.
 	token := strings.ReplaceAll(uuid.NewString(), "-", "")
 	streamName := "LL_API_" + token[:12]
-	subject := "launchlayer.jsapi." + token
-	payload := []byte(fmt.Sprintf("jetstream-api-%s-%s", endpoint.cluster.name, token))
-
-	if _, err := ownerJS.AddStream(&nats.StreamConfig{
+	subjectPrefix := "launchlayer.jsapi." + token
+	streamConfig := &nats.StreamConfig{
 		Name:     streamName,
-		Subjects: []string{subject},
+		Subjects: []string{subjectPrefix + ".>"},
 		Storage:  nats.MemoryStorage,
 		Replicas: 1,
-	}, nats.Context(ctx)); err != nil {
-		t.Fatalf("failed to create LaunchLayer stream %s on %s: %v", streamName, streamOwner.cluster.name, err)
 	}
-	defer func() {
-		if err := ownerJS.DeleteStream(streamName); err != nil && !errors.Is(err, nats.ErrStreamNotFound) {
-			t.Logf("failed to delete LaunchLayer stream %s: %v", streamName, err)
+	if _, err := creatorJS.AddStream(streamConfig, nats.Context(ctx)); err != nil {
+		t.Fatalf("create stream through %s: %v", creator.cluster.name, err)
+	}
+
+	// Update through the next cluster.
+	updaterConn, updaterJS := connectLaunchLayerJetStream(t, ctx, updater)
+	defer updaterConn.Close()
+	streamConfig.Description = "updated through " + updater.cluster.name
+	if _, err := updaterJS.UpdateStream(streamConfig, nats.Context(ctx)); err != nil {
+		t.Fatalf("update stream through %s: %v", updater.cluster.name, err)
+	}
+
+	// Inspect through every cluster.
+	for _, endpoint := range endpoints {
+		conn, js := connectLaunchLayerJetStream(t, ctx, endpoint)
+		info, err := js.StreamInfo(streamName, nats.Context(ctx))
+		conn.Close()
+		if err != nil {
+			t.Fatalf("inspect stream through %s: %v", endpoint.cluster.name, err)
 		}
-	}()
+		if info.Config.Description != streamConfig.Description {
+			t.Fatalf("stream description through %s is %q", endpoint.cluster.name, info.Config.Description)
+		}
+	}
 
-	ack, err := js.Publish(subject, payload, nats.Context(ctx))
+	// Publish, fetch, and ACK through every cluster.
+	for _, endpoint := range endpoints {
+		conn, js := connectLaunchLayerJetStream(t, ctx, endpoint)
+		subject := subjectPrefix + "." + strings.ToLower(endpoint.cluster.name)
+		consumer, err := js.PullSubscribe(
+			subject,
+			"C_"+strings.ReplaceAll(endpoint.cluster.name, "-", "_"),
+			nats.BindStream(streamName),
+		)
+		if err != nil {
+			conn.Close()
+			t.Fatalf("create pull consumer through %s: %v", endpoint.cluster.name, err)
+		}
+		if _, err := js.Publish(subject, []byte("from-"+endpoint.cluster.name), nats.Context(ctx)); err != nil {
+			conn.Close()
+			t.Fatalf("publish through %s: %v", endpoint.cluster.name, err)
+		}
+		messages, err := consumer.Fetch(1, nats.Context(ctx))
+		if err != nil {
+			conn.Close()
+			t.Fatalf("fetch through %s: %v", endpoint.cluster.name, err)
+		}
+		if !strings.HasPrefix(messages[0].Reply, "$JS.ACK."+streamName+".") {
+			conn.Close()
+			t.Fatalf("ACK subject %q does not identify stream %s", messages[0].Reply, streamName)
+		}
+		// NATS 2.12 ACK subjects do not include a domain.
+		if err := messages[0].AckSync(nats.Context(ctx)); err != nil {
+			conn.Close()
+			t.Fatalf("ACK through %s: %v", endpoint.cluster.name, err)
+		}
+		conn.Close()
+	}
+
+	// Delete through the remaining cluster.
+	deleterConn, deleterJS := connectLaunchLayerJetStream(t, ctx, deleter)
+	defer deleterConn.Close()
+	if err := deleterJS.DeleteStream(streamName, nats.Context(ctx)); err != nil {
+		t.Fatalf("delete stream through %s: %v", deleter.cluster.name, err)
+	}
+}
+
+func connectLaunchLayerJetStream(
+	t *testing.T,
+	ctx context.Context,
+	endpoint launchLayerEndpoint,
+) (*nats.Conn, nats.JetStreamContext) {
+	t.Helper()
+
+	conn := connectLaunchLayer(t, endpoint)
+	js, err := conn.JetStream(nats.Context(ctx))
 	if err != nil {
-		t.Fatalf("failed to publish LaunchLayer JetStream payload through %s: %v", endpoint.cluster.name, err)
+		conn.Close()
+		t.Fatalf("create JetStream context for %s: %v", endpoint.cluster.name, err)
 	}
-	if ack.Stream != streamName {
-		t.Fatalf("JetStream publish ack stream %q, want %q", ack.Stream, streamName)
-	}
+	return conn, js
+}
 
-	got := waitForStoredLaunchLayerMessage(t, ctx, ownerJS, streamName, subject)
-	if string(got.Data) != string(payload) {
-		t.Fatalf("stored payload %q, want %q", got.Data, payload)
-	}
+func launchLayerTestEndpoints(t *testing.T) []launchLayerEndpoint {
+	t.Helper()
 
-	t.Logf("JetStream API from LaunchLayer on %s stored in %s at sequence %d",
-		endpoint.cluster.name, streamOwner.cluster.name, got.Sequence)
+	clusters := getNATSClusters()
+	csc := findNATSCluster(clusters, "CSC")
+	if csc == nil {
+		t.Fatal("CSC NATS cluster not found")
+	}
+	return []launchLayerEndpoint{
+		launchLayerCSC(t, *csc),
+		launchLayerCPC(t, clusters, "1"),
+		launchLayerCPC(t, clusters, "2"),
+	}
+}
+
+func testResourceName(prefix string) string {
+	token := strings.ReplaceAll(uuid.NewString(), "-", "")
+	return prefix + "_" + token[:12]
+}
+
+func requireKVValue(t *testing.T, bucket nats.KeyValue, key string, want []byte) {
+	t.Helper()
+
+	entry, err := bucket.Get(key)
+	if err != nil {
+		t.Fatalf("get KV key %q: %v", key, err)
+	}
+	if string(entry.Value()) != string(want) {
+		t.Fatalf("KV value %q, want %q", entry.Value(), want)
+	}
 }
 
 func waitForStoredLaunchLayerMessage(

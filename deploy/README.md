@@ -349,8 +349,9 @@ must not use built-in account names (`SYS`, `AUTH`, `AUTHX`, `CSC`, `CPC`) or
 start with `cpc` in any case.
 Extra account properties are passed through on CSC clusters except `enabled`.
 CSC owns extra-account JetStream. CPC clusters render the account as a
-CPC-to-CSC leaf proxy: plain `$JS.API.>` requests are mapped to the CSC
-JetStream domain and sent over the account leaf connection. The chart generates
+CPC-to-CSC leaf proxy. KV and Object Store use `$KV` and `$OBJ` domain API
+subjects outside `$JS.API`, so all three namespaces are mapped separately.
+The chart generates
 `secretKeyRef` env vars for `LEAF_{ACCOUNT}_USER_SEED` on CPC clusters and
 `NKEY_LEAF_{ACCOUNT}_CPC_{id}_PUBKEY` on CSC clusters. Missing secrets fail pod
 startup because the generated refs are not optional.
@@ -361,7 +362,10 @@ define manual NKey permission entries with those names.
 
 ### mTLS MQTT Endpoint
 
-The chart can deploy a separate NATS instance (`nats-mtls`) that accepts MQTT connections authenticated with client certificates (mTLS). This instance has no JetStream of its own; it connects to the main NATS cluster via leaf nodes and forwards auth requests through the shared auth-callout service.
+The chart can deploy a separate NATS instance (`nats-mtls`) that accepts MQTT
+connections authenticated with client certificates. It has no JetStream. It
+connects to the main NATS cluster through leaf nodes and forwards auth requests
+to the shared auth-callout service.
 
 ```yaml
 global:
@@ -458,8 +462,7 @@ External access via Envoy Gateway TCPRoutes/TLSRoutes:
 | `nats:4222` | 4222 | Main NATS clients |
 | `nats:7422` | 7422 | Leaf nodes |
 | `nats:1883` | 1883 | MQTT 3.1.1 |
-| `nats-mtls:4222` | 4222 | mTLS NATS clients |
-| `nats-mtls:1883` | 1883 | mTLS MQTT 3.1.1 |
+| `nats-mtls:1883` | 1883 | MQTT listener used by the mTLS gateway |
 | `surveyor:7777` | 7777 | Prometheus metrics |
 
 ## Monitoring

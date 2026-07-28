@@ -59,7 +59,8 @@ global:
             account: "LaunchLayer"
             permissions:
               pub:
-                allow: ["launchlayer.>", "$JS.API.>"]
+                # NATS authorizes mapped subjects. Raw JS/KV/OBJ are denied.
+                allow: ["launchlayer.>", "$JS.CSC.API.>", "$O.>", "$JS.ACK.>"]
               sub:
                 allow: ["launchlayer.>", "_INBOX.>"]
         noauth:

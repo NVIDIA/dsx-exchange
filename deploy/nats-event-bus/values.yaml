@@ -78,8 +78,8 @@ global:
     #
     # Extra accounts are rendered as native accounts on every cluster where they
     # are enabled. CSC owns extra-account JetStream. CPC clusters add a
-    # CPC-to-CSC leaf connection for the account and map plain $JS.API.>
-    # requests to the CSC JetStream domain.
+    # CPC-to-CSC leaf connection for the account and map $JS.API, $KV, and $OBJ
+    # to the CSC JetStream domain.
     #
     # Every enabled extra account gets its own CPC-to-CSC leaf connection by
     # default. The chart expects leaf secrets to follow the same per-leaf pattern
