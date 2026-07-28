@@ -13,3 +13,9 @@ global:
           mqtt-client:
             identity: "CN=mqtt-client.cpc-1"
             account: "CPC"
+            # MQTT persistence uses the server's internal account client.
+            permissions:
+              pub:
+                allow: ["test.>"]
+              sub:
+                allow: ["test.>"]

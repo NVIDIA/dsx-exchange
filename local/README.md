@@ -116,10 +116,6 @@ For the testing strategy (functional and performance coverage), see
 
 ## Development
 
-### Known Issues
-
-- **TODO: Fix mTLS JetStream with Synadia support** - JetStream API requests (`$JS.API.*`) are not routing through NATS-mTLS leaf nodes. Need to investigate Synadia NATS configuration for enabling JetStream API forwarding through leaf nodes without local JetStream persistence. mTLS tests are currently skipped.
-
 ### MQTT Benchmark Suite
 
 Run standardized MQTT broker benchmarks following the [Open MQTT Benchmark Suite](https://github.com/emqx/mqttbs):

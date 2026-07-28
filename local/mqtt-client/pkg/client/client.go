@@ -15,16 +15,18 @@ import (
 )
 
 type Config struct {
-	Broker      string
-	ClientID    string
-	Username    string
-	Password    string
-	QoS         byte
-	TLS         bool
-	TLSCert     string // Path to client certificate
-	TLSKey      string // Path to client key
-	TLSCA       string // Path to CA certificate
-	TLSInsecure bool   // Skip TLS verification
+	Broker            string
+	ClientID          string
+	Username          string
+	Password          string
+	QoS               byte
+	TLS               bool
+	TLSCert           string // Path to client certificate
+	TLSKey            string // Path to client key
+	TLSCA             string // Path to CA certificate
+	TLSInsecure       bool   // Skip TLS verification
+	PersistentSession bool
+	MessageHandler    mqtt.MessageHandler
 }
 
 type Client struct {
@@ -74,7 +76,8 @@ func New(config Config) (*Client, error) {
 		opts.SetTLSConfig(tlsConfig)
 	}
 
-	opts.SetCleanSession(true)
+	opts.SetCleanSession(!config.PersistentSession)
+	opts.SetDefaultPublishHandler(config.MessageHandler)
 	opts.SetAutoReconnect(false) // Disable auto-reconnect for tests
 	opts.SetConnectRetry(false)  // Disable connect retry for fast failure
 	opts.SetConnectTimeout(5 * time.Second)

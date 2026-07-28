@@ -5,8 +5,10 @@ package functional
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/NVIDIA/dsx-exchange/local/mqtt-client/pkg/client"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 )
 
 // getMTLSBrokerURL returns the mTLS broker URL from environment or default
@@ -42,6 +45,188 @@ func getMTLSCertPaths() (cert, key, ca string) {
 	return fmt.Sprintf("%s/client.pem", certDir),
 		fmt.Sprintf("%s/client-key.pem", certDir),
 		fmt.Sprintf("%s/ca.pem", certDir)
+}
+
+type mtlsEndpoint struct {
+	name    string
+	broker  string
+	certDir string
+}
+
+func getMTLSEndpoints() []mtlsEndpoint {
+	if broker := os.Getenv("MQTT_MTLS_BROKER"); broker != "" {
+		cert, _, _ := getMTLSCertPaths()
+		return []mtlsEndpoint{{name: "configured", broker: broker, certDir: strings.TrimSuffix(cert, "/client.pem")}}
+	}
+	return []mtlsEndpoint{
+		{name: "CSC", broker: "ssl://172.18.200.1:8883", certDir: "../../../nats/certs/csc"},
+		{name: "CPC-1", broker: "ssl://172.18.201.1:8883", certDir: "../../../nats/certs/cpc-1"},
+		{name: "CPC-2", broker: "ssl://172.18.202.1:8883", certDir: "../../../nats/certs/cpc-2"},
+	}
+}
+
+func (endpoint mtlsEndpoint) config(clientID string) client.Config {
+	return client.Config{
+		Broker:   endpoint.broker,
+		ClientID: clientID,
+		TLS:      true,
+		TLSCert:  endpoint.certDir + "/client.pem",
+		TLSKey:   endpoint.certDir + "/client-key.pem",
+		TLSCA:    endpoint.certDir + "/ca.pem",
+	}
+}
+
+func (endpoint mtlsEndpoint) natsBroker() string {
+	return strings.Replace(strings.Replace(endpoint.broker, "ssl://", "nats://", 1), ":8883", ":4222", 1)
+}
+
+func connectMTLSClient(t *testing.T, config client.Config) *client.Client {
+	t.Helper()
+
+	mqttClient, err := client.New(config)
+	if err != nil {
+		t.Fatalf("create mTLS client: %v", err)
+	}
+	if err := mqttClient.Connect(); err != nil {
+		t.Fatalf("connect mTLS client: %v", err)
+	}
+	return mqttClient
+}
+
+func TestRestrictedMTLSMQTTQoS1(t *testing.T) {
+	for _, endpoint := range getMTLSEndpoints() {
+		t.Run(endpoint.name, func(t *testing.T) {
+			topic := "test/mtls/qos1/" + uuid.NewString()
+			received := make(chan mqtt.Message, 1)
+
+			// Verify permitted QoS 1 traffic.
+			subscriber := connectMTLSClient(t, endpoint.config("qos1-sub-"+uuid.NewString()))
+			defer subscriber.Disconnect()
+			if err := subscriber.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
+				received <- message
+			}); err != nil {
+				t.Fatalf("subscribe at QoS 1: %v", err)
+			}
+
+			publisher := connectMTLSClient(t, endpoint.config("qos1-pub-"+uuid.NewString()))
+			defer publisher.Disconnect()
+			payload := []byte("qos1")
+			if err := publisher.Publish(topic, payload, 1, false); err != nil {
+				t.Fatalf("publish at QoS 1: %v", err)
+			}
+
+			message := waitForMQTTMessage(t, received)
+			if message.Qos() != 1 || string(message.Payload()) != string(payload) {
+				t.Fatalf("received QoS %d payload %q", message.Qos(), message.Payload())
+			}
+
+			// Reject subjects outside test.>.
+			forbiddenSubject := "forbidden." + uuid.NewString()
+			observer, err := nats.Connect(endpoint.natsBroker())
+			if err != nil {
+				t.Fatalf("connect permission observer: %v", err)
+			}
+			defer observer.Close()
+			observed, err := observer.SubscribeSync(forbiddenSubject)
+			if err != nil {
+				t.Fatalf("subscribe permission observer: %v", err)
+			}
+			if err := observer.Flush(); err != nil {
+				t.Fatalf("flush permission observer: %v", err)
+			}
+
+			// MQTT 3.1.1 acknowledges QoS 1 publishes even when NATS denies the subject.
+			if err := publisher.Publish(strings.ReplaceAll(forbiddenSubject, ".", "/"), nil, 1, false); err != nil {
+				t.Fatalf("complete denied QoS 1 publish: %v", err)
+			}
+			if _, err := observed.NextMsg(500 * time.Millisecond); !errors.Is(err, nats.ErrTimeout) {
+				t.Fatalf("wait for denied publish: %v", err)
+			}
+			if err := subscriber.Subscribe("forbidden/#", 1, nil); err == nil {
+				t.Fatal("subscription outside the application permission succeeded")
+			}
+		})
+	}
+}
+
+func TestRestrictedMTLSMQTTPersistentSession(t *testing.T) {
+	for _, endpoint := range getMTLSEndpoints() {
+		t.Run(endpoint.name, func(t *testing.T) {
+			clientID := "persistent-" + uuid.NewString()
+			topic := "test/mtls/persistent/" + uuid.NewString()
+			config := endpoint.config(clientID)
+			config.PersistentSession = true
+
+			// Keep the subscription after disconnect.
+			subscriber := connectMTLSClient(t, config)
+			if err := subscriber.Subscribe(topic, 1, nil); err != nil {
+				t.Fatalf("create persistent subscription: %v", err)
+			}
+			subscriber.Disconnect()
+
+			// Queue a message while the subscriber is offline.
+			publisher := connectMTLSClient(t, endpoint.config("persistent-pub-"+uuid.NewString()))
+			if err := publisher.Publish(topic, []byte("stored while offline"), 1, false); err != nil {
+				publisher.Disconnect()
+				t.Fatalf("publish while subscriber is offline: %v", err)
+			}
+			publisher.Disconnect()
+
+			// Resume the session with the same client ID.
+			received := make(chan mqtt.Message, 1)
+			config.MessageHandler = func(_ mqtt.Client, message mqtt.Message) {
+				received <- message
+			}
+			reconnected := connectMTLSClient(t, config)
+			defer reconnected.Disconnect()
+			if message := waitForMQTTMessage(t, received); string(message.Payload()) != "stored while offline" {
+				t.Fatalf("persistent payload %q", message.Payload())
+			}
+		})
+	}
+}
+
+func TestRestrictedMTLSMQTTRetainedMessage(t *testing.T) {
+	for _, endpoint := range getMTLSEndpoints() {
+		t.Run(endpoint.name, func(t *testing.T) {
+			topic := "test/mtls/retained/" + uuid.NewString()
+
+			// Store the retained message.
+			publisher := connectMTLSClient(t, endpoint.config("retained-pub-"+uuid.NewString()))
+			defer publisher.Disconnect()
+			defer publisher.Publish(topic, nil, 1, true)
+			if err := publisher.Publish(topic, []byte("retained"), 1, true); err != nil {
+				t.Fatalf("publish retained message: %v", err)
+			}
+
+			// Deliver it to a new subscriber.
+			received := make(chan mqtt.Message, 1)
+			subscriber := connectMTLSClient(t, endpoint.config("retained-sub-"+uuid.NewString()))
+			defer subscriber.Disconnect()
+			if err := subscriber.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
+				received <- message
+			}); err != nil {
+				t.Fatalf("subscribe to retained message: %v", err)
+			}
+
+			message := waitForMQTTMessage(t, received)
+			if !message.Retained() || string(message.Payload()) != "retained" {
+				t.Fatalf("received retained=%t payload=%q", message.Retained(), message.Payload())
+			}
+		})
+	}
+}
+
+func waitForMQTTMessage(t *testing.T, messages <-chan mqtt.Message) mqtt.Message {
+	t.Helper()
+
+	select {
+	case message := <-messages:
+		return message
+	case <-time.After(15 * time.Second):
+		t.Fatal("timeout waiting for MQTT message")
+		return nil
+	}
 }
 
 func TestMTLSConnection(t *testing.T) {
