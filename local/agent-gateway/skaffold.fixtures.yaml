@@ -1,0 +1,108 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: agent-gateway-fixtures
+requires:
+- path: skaffold.yaml
+  configs:
+  - agent-gateway-images
+- path: skaffold.infra.yaml
+  configs:
+  - agent-gateway-infra
+manifests:
+  hooks:
+    before:
+    - host:
+        command:
+        - local/agent-gateway/prepare-secrets.sh
+  kustomize:
+    paths:
+    - ./secret-generators/demoidp
+    buildArgs:
+    - --load-restrictor=LoadRestrictionsNone
+  rawYaml:
+  - ./manifests/namespaces/shared.yaml
+  - ./manifests/namespaces/csc.yaml
+  - ./manifests/namespaces/cpc-1.yaml
+  - ./manifests/namespaces/cpc-2.yaml
+  - ./manifests/observability-resources.yaml
+  helm:
+    flags:
+      install:
+      - --timeout=5m
+      upgrade:
+      - --timeout=5m
+    releases:
+    - name: demoidp
+      chartPath: ./charts/demoidp
+      namespace: dsx-identity
+      createNamespace: true
+      skipBuildDependencies: true
+      setValueTemplates:
+        image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_demoidp}}'
+        image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_demoidp}}'
+      setValues:
+        image.pullPolicy: IfNotPresent
+    - name: nats
+      chartPath: ../../.cache/helm/nats-2.14.2.tgz
+      namespace: nats
+      createNamespace: true
+      skipBuildDependencies: true
+      setValues:
+        namespaceOverride: nats
+        config.cluster.enabled: false
+        config.jetstream.enabled: false
+        natsBox.enabled: false
+        podDisruptionBudget.enabled: false
+        container.resources.requests.cpu: 50m
+        container.resources.requests.memory: 64Mi
+        container.resources.limits.cpu: 250m
+        container.resources.limits.memory: 256Mi
+    - name: otel-collector
+      chartPath: ../../.cache/helm/opentelemetry-collector-0.164.1.tgz
+      namespace: dsx-obs
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values/values.otel-collector.yaml
+    - name: csc-mcp-backends
+      chartPath: ./charts/test-backends
+      namespace: csc-mcp-backends
+      createNamespace: true
+      skipBuildDependencies: true
+      setValueTemplates:
+        testMcpBackend.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_test_mcp_backend}}'
+        testMcpBackend.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_test_mcp_backend}}'
+      setValues:
+        testMcpBackend.image.pullPolicy: IfNotPresent
+        networkPolicy.gatewayNamespace: csc-dsx-agentgateway
+    - name: cpc-1-mcp-backends
+      chartPath: ./charts/test-backends
+      namespace: cpc-1-mcp-backends
+      createNamespace: true
+      skipBuildDependencies: true
+      setValueTemplates:
+        testMcpBackend.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_test_mcp_backend}}'
+        testMcpBackend.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_test_mcp_backend}}'
+      setValues:
+        testMcpBackend.image.pullPolicy: IfNotPresent
+        networkPolicy.gatewayNamespace: cpc-1-dsx-agentgateway
+    - name: cpc-2-mcp-backends
+      chartPath: ./charts/test-backends
+      namespace: cpc-2-mcp-backends
+      createNamespace: true
+      skipBuildDependencies: true
+      setValueTemplates:
+        testMcpBackend.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_test_mcp_backend}}'
+        testMcpBackend.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_test_mcp_backend}}'
+      setValues:
+        testMcpBackend.image.pullPolicy: IfNotPresent
+        networkPolicy.gatewayNamespace: cpc-2-dsx-agentgateway
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  kubectl: {}

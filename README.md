@@ -1,19 +1,48 @@
 # DSX Exchange
 
-DSX Exchange is a monorepo for DSX event bus schemas, authentication, deployment, and local evaluation tooling.
+DSX Exchange contains the DSX Event Bus and DSX Agent Gateway, including their
+schemas, services, Helm charts, and shared local evaluation environment.
 
 Documentation for DSX Exchange is available at [https://docs.nvidia.com/dsx-exchange](https://docs.nvidia.com/dsx-exchange).
 
 ## Overview
 
-DSX Exchange provides the repository pieces needed to describe, deploy, and validate DSX MQTT event bus integrations:
+The Event Bus provides federated MQTT messaging across DSX control-plane and
+data-plane sites. The DSX Agent Gateway provides one authenticated MCP endpoint
+for direct and remote domain MCP servers. Its bridge uses the Event Bus to
+discover and invoke MCP servers in remote shards.
 
-- `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
-- `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
-- `deploy`: Helm chart for the NATS event bus deployment.
-- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT tests, and benchmark tooling.
+```mermaid
+flowchart LR
+    agent[AI agent] -->|MCP + bearer| gateway[DSX Agent Gateway]
+    gateway --> direct[Domain MCP servers]
+    gateway --> hub[Agent Gateway bridge hub]
+    hub <-->|request/reply| eventbus[DSX Event Bus]
+    eventbus <-->|request/reply| leaf[Agent Gateway bridge leaf]
+    leaf --> shard[Shard DSX Agent Gateway]
+    shard --> remote[Remote domain MCP servers]
+    producers[DSX services and devices] <-->|MQTT| eventbus
+```
 
-The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
+| Path | Purpose |
+|---|---|
+| `schemas/` | AsyncAPI contracts for Event Bus MQTT topics and payloads |
+| `auth-callout/` | NATS authentication and authorization service |
+| `dsx-agentgateway-bridge/` | MCP discovery and request routing across Event Bus sites |
+| `deploy/nats-event-bus/` | Event Bus Helm chart |
+| `deploy/dsx-agent-gateway/` | DSX Agent Gateway Helm chart |
+| `local/` | Shared one-cluster Kind, Skaffold, Zot, CSC, CPC-1, and CPC-2 environment |
+| `tests/agent-gateway/` | Agent Gateway functional and performance validation |
+
+The Event Bus is schema agnostic. AsyncAPI schemas document its external
+contracts, while NATS and the auth callout enforce routing, federation, and
+authorization. The DSX Agent Gateway exposes MCP streamable HTTP at `/mcp`,
+validates configured JWT issuers, derives tenant identity with CEL, and denies
+unauthorized MCP discovery and invocation by default.
+
+See the [Event Bus deployment guide](deploy/README.md), the
+[DSX Agent Gateway chart guide](deploy/dsx-agent-gateway/README.md), and the
+[bridge guide](dsx-agentgateway-bridge/README.md) for component configuration.
 
 ## Requirements
 
@@ -37,7 +66,7 @@ mise install --locked
 make test
 ```
 
-If you already have a DSX Exchange broker and need to build or test an MQTT
+If you already have a DSX Event Bus and need to build or test an MQTT
 integration application, start with the
 [Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
 
@@ -49,36 +78,42 @@ make dummy-bms
 
 ## Usage
 
-Use the top-level Makefile for common validation:
+Use the root Makefile for repository-wide workflows:
 
 ```bash
 make help
+make check       # static validation
 make test
+make local-up
+make test-dev
+make skaffold-dev
+make clean
 ```
 
-Run component-specific targets from the directory you are changing, and use
-`make check` for repo-level license and chart validation:
+Run focused tests while changing one component:
 
 ```bash
 make -C auth-callout test
-make check
+go -C dsx-agentgateway-bridge test ./...
 ```
 
 After the local Kind environment is deployed, run the dummy BMS demo with
 `make dummy-bms`.
 
-The local evaluation environment uses the top-level `auth-callout` and `deploy` directories directly.
+The local environment deploys both products from the root source tree. It uses
+one Kind node and keeps CSC, CPC-1, and CPC-2 as isolated logical-site
+namespaces.
 
 ## Performance
 
-The full local e2e target includes a performance smoke profile sized for
-repeatable Kind validation:
+`make test` includes smoke-sized Event Bus and Agent Gateway performance
+validation suitable for Kind. Run the sustained Agent Gateway benchmark with:
 
 ```bash
-make test
+make perf-benchmark
 ```
 
-Run the full benchmark suite directly:
+Run the Event Bus benchmark directly:
 
 ```bash
 go -C local/mqttbs run ./cmd/mqttbs run basic-suite \
@@ -147,6 +182,8 @@ Use GitHub issues and pull requests for public project discussion, bug reports, 
 
 - [NATS](https://nats.io/)
 - [NATS auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
+- [agentgateway](https://agentgateway.dev/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 - [AsyncAPI](https://www.asyncapi.com/)
 - [CloudEvents MQTT Protocol Binding](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/mqtt-protocol-binding.md)
 

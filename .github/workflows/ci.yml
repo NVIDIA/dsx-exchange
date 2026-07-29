@@ -44,7 +44,7 @@ jobs:
           copyright-holder: "NVIDIA CORPORATION & AFFILIATES. All rights reserved."
           year: "2026"
           paths: "."
-          ignore: ".git/**,**/*.md,**/*.png,**/*.sum,**/tmp/**,**/vendor/**,auth-callout/vault-agent/templates/**,docs/schema-viewer/**,local/infra/local-registry/zot-config.json,LICENSE,THIRD_PARTY_LICENSES*"
+          ignore: ".git/**,**/*.md,**/*.png,**/*.sum,**/Chart.lock,**/tmp/**,**/vendor/**,auth-callout/vault-agent/templates/**,docs/schema-viewer/**,local/infra/local-registry/zot-config.json,LICENSE,THIRD_PARTY_LICENSES*"
           go-version: "1.26.5"
 
   fern-check:
@@ -108,6 +108,25 @@ jobs:
         working-directory: local/mqttbs
         run: go test ./...
 
+  go-lint-agentgateway:
+    name: Go Lint (dsx-agentgateway-bridge)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-lint@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
+        with:
+          working-directory: dsx-agentgateway-bridge
+
+  unit-test-agentgateway:
+    name: Unit Test (dsx-agentgateway-bridge)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/go-test@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
+        with:
+          test-flags: "-v -count=1 -timeout=10m"
+          working-directory: dsx-agentgateway-bridge
+
   third-party-licenses:
     name: Third-Party Licenses
     runs-on: linux-amd64-cpu4
@@ -141,6 +160,21 @@ jobs:
           platforms: linux/amd64
           push: "false"
 
+  docker-build-agentgateway:
+    name: Docker Build (dsx-agentgateway-bridge)
+    runs-on: linux-amd64-cpu4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
+        with:
+          image: dsx-agentgateway-bridge
+          tags: ci-validation
+          context: dsx-agentgateway-bridge
+          dockerfile: dsx-agentgateway-bridge/Dockerfile
+          platforms: linux/amd64
+          push: "false"
+          security-scan-enabled: "true"
+
   codeql-scan:
     name: CodeQL SAST
     runs-on: linux-amd64-cpu4
@@ -158,6 +192,10 @@ jobs:
       - uses: NVIDIA/dsx-github-actions/.github/actions/codeql-scan@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
         with:
           languages: go
+          build-mode: manual
+          build-command: |
+            go -C auth-callout build ./...
+            go -C dsx-agentgateway-bridge build ./...
           upload-sarif: "false"
           post-pr-comment: "true"
 
@@ -227,6 +265,24 @@ jobs:
           helm-version: v4.2.2
           lint: "true"
 
+  helm-validate-dsx-agent-gateway:
+    name: Helm Validate (dsx-agent-gateway)
+    runs-on: linux-amd64-cpu4
+    env:
+      DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          version: 2026.7.7
+          install_args: helm
+      - uses: actions/cache@v4
+        with:
+          path: .cache
+          key: local-dependencies-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('local/scripts/prepare-dependencies.sh', 'local/scripts/cache-*.sh') }}
+      - run: mise exec -- bash local/scripts/prepare-dependencies.sh
+      - run: mise exec -- helm lint deploy/dsx-agent-gateway --namespace csc-dsx-agentgateway --values local/agent-gateway/values/values.local.yaml
+
   e2e-kind:
     name: E2E (Kind)
     needs:
@@ -235,10 +291,14 @@ jobs:
       - unit-test
       - unit-test-local-mqtt
       - unit-test-local-mqttbs
+      - go-lint-agentgateway
+      - unit-test-agentgateway
       - third-party-licenses
       - docker-build
+      - docker-build-agentgateway
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
+      - helm-validate-dsx-agent-gateway
     uses: ./.github/workflows/e2e-kind.yml
 
   slack-notify:
@@ -251,13 +311,17 @@ jobs:
       - unit-test
       - unit-test-local-mqtt
       - unit-test-local-mqttbs
+      - go-lint-agentgateway
+      - unit-test-agentgateway
       - third-party-licenses
       - docker-build
+      - docker-build-agentgateway
       - codeql-scan
       - trufflehog-scan
       - security-container-scan
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
+      - helm-validate-dsx-agent-gateway
       - e2e-kind
     runs-on: linux-amd64-cpu4
     environment: notifications

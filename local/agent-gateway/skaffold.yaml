@@ -1,0 +1,45 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: agent-gateway-images
+build:
+  tagPolicy:
+    inputDigest: {}
+  local:
+    concurrency: 0
+    push: false
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+  - image: dsx-agent-gateway/dsx-agentgateway-bridge
+    context: ../../dsx-agentgateway-bridge
+    docker:
+      dockerfile: Dockerfile
+  - image: dsx-agent-gateway/demoidp
+    context: ./charts/demoidp/demoidp
+    docker:
+      dockerfile: Dockerfile
+  - image: dsx-agent-gateway/test-mcp-backend
+    context: ./charts/test-backends/test-mcp-backend
+    docker:
+      dockerfile: Dockerfile
+profiles:
+- name: agent-gateway-build-mirror
+  activation:
+  - env: SKAFFOLD_BUILD_MIRROR_REGISTRY=.+
+  patches:
+  - op: add
+    path: /build/artifacts/0/docker/buildArgs
+    value:
+      BUILDER_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang:1.26.5-alpine'
+  - op: add
+    path: /build/artifacts/1/docker/buildArgs
+    value:
+      BUILDER_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang:1.26.5-alpine'
+  - op: add
+    path: /build/artifacts/2/docker/buildArgs
+    value:
+      BUILDER_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang:1.26.5-alpine'

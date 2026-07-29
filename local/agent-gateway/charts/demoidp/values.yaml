@@ -1,0 +1,218 @@
+# Copyright 2026 NVIDIA Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: dsx-agent-gateway/demoidp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+issuers:
+  - name: human-oidc
+    replicas: 1
+    port: 5556
+    issuer: http://human-oidc.dsx-identity.svc.cluster.local:5556
+    kid: human-oidc
+    ttlSeconds: 3600
+    podAnnotations: {}
+    podSecurityContext:
+      runAsNonRoot: true
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    clients:
+      - id: dsx-agent-gateway
+        secret: local-secret
+      - id: wrong-audience
+        secret: local-secret
+      # Lets auth tests request an issuer-signed expired JWT.
+      - id: expired-token
+        secret: local-secret
+        audience: dsx-agent-gateway
+        ttlSeconds: -300
+    users:
+      - username: operator@local
+        password: local-operator
+        claims:
+          sub: operator
+          email: operator-renamed@local
+          email_verified: true
+          name: operator
+          preferred_username: operator
+      - username: viewer@local
+        password: local-viewer
+        claims:
+          sub: viewer
+          email: viewer@local
+          email_verified: true
+          name: viewer
+          preferred_username: viewer
+
+  - name: service-oidc
+    replicas: 1
+    port: 5556
+    issuer: http://service-oidc.dsx-identity.svc.cluster.local:5556
+    kid: service-oidc
+    ttlSeconds: 3600
+    podAnnotations: {}
+    podSecurityContext:
+      runAsNonRoot: true
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    clients:
+      - id: service-agent
+        secret: local-secret
+        grantType: client_credentials
+        audiences: [dsx-agent-gateway, fixture-other]
+        claims:
+          sub: service-agent
+      - id: wrong-audience
+        secret: local-secret
+        grantType: client_credentials
+        audiences: [wrong-audience, fixture-other]
+        claims:
+          sub: service-agent
+    users: []
+
+  - name: svid-issuer
+    replicas: 1
+    port: 5556
+    issuer: http://svid-issuer.dsx-identity.svc.cluster.local:5556
+    kid: svid-issuer
+    ttlSeconds: 3600
+    podAnnotations: {}
+    podSecurityContext:
+      runAsNonRoot: true
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    clients:
+      - id: dsx-agent-gateway
+        secret: local-secret
+      - id: wrong-audience
+        secret: local-secret
+      # Lets auth tests request an issuer-signed expired JWT.
+      - id: expired-token
+        secret: local-secret
+        audience: dsx-agent-gateway
+        ttlSeconds: -300
+    users:
+      - username: tenant-a@local
+        password: local-tenant-a
+        claims:
+          sub: spiffe://tenant-a/agent/tenant-a@local
+          email: tenant-a@local
+      - username: tenant-b@local
+        password: local-tenant-b
+        claims:
+          sub: spiffe://tenant-b/agent/tenant-b@local
+          email: tenant-b@local
+      - username: tenant-c@local
+        password: local-tenant-c
+        claims:
+          sub: spiffe://tenant-c/agent/tenant-c@local
+          email: tenant-c@local
+      - username: tenant-test@local
+        password: local-tenant-test
+        claims:
+          sub: spiffe://tenant-test/agent/tenant-test@local
+          email: tenant-test@local
+      - username: tenant-test-b@local
+        password: local-tenant-test-b
+        claims:
+          sub: spiffe://tenant-test-b/agent/tenant-test-b@local
+          email: tenant-test-b@local
+      - username: bad-svid@local
+        password: local-bad-svid
+        claims:
+          sub: tenant-a/agent/bad-svid@local
+          email: bad-svid@local
+
+  - name: svid-wrong-key
+    replicas: 1
+    port: 5556
+    # Claims the configured issuer but signs with a different JWKS.
+    issuer: http://svid-issuer.dsx-identity.svc.cluster.local:5556
+    kid: svid-issuer
+    ttlSeconds: 3600
+    podAnnotations: {}
+    podSecurityContext:
+      runAsNonRoot: true
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    clients:
+      - id: dsx-agent-gateway
+        secret: local-secret
+    users:
+      - username: tenant-a@local
+        password: local-tenant-a
+        claims:
+          sub: spiffe://tenant-a/agent/tenant-a@local
+          email: tenant-a@local
+
+  - name: unconfigured-issuer
+    replicas: 1
+    port: 5556
+    # Signs tokens from an issuer the gateway does not trust.
+    issuer: http://unconfigured-issuer.dsx-identity.svc.cluster.local:5556
+    kid: unconfigured-issuer
+    ttlSeconds: 3600
+    podAnnotations: {}
+    podSecurityContext:
+      runAsNonRoot: true
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    clients:
+      - id: dsx-agent-gateway
+        secret: local-secret
+    users:
+      - username: tenant-a@local
+        password: local-tenant-a
+        claims:
+          sub: spiffe://tenant-a/agent/tenant-a@local
+          email: tenant-a@local

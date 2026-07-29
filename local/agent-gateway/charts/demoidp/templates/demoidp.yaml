@@ -1,0 +1,131 @@
+# Copyright 2026 NVIDIA Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $root := . }}
+{{- $image := .Values.image | default dict }}
+{{- range $idx, $issuer := .Values.issuers }}
+{{- $name := required (printf "issuers[%d].name is required" $idx) $issuer.name }}
+{{- $port := required (printf "issuers[%d].port is required" $idx) $issuer.port }}
+{{- $keySecretName := printf "%s-signing-key" $name }}
+{{- $podAnnotations := $issuer.podAnnotations | default dict }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service }}
+spec:
+  replicas: {{ $issuer.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+      {{- with $podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with $issuer.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: demoidp
+          image: "{{ required "image.repository is required" $image.repository }}:{{ required "image.tag is required" $image.tag }}"
+          imagePullPolicy: {{ $image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: DEMOIDP_CONFIG
+              value: /etc/demoidp/config.json
+            - name: DEMOIDP_LISTEN_ADDR
+              value: ":{{ $port }}"
+            - name: DEMOIDP_SIGNING_KEY
+              value: /etc/demoidp/signing-key/tls.key
+          ports:
+            - name: http
+              containerPort: {{ $port }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          {{- with $issuer.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/demoidp
+              readOnly: true
+            - name: signing-key
+              mountPath: /etc/demoidp/signing-key
+              readOnly: true
+          resources:
+            {{- toYaml ($issuer.resources | default dict) | nindent 12 }}
+      volumes:
+        - name: config
+          secret:
+            secretName: {{ $name }}-config
+        - name: signing-key
+          secret:
+            secretName: {{ $keySecretName }}
+      {{- with $issuer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $issuer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $issuer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $root.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+  ports:
+    - name: http
+      port: {{ $port }}
+      targetPort: http
+{{- if lt (add1 $idx) (len $root.Values.issuers) }}
+---
+{{- end }}
+{{- end }}

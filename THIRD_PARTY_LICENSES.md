@@ -2,9 +2,9 @@ Third-Party Licenses for DSX Exchange Helm Charts
 =================================================
 
 This file lists the third-party Helm chart dependencies bundled with
-DSX Exchange and their respective licenses. Versions correspond to
-those declared in `deploy/nats-event-bus/Chart.yaml`. This file is maintained
-manually. Please update this file when adding or removing dependencies.
+DSX Exchange and their respective licenses. Versions correspond to those
+declared in the charts under `deploy/`. This file is maintained manually.
+Please update this file when adding or removing dependencies.
 
 
 nats v2.12.6
@@ -30,3 +30,15 @@ auth-callout v0.1.1
   Repository: file://../../auth-callout/deploy
   License: Apache-2.0
   Copyright: NVIDIA CORPORATION & AFFILIATES
+
+agentgateway v1.3.1
+  Source: https://github.com/agentgateway/agentgateway
+  Repository: oci://cr.agentgateway.dev/charts
+  License: Apache-2.0
+  Copyright: The agentgateway Authors
+
+valkey v0.9.4
+  Source: https://github.com/valkey-io/valkey-helm
+  Repository: https://valkey-io.github.io/valkey-helm
+  License: BSD-3-Clause
+  Copyright: The Valkey Contributors
