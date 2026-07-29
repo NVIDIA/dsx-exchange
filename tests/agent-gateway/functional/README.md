@@ -29,7 +29,7 @@
 
 ## Running
 
-```
+```bash
 cd tests/agent-gateway/functional && GATEWAY_URL=http://localhost:18180/mcp go test ./...
 ```
 
