@@ -1,6 +1,7 @@
-# DSX Event Bus
+# DSX Exchange Local Development
 
-This repository contains the NATS event bus implementation for the AI Factory DSX platform.
+This directory contains the shared local environment for the DSX Event Bus and
+DSX Agent Gateway.
 
 For architecture details, see [docs/architecture.md](../docs/architecture.md).
 

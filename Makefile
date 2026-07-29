@@ -12,8 +12,6 @@ MISE_EXEC := "$(MISE)" exec --cd "$(ROOT_DIR)" --
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 FUNCTIONAL_E2E_TIMEOUT ?= 3m
 CSC_BROKER_URL ?= tcp://172.18.200.1:1883
-GO_MODULE_DIRS := auth-callout local/mqtt-client local/mqttbs dsx-agentgateway-bridge local/agent-gateway/charts/demoidp/demoidp local/agent-gateway/charts/test-backends/test-mcp-backend tests/agent-gateway/functional
-
 .PHONY: add-license-headers check clean dummy-bms e2e help local-up perf-benchmark skaffold-dev test test-dev third-party-licenses
 
 add-license-headers: ## Add SPDX license headers across repository sources
@@ -22,7 +20,7 @@ add-license-headers: ## Add SPDX license headers across repository sources
 check: ## Run static validation checks
 	$(MISE_EXEC) bash local/scripts/prepare-dependencies.sh
 	$(MISE_EXEC) bash scripts/license.sh check
-	$(MISE_EXEC) env GO_MODULE_DIRS="$(GO_MODULE_DIRS)" bash scripts/third-party-licenses.sh check
+	$(MISE_EXEC) bash scripts/third-party-licenses.sh check
 	$(MISE_EXEC) bash scripts/check-chart-metadata.sh
 	$(MISE_EXEC) helm lint auth-callout/deploy
 	$(MISE_EXEC) helm template nats-event-bus deploy/nats-event-bus >/dev/null
@@ -57,7 +55,7 @@ skaffold-dev: ## Run Skaffold dev for the complete local stack
 	$(MAKE) -C "$(ROOT_DIR)/local" skaffold-dev
 
 third-party-licenses: ## Regenerate third-party license inventories
-	$(MISE_EXEC) env GO_MODULE_DIRS="$(GO_MODULE_DIRS)" bash scripts/third-party-licenses.sh fix
+	$(MISE_EXEC) bash scripts/third-party-licenses.sh fix
 
 perf-benchmark: ## Run Agent Gateway e2e with the sustained k6 benchmark profile
 	$(MISE_EXEC) env RUN_PERF_BENCHMARK=1 bash tests/agent-gateway/run.sh

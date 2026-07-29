@@ -1,7 +1,5 @@
 github.com/MicahParks/jwkset,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/MicahParks/jwkset/LICENSE,Apache-2.0
 github.com/MicahParks/keyfunc/v3,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/MicahParks/keyfunc/v3/LICENSE,Apache-2.0
-github.com/NVIDIA/dsx-exchange/local/agent-gateway/charts/demoidp/demoidp,Unknown,Unknown
-github.com/NVIDIA/dsx-exchange/local/agent-gateway/charts/test-backends/test-mcp-backend,Unknown,Unknown
 github.com/VictoriaMetrics/metrics,https://github.com/VictoriaMetrics/metrics/blob/v1.40.2/LICENSE,MIT
 github.com/beorn7/perks/quantile,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/beorn7/perks/LICENSE,MIT
 github.com/cenkalti/backoff/v5,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/cenkalti/backoff/v5/LICENSE,MIT
@@ -156,7 +154,7 @@ go.yaml.in/yaml/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout
 go.yaml.in/yaml/v3,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/go.yaml.in/yaml/v3/LICENSE,MIT
 golang.org/x/crypto,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/crypto/LICENSE,BSD-3-Clause
 golang.org/x/net,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/net/LICENSE,BSD-3-Clause
-golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/v0.33.0:LICENSE,BSD-3-Clause
+golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/v0.36.0:LICENSE,BSD-3-Clause
 golang.org/x/sync/semaphore,https://cs.opensource.google/go/x/sync/+/v0.17.0:LICENSE,BSD-3-Clause
 golang.org/x/sync/singleflight,https://cs.opensource.google/go/x/sync/+/v0.21.0:LICENSE,BSD-3-Clause
 golang.org/x/sys,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/sys/LICENSE,BSD-3-Clause

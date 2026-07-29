@@ -60,7 +60,7 @@ for module_dir in "${module_dirs[@]}"; do
     GOROOT="${module_goroot}" GOOS=linux GOARCH=amd64 GOFLAGS="${go_flags}" \
       go-licenses report ./...
   ) 2>>"${warnings}" |
-    awk -F, -v module="${module_path}/" 'index($1, module) != 1' >>"${raw}"; then
+    awk -F, -v module="${module_path}" '$1 != module && index($1, module "/") != 1' >>"${raw}"; then
     cat "${warnings}" >&2
     exit 1
   fi
