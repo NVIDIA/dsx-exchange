@@ -10,7 +10,7 @@ issuers:
   - name: human-oidc
     replicas: 1
     port: 5556
-    issuer: http://human-oidc.dsx-identity.svc.cluster.local:5556
+    issuer: http://human-oidc.agent-gateway-fixtures.svc.cluster.local:5556
     kid: human-oidc
     ttlSeconds: 3600
     podAnnotations: {}
@@ -56,7 +56,7 @@ issuers:
   - name: service-oidc
     replicas: 1
     port: 5556
-    issuer: http://service-oidc.dsx-identity.svc.cluster.local:5556
+    issuer: http://service-oidc.agent-gateway-fixtures.svc.cluster.local:5556
     kid: service-oidc
     ttlSeconds: 3600
     podAnnotations: {}
@@ -89,7 +89,7 @@ issuers:
   - name: svid-issuer
     replicas: 1
     port: 5556
-    issuer: http://svid-issuer.dsx-identity.svc.cluster.local:5556
+    issuer: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556
     kid: svid-issuer
     ttlSeconds: 3600
     podAnnotations: {}
@@ -150,7 +150,7 @@ issuers:
     replicas: 1
     port: 5556
     # Claims the configured issuer but signs with a different JWKS.
-    issuer: http://svid-issuer.dsx-identity.svc.cluster.local:5556
+    issuer: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556
     kid: svid-issuer
     ttlSeconds: 3600
     podAnnotations: {}
@@ -179,7 +179,7 @@ issuers:
     replicas: 1
     port: 5556
     # Signs tokens from an issuer the gateway does not trust.
-    issuer: http://unconfigured-issuer.dsx-identity.svc.cluster.local:5556
+    issuer: http://unconfigured-issuer.agent-gateway-fixtures.svc.cluster.local:5556
     kid: unconfigured-issuer
     ttlSeconds: 3600
     podAnnotations: {}

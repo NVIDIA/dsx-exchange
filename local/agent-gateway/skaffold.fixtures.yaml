@@ -38,7 +38,7 @@ manifests:
     releases:
     - name: demoidp
       chartPath: ./charts/demoidp
-      namespace: dsx-identity
+      namespace: agent-gateway-fixtures
       createNamespace: true
       skipBuildDependencies: true
       setValueTemplates:

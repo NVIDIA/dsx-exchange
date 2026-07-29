@@ -794,7 +794,7 @@ func requireStructuredErrorSignal(t *testing.T, resp runner.RawResponse) {
 		".svc.cluster.local",
 		"csc-mcp-backends",
 		"csc-dsx-agentgateway",
-		"dsx-identity",
+		"agent-gateway-fixtures",
 	} {
 		if strings.Contains(lower, leak) {
 			t.Fatalf("malformed MCP response leaked internal identifier %q (status %d body: %s)", leak, resp.Status, resp.Body)

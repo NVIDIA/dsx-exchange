@@ -139,9 +139,9 @@ func TestErrorEnvelopeDeny(t *testing.T) {
 	leaks := []string{
 		"mcp-backend-a.csc-mcp-backends.svc.cluster.local",
 		"mcp-backend-b.csc-mcp-backends.svc.cluster.local",
-		"human-oidc.dsx-identity.svc.cluster.local",
-		"service-oidc.dsx-identity.svc.cluster.local",
-		"svid-issuer.dsx-identity.svc.cluster.local",
+		"human-oidc.agent-gateway-fixtures.svc.cluster.local",
+		"service-oidc.agent-gateway-fixtures.svc.cluster.local",
+		"svid-issuer.agent-gateway-fixtures.svc.cluster.local",
 	}
 	combinedLower := strings.ToLower(string(combined))
 	for _, leak := range leaks {

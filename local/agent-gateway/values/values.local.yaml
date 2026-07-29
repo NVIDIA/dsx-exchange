@@ -40,19 +40,19 @@ auth:
   jwt:
     providers:
       human:
-        issuer: http://human-oidc.dsx-identity.svc.cluster.local:5556
+        issuer: http://human-oidc.agent-gateway-fixtures.svc.cluster.local:5556
         audiences: [dsx-agent-gateway]
-        jwksUrl: http://human-oidc.dsx-identity.svc.cluster.local:5556/jwks.json
+        jwksUrl: http://human-oidc.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
         tenantIdExpression: '"oidc:" + jwt.sub'
       service:
-        issuer: http://service-oidc.dsx-identity.svc.cluster.local:5556
+        issuer: http://service-oidc.agent-gateway-fixtures.svc.cluster.local:5556
         audiences: [dsx-agent-gateway]
-        jwksUrl: http://service-oidc.dsx-identity.svc.cluster.local:5556/jwks.json
+        jwksUrl: http://service-oidc.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
         tenantIdExpression: '"service:" + jwt.sub'
       svid:
-        issuer: http://svid-issuer.dsx-identity.svc.cluster.local:5556
+        issuer: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556
         audiences: [dsx-agent-gateway]
-        jwksUrl: http://svid-issuer.dsx-identity.svc.cluster.local:5556/jwks.json
+        jwksUrl: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
         tenantIdExpression: 'jwt.sub.startsWith("spiffe://") && size(jwt.sub.split("/")) > 3 ? jwt.sub.split("/")[2] : ""'
   cel:
     operatorTenantId: oidc:operator
