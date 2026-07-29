@@ -10,7 +10,9 @@ Everything that must be in place before deploying the DSX Event Bus. This covers
 
 ## Host Prerequisites
 
-A multi-cluster deployment (CSC + CPCs) creates enough kubelets, containerd shims, gateway controllers, and fsnotify watchers to exhaust default Linux inotify limits. Symptoms include `too many open files` from `kubectl logs -f`, silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
+The local stack can create enough fsnotify watchers to exhaust default Linux
+inotify limits. Symptoms include `too many open files` from `kubectl logs -f`,
+silent fsnotify watcher failures, and sporadic `kubectl exec` errors.
 
 Verify these sysctl parameters on each node before creating clusters:
 

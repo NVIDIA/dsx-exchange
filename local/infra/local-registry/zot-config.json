@@ -1,0 +1,77 @@
+{
+  "distSpecVersion": "1.1.1",
+  "storage": {
+    "rootDirectory": "/var/lib/registry",
+    "gc": true,
+    "dedupe": true
+  },
+  "http": {
+    "address": "0.0.0.0",
+    "port": "5000",
+    "compat": ["docker2s2"]
+  },
+  "log": {
+    "level": "info"
+  },
+  "extensions": {
+    "sync": {
+      "enable": true,
+      "registries": [
+        {
+          "urls": ["https://registry-1.docker.io"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/docker.io"}]
+        },
+        {
+          "urls": ["https://gcr.io"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/gcr.io"}]
+        },
+        {
+          "urls": ["https://ghcr.io"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/ghcr.io"}]
+        },
+        {
+          "urls": ["https://quay.io"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/quay.io"}]
+        },
+        {
+          "urls": ["https://registry.k8s.io"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/registry.k8s.io"}]
+        },
+        {
+          "urls": ["https://cr.agentgateway.dev"],
+          "onDemand": true,
+          "tlsVerify": true,
+          "maxRetries": 2,
+          "retryDelay": "2s",
+          "preserveDigest": true,
+          "content": [{"prefix": "**", "destination": "/cr.agentgateway.dev"}]
+        }
+      ]
+    }
+  }
+}

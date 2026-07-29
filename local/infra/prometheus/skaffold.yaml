@@ -4,39 +4,40 @@
 apiVersion: skaffold/v4beta14
 kind: Config
 metadata:
-  name: prometheus-csc
-.prometheusHelm: &prometheus_helm
-  releases:
+  name: prometheus-operator-crds
+manifests:
+  helm:
+    releases:
+    - name: prometheus-operator-crds
+      chartPath: ../../../.cache/helm/prometheus-operator-crds-30.0.1.tgz
+      namespace: monitoring
+      skipBuildDependencies: true
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+      - --server-side
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: prometheus
+requires:
+- configs:
+  - prometheus-operator-crds
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  helm:
+    releases:
     - name: prometheus
-      remoteChart: kube-prometheus-stack
-      repo: https://prometheus-community.github.io/helm-charts
-      version: 86.1.0
+      chartPath: ../../../.cache/helm/kube-prometheus-stack-86.1.0.tgz
       namespace: monitoring
       createNamespace: true
+      skipBuildDependencies: true
       valuesFiles:
-        - values.yaml
-deploy:
-  kubeContext: kind-csc
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  helm: *prometheus_helm
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: prometheus-cpc-1
-deploy:
-  kubeContext: kind-cpc-1
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  helm: *prometheus_helm
----
-apiVersion: skaffold/v4beta14
-kind: Config
-metadata:
-  name: prometheus-cpc-2
-deploy:
-  kubeContext: kind-cpc-2
-  statusCheck: true
-  statusCheckDeadlineSeconds: 600
-  helm: *prometheus_helm
+      - ../prometheus/values.yaml
+      setValues:
+        crds.enabled: false

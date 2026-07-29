@@ -3,6 +3,13 @@
 
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 reviews:
+  path_instructions:
+    - path: "**/*.md"
+      instructions: |
+        Markdown files intentionally do not use SPDX license headers.
+    - path: "local/infra/local-registry/zot-config.json"
+      instructions: |
+        JSON cannot carry comments; this file is explicitly excluded from license-header checks.
   auto_review:
     enabled: true
     drafts: true

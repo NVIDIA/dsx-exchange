@@ -8,9 +8,10 @@ metadata:
 manifests:
   kustomize:
     paths:
-      - operator
+    - ../keycloak/operator
+    buildArgs:
+    - --load-restrictor=LoadRestrictionsNone
 deploy:
-  kubeContext: kind-csc
   statusCheck: true
   statusCheckDeadlineSeconds: 300
   kubectl: {}
@@ -20,18 +21,17 @@ kind: Config
 metadata:
   name: keycloak
 requires:
-  - configs:
-      - keycloak-operator
-  - path: ../envoy-gateway/skaffold.yaml
-    configs:
-      - envoy-gateway-config-csc
+- configs:
+  - keycloak-operator
+- path: ../sites/skaffold.yaml
+  configs:
+  - sites
 manifests:
   rawYaml:
-    - realm-import.yaml
-    - keycloak.yaml
-    - httproute.yaml
+  - ../keycloak/realm-import.yaml
+  - ../keycloak/keycloak.yaml
+  - ../keycloak/httproute.yaml
 deploy:
-  kubeContext: kind-csc
   statusCheck: true
   statusCheckDeadlineSeconds: 600
   kubectl: {}

@@ -18,9 +18,10 @@ The event bus itself is schema agnostic. Schemas document externally visible con
 ## Requirements
 
 - OS: Linux or macOS with Docker support.
-- Tools: `go`, `make`, `helm`, `kubectl`, `kind`, `docker`, `jq`, `yq`, `cfssl`, `nsc`, `addlicense`.
-- Kubernetes: local Kind clusters for e2e testing.
-- Runtime: Go modules declare their own supported Go versions.
+- Tools: `mise`, `make`, and Docker. Mise installs the remaining tools from the
+  locked root toolchain.
+- Kubernetes: a local Kind cluster for e2e testing.
+- Runtime: Go modules use the Go version pinned in `mise.toml`.
 
 GPU drivers are not required.
 
@@ -32,7 +33,7 @@ validation checks:
 ```bash
 git clone https://github.com/NVIDIA/dsx-exchange.git
 cd dsx-exchange
-make install-e2e-prereqs
+mise install --locked
 make test
 ```
 
@@ -77,12 +78,14 @@ repeatable Kind validation:
 make test
 ```
 
-Full benchmark runs are available separately:
+Run the full benchmark suite directly:
 
 ```bash
-make -C local benchmark
-make -C local benchmark-full
+go -C local/mqttbs run ./cmd/mqttbs run basic-suite \
+  --broker tcp://172.18.200.1:1883
 ```
+
+See [local/mqttbs/README.md](local/mqttbs/README.md) for smoke-sized options.
 
 ## Releases & Roadmap
 
@@ -113,6 +116,7 @@ Development quickstart:
 ```bash
 git clone https://github.com/NVIDIA/dsx-exchange.git
 cd dsx-exchange
+mise install --locked
 make test
 ```
 

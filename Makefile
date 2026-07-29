@@ -1,45 +1,59 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-.PHONY: add-license-headers check check-license-headers clean-e2e dummy-bms help install-e2e-prereqs skaffold-dev test test-dev third-party-licenses
+SHELL := /bin/bash
+.SHELLFLAGS := -euo pipefail -c
+
+ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+MISE ?= mise
+export MISE_LOCKED := 1
+MISE_EXEC := "$(MISE)" exec --cd "$(ROOT_DIR)" --
+
+PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
+FUNCTIONAL_E2E_TIMEOUT ?= 3m
+CSC_BROKER_URL ?= tcp://172.18.200.1:1883
+
+.PHONY: add-license-headers check clean dummy-bms e2e help local-up skaffold-dev test test-dev third-party-licenses
 
 add-license-headers: ## Add SPDX license headers across repository sources
-	bash scripts/license.sh fix
-
-check-license-headers: ## Verify SPDX license headers across repository sources
-	bash scripts/license.sh check
+	$(MISE_EXEC) bash scripts/license.sh fix
 
 check: ## Run static validation checks
-	bash scripts/license.sh check
-	helm lint auth-callout/deploy
-	helm template --dependency-update --repository-config local/helm/repositories.yaml nats-event-bus deploy/nats-event-bus >/dev/null
-	helm lint deploy/nats-event-bus
+	$(MISE_EXEC) bash local/scripts/prepare-dependencies.sh
+	$(MISE_EXEC) bash scripts/license.sh check
+	$(MISE_EXEC) env GO_MODULE_DIRS="auth-callout local/mqtt-client local/mqttbs" bash scripts/third-party-licenses.sh check
+	$(MISE_EXEC) helm lint auth-callout/deploy
+	$(MISE_EXEC) helm template nats-event-bus deploy/nats-event-bus >/dev/null
+	$(MISE_EXEC) helm lint deploy/nats-event-bus
 
-clean-e2e: ## Delete local Kind clusters and generated e2e artifacts
-	$(MAKE) -C local clean
+clean: ## Delete the local Kind cluster and generated secrets
+	$(MAKE) -C "$(ROOT_DIR)/local" clean
+
+local-up: ## Deploy the available components to the local Kind cluster
+	$(MAKE) -C "$(ROOT_DIR)/local" skaffold-run
+
+e2e: local-up ## Deploy the local stack and run live validation
+	$(MAKE) test-dev
+
+test: check ## Run the full validation suite
+	$(MISE_EXEC) $(MAKE) -C "$(ROOT_DIR)/auth-callout" test
+	$(MISE_EXEC) go -C auth-callout/tests test -short ./...
+	$(MISE_EXEC) go -C local/mqtt-client test ./pkg/... ./internal/... ./cmd/...
+	$(MISE_EXEC) go -C local/mqttbs test ./...
+	$(MAKE) e2e
+
+test-dev: ## Run live validation against an existing local stack
+	$(MISE_EXEC) go -C local/mqtt-client test -count=1 -v ./tests/functional/ -timeout $(FUNCTIONAL_E2E_TIMEOUT)
+	$(MISE_EXEC) env $(PERFORMANCE_E2E_ENV) go -C local/mqtt-client test -count=1 -v ./tests/performance/ -timeout 10m
+
+skaffold-dev: ## Run Skaffold dev for the complete local stack
+	$(MAKE) -C "$(ROOT_DIR)/local" skaffold-dev
+
+third-party-licenses: ## Regenerate third-party license inventories
+	$(MISE_EXEC) env GO_MODULE_DIRS="auth-callout local/mqtt-client local/mqttbs" bash scripts/third-party-licenses.sh fix
 
 dummy-bms: ## Publish looping dummy BMS data to the local CSC MQTT broker
-	$(MAKE) -C local dummy-bms
+	$(MISE_EXEC) go -C local/mqtt-client run ./cmd/dummy-bms --broker "$(CSC_BROKER_URL)" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml
 
-install-e2e-prereqs: ## Install tools required by local Kind e2e workflows
-	$(MAKE) -C local install-e2e-prereqs
-
-test: ## Run the full validation suite
-	$(MAKE) check
-	$(MAKE) -C auth-callout test
-	cd auth-callout/tests && go test -short ./...
-	cd local/mqtt-client && go test ./pkg/... ./internal/... ./cmd/...
-	cd local/mqttbs && go test ./...
-	$(MAKE) -C local test
-
-test-dev: ## Run local e2e tests against an already running local stack
-	$(MAKE) -C local test-dev
-
-skaffold-dev: ## Run Skaffold dev for the complete local dev stack
-	$(MAKE) -C local skaffold-dev
-
-third-party-licenses: ## Regenerate third-party license inventory
-	$(MAKE) -C auth-callout third-party-licenses
-
-help: ## Show this help message
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-28s %s\n", $$1, $$2}'
+help: ## Show available repository targets
+	@grep -E '^[a-zA-Z0-9_.-]+:.*?## .*$$' "$(ROOT_DIR)/Makefile" | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-28s %s\n", $$1, $$2}'

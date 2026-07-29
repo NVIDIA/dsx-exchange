@@ -1,0 +1,17 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cpc-2-gateway
+resources:
+  - namespace.yaml
+  - ../../gateway-base
+patches:
+  - target:
+      kind: EnvoyProxy
+      name: shared-gateway
+    patch: |-
+      - op: replace
+        path: /spec/provider/kubernetes/envoyService/annotations/metallb.universe.tf~1address-pool
+        value: cpc-2-envoy-pool

@@ -45,7 +45,7 @@ Follow existing conventions in the directory you are changing.
 Useful checks:
 
 ```bash
-make check-license-headers
+make check
 make add-license-headers
 
 cd auth-callout && go test ./...

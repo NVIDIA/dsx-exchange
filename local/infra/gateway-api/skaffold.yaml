@@ -1,0 +1,17 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: gateway-api-crds
+manifests:
+  rawYaml:
+  - ../../../.cache/manifests/gateway-api-experimental-v1.5.1.yaml
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    flags:
+      apply:
+      - --server-side
