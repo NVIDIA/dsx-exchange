@@ -303,11 +303,7 @@ func requiredReloadableConfigValue(name, fileName, value, path string) (string, 
 		if err != nil {
 			return "", err
 		}
-		fileValue := string(b)
-		if fileValue != strings.TrimSpace(fileValue) {
-			return "", fmt.Errorf("%s %s has surrounding whitespace", fileName, path)
-		}
-		return fileValue, nil
+		return string(b), nil
 	}
 	if value == "" {
 		return "", fmt.Errorf("%s=%s requires %s or %s", EnvNATSAuthMode, NATSAuthModeOAuth, name, fileName)

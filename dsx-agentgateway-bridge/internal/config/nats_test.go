@@ -257,41 +257,6 @@ func TestNATSConfigRejectsUnreadableOAuthClientFile(t *testing.T) {
 	}
 }
 
-func TestNATSConfigRejectsWhitespaceInOAuthClientFiles(t *testing.T) {
-	tests := []struct {
-		name string
-		set  func(t *testing.T)
-	}{
-		{
-			name: "client ID",
-			set: func(t *testing.T) {
-				t.Setenv(EnvNATSOAuthClientIDFile, writeTextFile(t, "client-id", " bridge-client"))
-				t.Setenv(EnvNATSOAuthClientSecret, "bridge-secret")
-			},
-		},
-		{
-			name: "client secret",
-			set: func(t *testing.T) {
-				t.Setenv(EnvNATSOAuthClientID, "bridge-client")
-				t.Setenv(EnvNATSOAuthClientSecretFile, writeTextFile(t, "client-secret", "bridge-secret\n"))
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			clearNATSEnv(t)
-			t.Setenv(EnvNATSAuthMode, string(NATSAuthModeOAuth))
-			t.Setenv(EnvNATSOAuthIssuer, "https://issuer.example.test")
-			t.Setenv(EnvNATSOAuthScope, "nats:bridge")
-			tt.set(t)
-
-			if _, err := natsOptionsFromEnv(t, "test-client"); err == nil {
-				t.Fatalf("NATSOptions accepted whitespace in OAuth %s file", tt.name)
-			}
-		})
-	}
-}
-
 func TestNATSConfigEnablesTLSWhenConfigured(t *testing.T) {
 	setNoAuth(t)
 	t.Setenv(EnvNATSTLSEnabled, "true")
