@@ -26,6 +26,7 @@ deploy:
       createNamespace: true
       skipBuildDependencies: true
       valuesFiles:
+      - ./values/values.local-common.yaml
       - ./values/values.local.yaml
       - ./values/values.local-static.yaml
       setValueTemplates:
@@ -39,6 +40,7 @@ deploy:
       createNamespace: true
       skipBuildDependencies: true
       valuesFiles:
+      - ./values/values.local-common.yaml
       - ./values/values.local-leaf.yaml
       setValueTemplates:
         bridge.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_dsx_agentgateway_bridge}}'
@@ -51,6 +53,7 @@ deploy:
       createNamespace: true
       skipBuildDependencies: true
       valuesFiles:
+      - ./values/values.local-common.yaml
       - ./values/values.local-leaf.yaml
       - ./values/values.local-leaf-cpc-2.yaml
       setValueTemplates:

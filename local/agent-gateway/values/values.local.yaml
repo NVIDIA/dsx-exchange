@@ -14,50 +14,10 @@ gateway:
     type: NodePort
     nodePort: 30180
 
-rateLimit:
-  tenantOverrides:
-    - tenant: oidc:operator
-      unlimited: true
-    - tenant: tenant-test
-      unlimited: true
-    - tenant: tenant-test-b
-      unlimited: true
-
 bridge:
-  enabled: true
   role: hub
   http:
     writeTimeout: 5s
-  nats:
-    endpoint:
-      serviceName: nats
-      namespace: nats
-      port: 4222
-    auth:
-      mode: noauth
-
-auth:
-  jwt:
-    providers:
-      human:
-        issuer: http://human-oidc.agent-gateway-fixtures.svc.cluster.local:5556
-        audiences: [dsx-agent-gateway]
-        jwksUrl: http://human-oidc.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
-        tenantIdExpression: '"oidc:" + jwt.sub'
-      service:
-        issuer: http://service-oidc.agent-gateway-fixtures.svc.cluster.local:5556
-        audiences: [dsx-agent-gateway]
-        jwksUrl: http://service-oidc.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
-        tenantIdExpression: '"service:" + jwt.sub'
-      svid:
-        issuer: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556
-        audiences: [dsx-agent-gateway]
-        jwksUrl: http://svid-issuer.agent-gateway-fixtures.svc.cluster.local:5556/jwks.json
-        tenantIdExpression: 'jwt.sub.startsWith("spiffe://") && size(jwt.sub.split("/")) > 3 ? jwt.sub.split("/")[2] : ""'
-  cel:
-    operatorTenantId: oidc:operator
-    unprivilegedTenantMCPs:
-      - mcp-backend-a-mcp
 
 upstreams:
   backend-a:

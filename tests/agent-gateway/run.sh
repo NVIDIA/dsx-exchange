@@ -2,8 +2,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# run.sh — runs functional tests against the gateway NodePort, drives k6
-# perf, and regenerates tests/agent-gateway/artifacts/results.md.
+# run.sh — runs functional tests against the gateway NodePort and drives k6.
 # Expects the local stack has already been deployed.
 set -Eeuo pipefail
 
@@ -12,8 +11,6 @@ cd "$REPO_ROOT"
 
 ARTIFACTS="tests/agent-gateway/artifacts"
 LIB="tests/agent-gateway/lib"
-PHASE_TIMINGS_FILE="$ARTIFACTS/phase-timings.tsv"
-PHASE_TIMINGS_RUN_ID_FILE="$ARTIFACTS/phase-timings.run-id"
 SVC_NS="csc-dsx-agentgateway"
 DEFAULT_KUBE_CONTEXT="kind-dsx-exchange"
 export KUBE_CONTEXT="${KUBE_CONTEXT:-$DEFAULT_KUBE_CONTEXT}"
@@ -32,27 +29,7 @@ DESTRUCTIVE_TEST_PREFIX="TestDestructive"
 # Functional tests should stay quick; destructive tests serialize cluster mutations.
 E2E_FUNCTIONAL_TIMEOUT="${E2E_FUNCTIONAL_TIMEOUT:-15m}"
 E2E_DESTRUCTIVE_TIMEOUT="${E2E_DESTRUCTIVE_TIMEOUT:-45m}"
-RUN_PERF_PROFILE_EFFECTIVE="${RUN_PERF_PROFILE:-}"
-if [[ -z "$RUN_PERF_PROFILE_EFFECTIVE" ]]; then
-  if [[ "${RUN_PERF_BENCHMARK:-0}" == "1" ]]; then
-    RUN_PERF_PROFILE_EFFECTIVE="benchmark"
-  else
-    RUN_PERF_PROFILE_EFFECTIVE="smoke"
-  fi
-fi
-
 log() { printf '\n==> %s\n' "$*"; }
-
-# shellcheck disable=SC1091
-source "$LIB/phase-timing.sh"
-
-PHASE_TIMINGS_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-printf '%s\n' "$PHASE_TIMINGS_RUN_ID" > "$PHASE_TIMINGS_RUN_ID_FILE"
-export PHASE_TIMINGS_RUN_ID
-phase_timing_init "agent-gateway-e2e" append
-
-phase_timing_prune_script_rows "agent-gateway-e2e"
-trap phase_err_trap ERR
 
 heartbeat_pid=""
 start_heartbeat() {
@@ -95,11 +72,6 @@ run_functional_phase() {
 
 finish() {
   local rc=$?
-  if (( rc == 0 )); then
-    phase_timing_finish OK || true
-  else
-    phase_timing_finish FAIL || true
-  fi
   stop_heartbeat
   trap - EXIT
   exit "$rc"
@@ -110,7 +82,6 @@ trap finish EXIT
 # dataplane and leaves stack ownership with Skaffold-managed manifests.
 
 log "Wait for gateway dataplane to become routable at $GATEWAY_URL"
-phase_start "e2e: wait for gateway dataplane"
 deadline=$(( $(date +%s) + 120 ))
 while :; do
   code="$(curl -s -o /dev/null -m 2 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' --data '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{}}' "$GATEWAY_URL" 2>/dev/null || true)"
@@ -122,10 +93,8 @@ while :; do
   sleep 1
 done
 echo "  gateway routable (last code: $code)"
-phase_end "e2e: wait for gateway dataplane"
 
 log "Reset rate-limit counters"
-phase_start "e2e: reset rate-limit counters"
 if kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" get statefulset "$VALKEY_STS" >/dev/null 2>&1; then
   valkey_time() {
     kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" exec "$VALKEY_STS-0" -c "$VALKEY_STS" -- valkey-cli TIME | sed -n '1p'
@@ -147,10 +116,8 @@ if kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" get statefulset "$VALKEY_STS" 
 else
   echo "  Valkey StatefulSet absent; no RLS counters to reset"
 fi
-phase_end "e2e: reset rate-limit counters"
 
 log "Functional suite (Go) against $GATEWAY_URL"
-phase_start "e2e: functional suite"
 SUITE_JSON="$ARTIFACTS/functional-test.json"
 SUITE_RC=0
 : > "$SUITE_JSON"
@@ -162,23 +129,12 @@ DESTRUCTIVE_STDERR="$ARTIFACTS/functional-test.destructive.stderr"
 # current cluster state, not last-run's PASS replay.
 run_functional_phase "functional suite" "functional" "$E2E_GO_PARALLEL" "$FUNCTIONAL_JSON" "$FUNCTIONAL_STDERR" || SUITE_RC=$?
 cat "$FUNCTIONAL_JSON" >> "$SUITE_JSON"
-if (( SUITE_RC != 0 )); then
-  phase_end "e2e: functional suite" "FAIL"
-else
-  phase_end "e2e: functional suite"
-fi
 
 DESTRUCTIVE_RC=0
 if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
   log "Destructive functional suite (Go) against $GATEWAY_URL"
-  phase_start "e2e: destructive functional suite"
   run_functional_phase "destructive functional suite" "destructive" "1" "$DESTRUCTIVE_JSON" "$DESTRUCTIVE_STDERR" || DESTRUCTIVE_RC=$?
   cat "$DESTRUCTIVE_JSON" >> "$SUITE_JSON"
-  if (( DESTRUCTIVE_RC != 0 )); then
-    phase_end "e2e: destructive functional suite" "FAIL"
-  else
-    phase_end "e2e: destructive functional suite"
-  fi
 else
   echo "  destructive functional suite disabled; set RUN_DESTRUCTIVE_FUNCTIONAL=1 for the full destructive pass"
   : > "$DESTRUCTIVE_JSON"
@@ -308,21 +264,16 @@ rm -f "$ARTIFACTS"/tools-list*.summary.json "$ARTIFACTS"/tools-call*.summary.jso
   "$ARTIFACTS"/tools-list*.pod.log "$ARTIFACTS"/tools-call*.pod.log
 
 log "k6 perf phase A — normal load (imbalance diagnostic)"
-phase_start "e2e: k6 perf phase A"
 PERF_RC=0
 start_heartbeat "k6 perf phase A"
 bash "$LIB/run-perf.sh" "$PERF_GATEWAY_URL" || PERF_RC=$?
 stop_heartbeat
 if (( PERF_RC != 0 )); then
-  echo "perf: phase A returned $PERF_RC; report regen continues so the failure is recorded" >&2
-  phase_end "e2e: k6 perf phase A" "FAIL"
-else
-  phase_end "e2e: k6 perf phase A"
+  echo "perf: phase A returned $PERF_RC" >&2
 fi
 
 if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
   log "k6 perf phase B — replica-loss (p99 threshold under load shed)"
-  phase_start "e2e: k6 perf phase B replica-loss"
   PERF_RC_B=0
   start_heartbeat "k6 perf phase B replica-loss"
   ARTIFACT_SUFFIX=".replica-loss" REPLICA_LOSS=1 bash "$LIB/run-perf.sh" "$PERF_GATEWAY_URL" || PERF_RC_B=$?
@@ -330,181 +281,10 @@ if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
   if (( PERF_RC_B != 0 )); then
     echo "perf: phase B (replica-loss) returned $PERF_RC_B" >&2
     PERF_RC=$PERF_RC_B
-    phase_end "e2e: k6 perf phase B replica-loss" "FAIL"
-  else
-    phase_end "e2e: k6 perf phase B replica-loss"
   fi
 else
   echo "  k6 replica-loss phase disabled; set RUN_DESTRUCTIVE_FUNCTIONAL=1 for the full destructive pass"
 fi
-
-log "Generate results.md"
-phase_start "e2e: generate results.md"
-agw_version="$(awk '/- name: agentgateway/{f=1} f && /version:/{gsub(/"/, "", $2); print $2; exit}' deploy/dsx-agent-gateway/Chart.yaml 2>/dev/null)"
-: "${agw_version:=unknown}"
-verdict="**Verdict:** functional ${FUNCTIONAL_FAIL} fail / ${FUNCTIONAL_PASS} pass / ${FUNCTIONAL_SKIP} skip across ${FUNCTIONAL_TOTAL} tests."
-if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
-  verdict="${verdict} Destructive functional ${DESTRUCTIVE_FAIL} fail / ${DESTRUCTIVE_PASS} pass / ${DESTRUCTIVE_SKIP} skip across ${DESTRUCTIVE_TOTAL} tests."
-else
-  verdict="${verdict} Destructive functional tests were not run; set \`RUN_DESTRUCTIVE_FUNCTIONAL=1\` for the full destructive pass."
-fi
-
-cat > "$ARTIFACTS/results.md" <<EOF
-# Validation — DSX Agent Gateway (agentgateway)
-
-**Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
-**Gateway:** agentgateway $agw_version
-**Runner:** Go functional tests targeting NodePort \`$GATEWAY_URL\`
-**Go parallelism:** functional=${E2E_GO_PARALLEL}, destructive=1
-
-$verdict
-
-## Functional matrix
-
-| Phase | Test | Status |
-|---|---|---|
-EOF
-while IFS= read -r line; do
-  read -r status pkg name <<< "$line"
-  phase="functional"
-  if [[ "$name" == "$DESTRUCTIVE_TEST_PREFIX"* ]]; then
-    phase="destructive functional"
-  fi
-  printf '| %s | %s/%s | %s |\n' "$phase" "$pkg" "$name" "$status"
-done < "$SUMMARY" >> "$ARTIFACTS/results.md"
-
-render_perf_table_files() {
-  local table_label="$1"; shift
-  cat >> "$ARTIFACTS/results.md" <<HEADER
-
-## Performance — $table_label
-
-| Scenario | VUs | RPS (ok) | count (ok) | p50 | p95 | p99 | max |
-|---|---|---|---|---|---|---|---|
-HEADER
-  local any=0
-  local f
-  for f in "$@"; do
-    [[ -s "$f" ]] || continue
-    any=1
-    local scenario
-    scenario="$(basename "$f" .summary.json)"
-    local vu_max rps_ok cnt_ok p50 p95 p99 maxv
-    # `success_200.rate` is the per-second rate over the run window
-    # (~26-30 RPS at the chart's tenantRequestsPerSecond=30 limit);
-    # success_200.count is the absolute count, reported alongside
-    # the rate so the throughput floor (count >= 900) is readable.
-    read -r vu_max rps_ok cnt_ok p50 p95 p99 maxv < <(jq -r '
-      [
-        ((.metrics.vus_max.values.max // .metrics.vus_max.max // 0) | tostring),
-        ((.metrics.success_200.values.rate // .metrics.success_200.rate // 0) | tostring),
-        ((.metrics.success_200.values.count // .metrics.success_200.count // 0) | tostring),
-        ((.metrics.http_req_duration."p(50)" // .metrics.http_req_duration.med // 0) | tostring),
-        ((.metrics.http_req_duration."p(95)" // 0) | tostring),
-        ((.metrics.http_req_duration."p(99)" // 0) | tostring),
-        ((.metrics.http_req_duration.max // 0) | tostring)
-      ] | @tsv' "$f" 2>/dev/null | tr '\t' ' ')
-    : "${vu_max:=0}" "${rps_ok:=0}" "${cnt_ok:=0}" "${p50:=0}" "${p95:=0}" "${p99:=0}" "${maxv:=0}"
-    printf '| %s | %s | %.1f | %s | %.0f | %.0f | %.0f | %.0f |\n' \
-      "$scenario" "$vu_max" "$rps_ok" "$cnt_ok" "$p50" "$p95" "$p99" "$maxv" >> "$ARTIFACTS/results.md"
-  done
-  if (( any == 0 )); then
-    printf '| (no summary.json captured) | — | — | — | — | — | — | — |\n' >> "$ARTIFACTS/results.md"
-  fi
-}
-results_perf_profile="$RUN_PERF_PROFILE_EFFECTIVE"
-if [[ "$results_perf_profile" == "benchmark" ]]; then
-  results_replica_loss_at="${REPLICA_LOSS_AT_SECONDS:-25}"
-  results_success_floor="${RUN_PERF_SUCCESS_200_MIN:-900}"
-  results_window="10s ramp, 60s hold, 5s ramp-down at 100 VUs"
-else
-  results_replica_loss_at="${REPLICA_LOSS_AT_SECONDS:-5}"
-  results_success_floor="${RUN_PERF_SUCCESS_200_MIN:-30}"
-  results_window="2s ramp, 8s hold, 2s ramp-down at 20 VUs"
-fi
-render_perf_table_files "Steady-state (${results_perf_profile}, gateway.replicaCount=3)" \
-  "$ARTIFACTS/tools-list.summary.json" "$ARTIFACTS/tools-call.summary.json"
-render_perf_table_files "Replica-loss (${results_perf_profile}, one Pod deleted at t=${results_replica_loss_at}s)" \
-  "$ARTIFACTS/tools-list.replica-loss.summary.json" "$ARTIFACTS/tools-call.replica-loss.summary.json"
-phase_end "e2e: generate results.md"
-
-phase_timing_prune_other_runs
-timing_table="$ARTIFACTS/stage-timings.md"
-python3 - "$PHASE_TIMINGS_FILE" "$PHASE_TIMINGS_RUN_ID" > "$timing_table" <<'PY'
-import csv
-import sys
-
-path = sys.argv[1]
-run_id = sys.argv[2]
-rows = []
-try:
-    with open(path, newline="") as f:
-        for row in csv.DictReader(f, delimiter="\t"):
-            if row.get("run_id") != run_id:
-                continue
-            if not row.get("script") or not row.get("phase"):
-                continue
-            try:
-                duration = int(row.get("duration_seconds", "0"))
-            except ValueError:
-                continue
-            rows.append(
-                {
-                    "script": row["script"],
-                    "phase": row["phase"],
-                    "duration": duration,
-                    "start": row.get("start_utc", ""),
-                    "end": row.get("end_utc", ""),
-                    "status": row.get("status", ""),
-                }
-            )
-except FileNotFoundError:
-    rows = []
-
-print("## Stage timings")
-print()
-print("| Script | Phase | Duration (s) | Status | Start | End |")
-print("|---|---|---:|---|---|---|")
-for row in sorted(rows, key=lambda r: r["duration"], reverse=True):
-    print(
-        f"| `{row['script']}` | {row['phase']} | {row['duration']} | {row['status']} | {row['start']} | {row['end']} |"
-    )
-PY
-cat "$timing_table" >> "$ARTIFACTS/results.md"
-
-if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
-  replica_loss_note="Replica-loss scenarios are co-scheduled in one Phase B window with one dataplane Pod deleted mid-window."
-  reproduction_command="RUN_DESTRUCTIVE_FUNCTIONAL=1 make e2e"
-else
-  replica_loss_note="Replica-loss scenarios were not run. Set RUN_DESTRUCTIVE_FUNCTIONAL=1 for the full destructive pass."
-  reproduction_command="make e2e"
-fi
-
-cat >> "$ARTIFACTS/results.md" <<EOF
-
-Latencies in ms. RPS is \`success_200.rate\` from the k6 summary:
-HTTP 200 responses per second over the run window. This run used the
-\`${results_perf_profile}\` k6 profile (${results_window}).
-\`count (ok)\` is the absolute HTTP 200 count over the same run
-window; the success floor for this profile is
-\`success_200:count>=${results_success_floor}\` in tests/agent-gateway/perf/*.js.
-\`p50/p95/p99\` are http_req_duration percentiles over
-expected_response=true requests. Steady-state scenarios are
-co-scheduled in one Phase A window.
-$replica_loss_note
-Use \`RUN_PERF_BENCHMARK=1\` or \`make perf-benchmark\` for the
-sustained benchmark profile.
-
-## Reproduction
-
-\`\`\`bash
-$reproduction_command
-\`\`\`
-
-Output directory: \`tests/agent-gateway/artifacts/\` — \`functional-test.json\` carries the
-\`go test -json\` stream, \`tests-summary.txt\` the per-test status table,
-\`*.summary.json\` + \`*.pod.log\` the k6 evidence.
-EOF
 
 if (( SUITE_RC != 0 || FAIL != 0 )); then
   log "e2e: FAIL — functional suite failed"

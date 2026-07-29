@@ -25,7 +25,7 @@ check: ## Run static validation checks
 	$(MISE_EXEC) helm lint auth-callout/deploy
 	$(MISE_EXEC) helm template nats-event-bus deploy/nats-event-bus >/dev/null
 	$(MISE_EXEC) helm lint deploy/nats-event-bus
-	$(MISE_EXEC) helm lint deploy/dsx-agent-gateway --namespace csc-dsx-agentgateway --values local/agent-gateway/values/values.local.yaml
+	$(MISE_EXEC) helm lint deploy/dsx-agent-gateway --namespace csc-dsx-agentgateway --values local/agent-gateway/values/values.local-common.yaml --values local/agent-gateway/values/values.local.yaml
 
 clean: ## Delete the local Kind cluster and generated secrets
 	$(MAKE) -C "$(ROOT_DIR)/local" clean

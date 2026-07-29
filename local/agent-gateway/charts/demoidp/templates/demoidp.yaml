@@ -3,6 +3,7 @@
 
 {{- $root := . }}
 {{- $image := .Values.image | default dict }}
+{{- $port := 5556 }}
 {{- $seenIssuerNames := dict }}
 {{- range $idx, $issuer := .Values.issuers }}
 {{- $name := required (printf "issuers[%d].name is required" $idx) $issuer.name }}
@@ -10,9 +11,7 @@
 {{- fail (printf "issuers[%d].name=%q duplicates an earlier issuer" $idx $name) }}
 {{- end }}
 {{- $_ := set $seenIssuerNames $name true }}
-{{- $port := required (printf "issuers[%d].port is required" $idx) $issuer.port }}
 {{- $keySecretName := printf "%s-signing-key" $name }}
-{{- $podAnnotations := $issuer.podAnnotations | default dict }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,7 +22,7 @@ metadata:
     app.kubernetes.io/instance: {{ $root.Release.Name }}
     app.kubernetes.io/managed-by: {{ $root.Release.Service }}
 spec:
-  replicas: {{ $issuer.replicas | default 1 }}
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ $name }}
@@ -33,15 +32,9 @@ spec:
       labels:
         app.kubernetes.io/name: {{ $name }}
         app.kubernetes.io/instance: {{ $root.Release.Name }}
-      {{- with $podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
     spec:
-      {{- with $issuer.podSecurityContext }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        runAsNonRoot: true
       containers:
         - name: demoidp
           image: "{{ required "image.repository is required" $image.repository }}:{{ required "image.tag is required" $image.tag }}"
@@ -66,10 +59,11 @@ spec:
               path: /healthz
               port: http
             periodSeconds: 10
-          {{- with $issuer.securityContext }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
           volumeMounts:
             - name: config
               mountPath: /etc/demoidp
@@ -77,8 +71,6 @@ spec:
             - name: signing-key
               mountPath: /etc/demoidp/signing-key
               readOnly: true
-          resources:
-            {{- toYaml ($issuer.resources | default dict) | nindent 12 }}
       volumes:
         - name: config
           secret:
@@ -86,18 +78,6 @@ spec:
         - name: signing-key
           secret:
             secretName: {{ $keySecretName }}
-      {{- with $issuer.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $issuer.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with $issuer.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
 ---
 apiVersion: v1
 kind: Service
