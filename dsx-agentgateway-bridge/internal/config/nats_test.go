@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package config
@@ -267,6 +254,41 @@ func TestNATSConfigRejectsUnreadableOAuthClientFile(t *testing.T) {
 
 	if _, err := natsOptionsFromEnv(t, "test-client"); err == nil {
 		t.Fatalf("NATSOptions accepted an unreadable OAuth client ID path")
+	}
+}
+
+func TestNATSConfigRejectsWhitespaceInOAuthClientFiles(t *testing.T) {
+	tests := []struct {
+		name string
+		set  func(t *testing.T)
+	}{
+		{
+			name: "client ID",
+			set: func(t *testing.T) {
+				t.Setenv(EnvNATSOAuthClientIDFile, writeTextFile(t, "client-id", " bridge-client"))
+				t.Setenv(EnvNATSOAuthClientSecret, "bridge-secret")
+			},
+		},
+		{
+			name: "client secret",
+			set: func(t *testing.T) {
+				t.Setenv(EnvNATSOAuthClientID, "bridge-client")
+				t.Setenv(EnvNATSOAuthClientSecretFile, writeTextFile(t, "client-secret", "bridge-secret\n"))
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearNATSEnv(t)
+			t.Setenv(EnvNATSAuthMode, string(NATSAuthModeOAuth))
+			t.Setenv(EnvNATSOAuthIssuer, "https://issuer.example.test")
+			t.Setenv(EnvNATSOAuthScope, "nats:bridge")
+			tt.set(t)
+
+			if _, err := natsOptionsFromEnv(t, "test-client"); err == nil {
+				t.Fatalf("NATSOptions accepted whitespace in OAuth %s file", tt.name)
+			}
+		})
 	}
 }
 

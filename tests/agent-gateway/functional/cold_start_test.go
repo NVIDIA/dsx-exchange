@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Cold-start CEL target binding. agentgateway evaluates
@@ -264,7 +251,10 @@ func postWithSession(t *testing.T, ctx context.Context, bearer, sid string, body
 	t.Helper()
 	gw := runner.GatewayURL(t)
 	httpc := &http.Client{Timeout: 30 * time.Second}
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, gw, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gw, bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("build postWithSession request: %v", err)
+	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Mcp-Session-Id", sid)
 	req.Header.Set("Content-Type", "application/json")
@@ -274,7 +264,10 @@ func postWithSession(t *testing.T, ctx context.Context, bearer, sid string, body
 		t.Fatalf("postWithSession: %v", err)
 	}
 	defer r.Body.Close()
-	buf, _ := io.ReadAll(r.Body)
+	buf, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatalf("read postWithSession response: %v", err)
+	}
 	return rawResp{Status: r.StatusCode, Body: string(buf)}
 }
 

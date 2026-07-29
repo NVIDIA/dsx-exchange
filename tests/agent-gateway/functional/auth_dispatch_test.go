@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Auth and dispatch behavior.
@@ -82,20 +69,14 @@ func TestToolsCallDenied(t *testing.T) {
 	req.Params.Name = toolName
 	req.Params.Arguments = map[string]any{}
 	res, err := s.Client.CallTool(ctx, req)
-	// Acceptable deny shapes are an SDK error, result.IsError, or a body
-	// containing a known deny phrase. Tenant-a must not receive a successful
-	// operator-only result.
+	// Acceptable deny shapes are an SDK error or result.IsError.
 	if err != nil {
 		return
 	}
 	if res != nil && res.IsError {
 		return
 	}
-	if res != nil && len(res.Content) > 0 {
-		// The backend echoes a string on success. Any success here is a
-		// regression.
-		t.Fatalf("%s was allowed to invoke an operator-only tool %q (result: %+v)", tenantAUnlimited, toolName, res)
-	}
+	t.Fatalf("%s tools/call(%q) returned no explicit denial (result: %+v)", tenantAUnlimited, toolName, res)
 }
 
 func TestToolsCallUnknownTool(t *testing.T) {
@@ -151,6 +132,9 @@ func TestErrorEnvelopeDeny(t *testing.T) {
 	if res != nil {
 		b, _ := json.Marshal(res)
 		combined = append(combined, b...)
+	}
+	if err == nil && (res == nil || !res.IsError) {
+		t.Fatalf("%s tools/call(%q) returned no explicit denial (result: %+v)", tenantAUnlimited, toolName, res)
 	}
 	leaks := []string{
 		"mcp-backend-a.csc-mcp-backends.svc.cluster.local",

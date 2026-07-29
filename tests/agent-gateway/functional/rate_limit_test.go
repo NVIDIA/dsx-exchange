@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Rate-limit behavior.
@@ -341,6 +328,9 @@ func TestDestructiveHeaderSpoofRateLimit(t *testing.T) {
 				}
 				r, err := httpc.Do(req)
 				if err != nil {
+					burstMu.Lock()
+					burstHist[-1]++
+					burstMu.Unlock()
 					return
 				}
 				r.Body.Close()
@@ -385,6 +375,9 @@ func TestDestructiveHeaderSpoofRateLimit(t *testing.T) {
 	// bucket should saturate (>=1 429 from tenant-a). Without this,
 	// the test would pass against a gateway that drops requests
 	// before RLS ever runs.
+	if burstHist[-1] > 0 {
+		t.Fatalf("spoof burst saw %d transport failures (hist %v)", burstHist[-1], burstHist)
+	}
 	if burstHist[429] == 0 {
 		t.Fatalf("spoof burst saw 0 429s on tenant-a's own bucket — RLS may not be enforcing on this code path; without that positive control the test cannot prove the spoof was actually rate-limit-counted (burst hist %v)", burstHist)
 	}

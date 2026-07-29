@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Valkey client wrapper. Tests need to read/write the rate-limit
@@ -60,30 +47,35 @@ func NewValkeyClient(t *testing.T) *redis.Client {
 
 func NewValkeyClientForStatefulSet(t *testing.T, ns, name string) *redis.Client {
 	t.Helper()
+	client, cleanup := newValkeyClientForStatefulSet(t, ns, name)
+	t.Cleanup(cleanup)
+	return client
+}
+
+func newValkeyClientForStatefulSet(t *testing.T, ns, name string) (*redis.Client, func()) {
+	t.Helper()
 	const podPort = 6379
 	pod := name + "-0"
 
 	WaitForStatefulSetReady(t, ns, name, 45*time.Second)
 	localPort, stopPortForward := startPodPortForward(t, ns, pod, podPort)
-	t.Cleanup(stopPortForward)
 
 	client := redis.NewClient(&redis.Options{
 		Addr:        fmt.Sprintf("127.0.0.1:%d", localPort),
 		DialTimeout: 5 * time.Second,
 		ReadTimeout: 5 * time.Second,
 	})
+	cleanup := func() {
+		_ = client.Close()
+		stopPortForward()
+	}
 
 	// Confirm the connection actually reaches Valkey.
 	if err := client.Ping(context.Background()).Err(); err != nil {
-		client.Close()
-		stopPortForward()
+		cleanup()
 		t.Fatalf("valkey PING through port-forward: %v", err)
 	}
-
-	t.Cleanup(func() {
-		_ = client.Close()
-	})
-	return client
+	return client, cleanup
 }
 
 func startPodPortForward(t *testing.T, ns, pod string, podPort int) (int, func()) {
@@ -161,22 +153,25 @@ func FlushAndWaitForRateLimitWindow(t *testing.T) {
 		if !StatefulSetExists(t, sts.ns, sts.name) {
 			continue
 		}
-		c := NewValkeyClientForStatefulSet(t, sts.ns, sts.name)
-		flushAt, err := c.Time(ctx).Result()
-		if err != nil {
-			t.Fatalf("valkey %s/%s TIME before FLUSHALL: %v", sts.ns, sts.name, err)
-		}
-		if err := c.FlushAll(ctx).Err(); err != nil {
-			t.Fatalf("valkey %s/%s FLUSHALL: %v", sts.ns, sts.name, err)
-		}
-		if !WaitFor(1500*time.Millisecond, 50*time.Millisecond, func() bool {
-			now, err := c.Time(ctx).Result()
-			if err != nil {
-				return false
+		func() {
+			c, cleanup := newValkeyClientForStatefulSet(t, sts.ns, sts.name)
+			defer cleanup()
+			if err := c.FlushAll(ctx).Err(); err != nil {
+				t.Fatalf("valkey %s/%s FLUSHALL: %v", sts.ns, sts.name, err)
 			}
-			return now.Unix() > flushAt.Unix()
-		}) {
-			t.Fatalf("valkey server clock for %s/%s did not advance to the next rate-limit window after FLUSHALL", sts.ns, sts.name)
-		}
+			flushAt, err := c.Time(ctx).Result()
+			if err != nil {
+				t.Fatalf("valkey %s/%s TIME after FLUSHALL: %v", sts.ns, sts.name, err)
+			}
+			if !WaitFor(1500*time.Millisecond, 50*time.Millisecond, func() bool {
+				now, err := c.Time(ctx).Result()
+				if err != nil {
+					return false
+				}
+				return now.Unix() > flushAt.Unix()
+			}) {
+				t.Fatalf("valkey server clock for %s/%s did not advance to the next rate-limit window after FLUSHALL", sts.ns, sts.name)
+			}
+		}()
 	}
 }

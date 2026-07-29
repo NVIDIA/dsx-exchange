@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package runner is the shared MCP client wrapper for the
@@ -89,17 +76,16 @@ func NewSessionWithHeaders(t *testing.T, tenant string, extraHeaders map[string]
 		cli := client.NewClient(tr)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		if err := cli.Start(ctx); err != nil {
-			cancel()
-			t.Fatalf("client.Start: %v", err)
-		}
-		initReq := mcp.InitializeRequest{}
-		initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-		initReq.Params.ClientInfo = mcp.Implementation{Name: "dsx-agent-gateway-functional-runner", Version: "0.1.0"}
-		_, err = cli.Initialize(ctx, initReq)
+		err = cli.Start(ctx)
 		if err == nil {
-			cancel()
-			return &Session{Client: cli, Tenant: tenant, Token: tok}
+			initReq := mcp.InitializeRequest{}
+			initReq.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
+			initReq.Params.ClientInfo = mcp.Implementation{Name: "dsx-agent-gateway-functional-runner", Version: "0.1.0"}
+			_, err = cli.Initialize(ctx, initReq)
+			if err == nil {
+				cancel()
+				return &Session{Client: cli, Tenant: tenant, Token: tok}
+			}
 		}
 		lastErr = err
 		cancel()
@@ -108,7 +94,7 @@ func NewSessionWithHeaders(t *testing.T, tenant string, extraHeaders map[string]
 			_ = waitForDelay(context.Background(), 500*time.Millisecond)
 		}
 	}
-	t.Fatalf("MCP initialize for %s failed after retries: %v", tenant, lastErr)
+	t.Fatalf("MCP session setup for %s failed after retries: %v", tenant, lastErr)
 	return nil
 }
 

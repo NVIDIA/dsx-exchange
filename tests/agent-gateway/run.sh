@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2026 NVIDIA Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 # run.sh — runs functional tests against the gateway NodePort, drives k6
@@ -58,7 +45,6 @@ log() { printf '\n==> %s\n' "$*"; }
 
 # shellcheck disable=SC1091
 source "$LIB/phase-timing.sh"
-phase_timing_init "agent-gateway-e2e" append
 
 PHASE_TIMINGS_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 printf '%s\n' "$PHASE_TIMINGS_RUN_ID" > "$PHASE_TIMINGS_RUN_ID_FILE"
@@ -144,8 +130,8 @@ if kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" get statefulset "$VALKEY_STS" 
   valkey_time() {
     kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" exec "$VALKEY_STS-0" -c "$VALKEY_STS" -- valkey-cli TIME | sed -n '1p'
   }
-  start_sec="$(valkey_time)"
   kubectl --context "$KUBE_CONTEXT" -n "$SVC_NS" exec "$VALKEY_STS-0" -c "$VALKEY_STS" -- valkey-cli FLUSHALL >/dev/null
+  start_sec="$(valkey_time)"
   deadline=$(( $(date +%s) + 3 ))
   while :; do
     now_sec="$(valkey_time)"
@@ -418,7 +404,7 @@ HEADER
         ((.metrics.http_req_duration."p(99)" // 0) | tostring),
         ((.metrics.http_req_duration.max // 0) | tostring)
       ] | @tsv' "$f" 2>/dev/null | tr '\t' ' ')
-    : "${vu_max:=n/a}" "${rps_ok:=n/a}" "${cnt_ok:=n/a}" "${p50:=n/a}" "${p95:=n/a}" "${p99:=n/a}" "${maxv:=n/a}"
+    : "${vu_max:=0}" "${rps_ok:=0}" "${cnt_ok:=0}" "${p50:=0}" "${p95:=0}" "${p99:=0}" "${maxv:=0}"
     printf '| %s | %s | %.1f | %s | %.0f | %.0f | %.0f | %.0f |\n' \
       "$scenario" "$vu_max" "$rps_ok" "$cnt_ok" "$p50" "$p95" "$p99" "$maxv" >> "$ARTIFACTS/results.md"
   done

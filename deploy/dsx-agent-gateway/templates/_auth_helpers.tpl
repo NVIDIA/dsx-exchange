@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 {{/* Tenant identity must come from verified JWT claims. */}}
 {{- define "dsxAgentGateway.auth.validateTenantExtractor" -}}
 {{- $name := .name -}}
@@ -126,6 +129,9 @@
 {{- end -}}
 {{- if $parsed.fragment -}}
 {{- fail (printf "%s must not include a fragment" $name) -}}
+{{- end -}}
+{{- if $parsed.query -}}
+{{- fail (printf "%s must not include a query string" $name) -}}
 {{- end -}}
 {{- $port := 80 -}}
 {{- if eq $scheme "https" -}}

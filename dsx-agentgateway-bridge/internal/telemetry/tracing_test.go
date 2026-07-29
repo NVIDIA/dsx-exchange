@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package telemetry
@@ -59,10 +46,7 @@ func TestInitKeepsMetricsAndPropagationWhenTraceExporterDisabled(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}), "test")
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil))
-	resp, err := (&http.Client{Timeout: time.Second}).Get(metricsEndpoint + "/metrics")
-	if err != nil {
-		t.Fatalf("scrape autoexport Prometheus server: %v", err)
-	}
+	resp := waitForPrometheus(t, metricsEndpoint+"/metrics")
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -82,6 +66,20 @@ func TestInitKeepsMetricsAndPropagationWhenTraceExporterDisabled(t *testing.T) {
 	InjectTraceContext(ctx, headers)
 	if got := headers.Get("Traceparent"); !strings.HasPrefix(got, "00-11111111111111111111111111111111-2222222222222222-") {
 		t.Fatalf("Traceparent = %q, want propagation without trace export", got)
+	}
+}
+
+func TestInitAcceptsPartialResource(t *testing.T) {
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "valid=yes,missing-value")
+	t.Setenv("OTEL_TRACES_EXPORTER", "none")
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+
+	shutdown, err := Init(context.Background(), "test-component")
+	if err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	if err := shutdown(context.Background()); err != nil {
+		t.Fatalf("shutdown telemetry: %v", err)
 	}
 }
 
@@ -115,6 +113,27 @@ func configurePrometheusExporter(t *testing.T) string {
 	t.Setenv("OTEL_EXPORTER_PROMETHEUS_HOST", "127.0.0.1")
 	t.Setenv("OTEL_EXPORTER_PROMETHEUS_PORT", strconv.Itoa(port))
 	return "http://127.0.0.1:" + strconv.Itoa(port)
+}
+
+func waitForPrometheus(t *testing.T, endpoint string) *http.Response {
+	t.Helper()
+
+	client := &http.Client{Timeout: time.Second}
+	deadline := time.NewTimer(time.Second)
+	defer deadline.Stop()
+	retry := time.NewTicker(10 * time.Millisecond)
+	defer retry.Stop()
+	for {
+		resp, err := client.Get(endpoint)
+		if err == nil {
+			return resp
+		}
+		select {
+		case <-deadline.C:
+			t.Fatalf("scrape autoexport Prometheus server: %v", err)
+		case <-retry.C:
+		}
+	}
 }
 
 func TestTracerProviderHonorsStandardSamplerEnv(t *testing.T) {

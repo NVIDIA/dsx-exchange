@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // RLS cross-replica fairness. Drives a known burst as one tenant
@@ -67,6 +54,9 @@ func TestDestructiveCrossReplicaFairness(t *testing.T) {
 	stage1Start := time.Now().Unix()
 	hist := burst(t, ctx, overBurst, tokA, sidA, nil, rateLimitProbeBody)
 	t.Logf("tenant-a burst histogram (n=%d, budget=%d): %v", overBurst, budget, hist)
+	if hist[-1] > 0 {
+		t.Fatalf("tenant-a saturating burst saw %d transport failures (hist %v)", hist[-1], hist)
+	}
 	if hist[200] == 0 {
 		t.Fatalf("tenant-a saturating burst saw 0 HTTP 200 — gateway not serving? hist %v", hist)
 	}
@@ -98,6 +88,9 @@ func TestDestructiveCrossReplicaFairness(t *testing.T) {
 		histB[r.StatusCode]++
 	}
 	t.Logf("tenant-b under-budget probe histogram (n=%d, budget=%d): %v", underBurst, budget, histB)
+	if histB[-1] > 0 {
+		t.Fatalf("tenant-b under-budget probe saw %d transport failures (hist %v)", histB[-1], histB)
+	}
 	if histB[429] > 0 {
 		t.Fatalf("tenant-b under-budget probe saw %d 429s — bucket attribution leak from tenant-a (hist %v)", histB[429], histB)
 	}

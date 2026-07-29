@@ -1,3 +1,6 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 {{/* Reserve suffix space while keeping release-derived names within Kubernetes' 63-character limit. */}}
 {{- define "dsxAgentGateway.releaseResourceName" -}}
 {{- $suffix := .suffix | default "" -}}
@@ -93,6 +96,9 @@
 {{- end -}}
 {{- $bridge := .Values.bridge | default (dict) -}}
 {{- if and ($bridge.enabled | default false) (eq ($bridge.role | default "") "hub") -}}
+{{- if hasKey $upstreams "bridge" -}}
+{{- fail "upstreams.bridge is reserved for the hub bridge" -}}
+{{- end -}}
 {{- $bridgeLabels := dict "app.kubernetes.io/instance" .Release.Name "app.kubernetes.io/component" "dsx-agentgateway-bridge" -}}
 {{- $bridgeUpstream := dict "namespace" .Release.Namespace "serviceLabels" $bridgeLabels -}}
 {{- $computedUpstreams = append $computedUpstreams (dict "id" "bridge" "upstream" $bridgeUpstream) -}}
@@ -171,24 +177,29 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 
 {{/* Labels shared by every Prometheus Operator monitor. */}}
 {{- define "dsxAgentGateway.monitorLabels" -}}
+{{- $observability := .root.Values.observability | default (dict) -}}
+{{- $metrics := $observability.metrics | default (dict) -}}
 {{- include "dsxAgentGateway.labels" .root }}
 app.kubernetes.io/component: {{ .component }}
-{{- with .root.Values.observability.metrics.additionalLabels }}
+{{- with $metrics.additionalLabels }}
 {{- toYaml . | nindent 0 }}
 {{- end }}
 {{- end -}}
 
 {{/* The DSX metrics contract uses one scrape policy for every component. */}}
 {{- define "dsxAgentGateway.metricsEndpoint" -}}
+{{- $observability := .root.Values.observability | default (dict) -}}
+{{- $metrics := $observability.metrics | default (dict) -}}
 - port: {{ .port }}
   path: /metrics
-  interval: {{ required "observability.metrics.interval is required" .root.Values.observability.metrics.interval }}
-  scrapeTimeout: {{ required "observability.metrics.scrapeTimeout is required" .root.Values.observability.metrics.scrapeTimeout }}
+  interval: {{ required "observability.metrics.interval is required" $metrics.interval }}
+  scrapeTimeout: {{ required "observability.metrics.scrapeTimeout is required" $metrics.scrapeTimeout }}
 {{- end -}}
 
 {{/* Validate the DSX OpenTelemetry Operator resources. */}}
 {{- define "dsxAgentGateway.validateOpenTelemetry" -}}
-{{- $tracing := .Values.observability.tracing | default (dict) -}}
+{{- $observability := .Values.observability | default (dict) -}}
+{{- $tracing := $observability.tracing | default (dict) -}}
 {{- $_ := required "observability.tracing.instrumentationRef is required" $tracing.instrumentationRef -}}
 {{- $_ := required "observability.tracing.sidecarRef is required" $tracing.sidecarRef -}}
 {{- $exporter := $tracing.exporter | default (dict) -}}
@@ -205,9 +216,10 @@ app.kubernetes.io/component: {{ .component }}
 {{/* Opt traced application Pods into the platform SDK and sidecar injection. */}}
 {{- define "dsxAgentGateway.otelPodAnnotations" -}}
 {{- $root := .root -}}
-{{- if $root.Values.observability.tracing.enabled -}}
+{{- $observability := $root.Values.observability | default (dict) -}}
+{{- $tracing := $observability.tracing | default (dict) -}}
+{{- if ($tracing.enabled | default false) -}}
 {{- include "dsxAgentGateway.validateOpenTelemetry" $root -}}
-{{- $tracing := $root.Values.observability.tracing | default (dict) -}}
 instrumentation.opentelemetry.io/inject-sdk: {{ $tracing.instrumentationRef | quote }}
 sidecar.opentelemetry.io/inject: {{ $tracing.sidecarRef | quote }}
 resource.opentelemetry.io/service.name: {{ .serviceName | quote }}

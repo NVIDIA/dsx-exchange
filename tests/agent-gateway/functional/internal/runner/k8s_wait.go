@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 // Package runner — watch-based readiness and termination waits for the
@@ -371,7 +358,7 @@ func waitForKubernetesEventContext(ctx context.Context, opts metav1.ListOptions,
 		if event.Type == watch.Error {
 			return false, apierrors.FromObject(event.Object)
 		}
-		return true, nil
+		return event.Type != watch.Bookmark, nil
 	})
 	if err != nil {
 		return fmt.Errorf("watch: %w", err)
@@ -403,11 +390,14 @@ func deploymentReady(d *appsv1.Deployment) bool {
 }
 
 func statefulSetReady(sts *appsv1.StatefulSet) bool {
-	want := int32(0)
+	if sts.Status.ObservedGeneration < sts.Generation {
+		return false
+	}
+	want := int32(1)
 	if sts.Spec.Replicas != nil {
 		want = *sts.Spec.Replicas
 	}
-	return sts.Status.ReadyReplicas == want
+	return sts.Status.UpdatedReplicas == want && sts.Status.ReadyReplicas == want
 }
 
 func readyEndpointCount(slices []discoveryv1.EndpointSlice) int {

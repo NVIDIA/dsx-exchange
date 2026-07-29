@@ -1,18 +1,5 @@
 /**
- * Copyright 2026 NVIDIA Corporation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -73,7 +60,7 @@ export function setup() {
     const sids = [];
     let lastErr;
     for (let i = 0; i < POOL; i++) {
-      try { sids.push(openSession()); } catch (e) { lastErr = e; } // best-effort; cause surfaced below if all fail
+      try { sids.push(openSession(TOOL_OVERRIDE)); } catch (e) { lastErr = e; } // best-effort; cause surfaced below if all fail
     }
     if (sids.length === 0) {
       throw new Error(`setup: no SIDs converged for the per-VU pool (TOOL_OVERRIDE branch); last error: ${lastErr}`);
@@ -167,7 +154,7 @@ export function setup() {
 // effectively VU-isolated). Lazily initialized on first iteration.
 let vuSid = null;
 
-function openSession() {
+function openSession(requiredTool = '') {
   // The pinned agentgateway aggregator opens upstream backend sessions
   // lazily on first client request. The catalogue can come back
   // empty when the upstream MCP init is still in flight, and the
@@ -222,9 +209,13 @@ function openSession() {
     let parsed;
     try { parsed = JSON.parse(json); } catch (_) { parsed = null; }
     const tools = parsed && parsed.result && parsed.result.tools;
-    if (Array.isArray(tools) && tools.length > 0) {
+    if (Array.isArray(tools) && tools.length > 0 &&
+        (!requiredTool || tools.some((tool) => tool.name === requiredTool))) {
       return sid;
     }
+  }
+  if (requiredTool) {
+    throw new Error(`openSession: catalogue did not contain TOOL override ${requiredTool} across 30 fresh sessions`);
   }
   throw new Error('openSession: catalogue stayed empty across 30 fresh sessions with 200ms backoff (cold-start race did not converge)');
 }

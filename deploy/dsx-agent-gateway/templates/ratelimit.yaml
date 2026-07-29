@@ -1,21 +1,12 @@
-# Copyright 2026 NVIDIA Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 {{- $rateLimit := .Values.rateLimit -}}
-{{- $tracing := .Values.observability.tracing | default (dict) -}}
+{{- $observability := .Values.observability | default (dict) -}}
+{{- $metrics := $observability.metrics | default (dict) -}}
+{{- $metricsEnabled := $metrics.enabled | default false -}}
+{{- $tracing := $observability.tracing | default (dict) -}}
+{{- $tracingEnabled := $tracing.enabled | default false -}}
 {{- $exporter := $tracing.exporter | default (dict) -}}
 {{- $exporterProtocol := $exporter.protocol | default "" -}}
 {{/* The OTel SDK names its HTTP transport "http/protobuf". The rate-limit
@@ -31,6 +22,10 @@ service uses "http" for the same transport in TRACING_EXPORTER_PROTOCOL. */}}
 {{- if lt $tenantRequestsPerSecond 1 -}}
 {{- fail "rateLimit.tenantRequestsPerSecond must be at least 1" -}}
 {{- end -}}
+{{- $replicaCount := required "rateLimit.replicaCount is required" $rateLimit.replicaCount -}}
+{{- $rateLimitImage := $rateLimit.image | default (dict) -}}
+{{- $rateLimitImageRepository := required "rateLimit.image.repository is required" $rateLimitImage.repository -}}
+{{- $rateLimitImageTag := required "rateLimit.image.tag is required" $rateLimitImage.tag -}}
 {{- $tenantOverrides := $rateLimit.tenantOverrides | default (list) -}}
 {{- if not (kindIs "slice" $tenantOverrides) -}}
 {{- fail "rateLimit.tenantOverrides must be a list" -}}
@@ -110,7 +105,7 @@ metadata:
     {{- include "dsxAgentGateway.labels" . | nindent 4 }}
     app.kubernetes.io/component: ratelimit
 spec:
-  replicas: {{ $rateLimit.replicaCount }}
+  replicas: {{ $replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
@@ -164,17 +159,17 @@ spec:
               memory: 64Mi
       containers:
         - name: ratelimit
-          image: {{ printf "%s:%s" $rateLimit.image.repository $rateLimit.image.tag | quote }}
+          image: {{ printf "%s:%s" $rateLimitImageRepository $rateLimitImageTag | quote }}
           imagePullPolicy: IfNotPresent
           command: [/bin/ratelimit]
           env:
             - name: USE_STATSD
               value: "false"
             - name: USE_PROMETHEUS
-              value: {{ .Values.observability.metrics.enabled | quote }}
+              value: {{ $metricsEnabled | quote }}
             - name: HEALTHY_WITH_AT_LEAST_ONE_CONFIG_LOADED
               value: "true"
-            {{- if .Values.observability.metrics.enabled }}
+            {{- if $metricsEnabled }}
             - name: PROMETHEUS_ADDR
               value: ":9090"
             - name: PROMETHEUS_PATH
@@ -183,8 +178,8 @@ spec:
             - name: LOG_FORMAT
               value: json
             - name: TRACING_ENABLED
-              value: {{ $tracing.enabled | quote }}
-            {{- if $tracing.enabled }}
+              value: {{ $tracingEnabled | quote }}
+            {{- if $tracingEnabled }}
             {{- with $exporter.endpoint }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ . | quote }}
@@ -234,7 +229,7 @@ spec:
               name: http
             - containerPort: 8081
               name: grpc
-            {{- if .Values.observability.metrics.enabled }}
+            {{- if $metricsEnabled }}
             - containerPort: 9090
               name: metrics
             {{- end }}
@@ -293,7 +288,7 @@ spec:
       port: 8081
       targetPort: grpc
       appProtocol: grpc
-    {{- if .Values.observability.metrics.enabled }}
+    {{- if $metricsEnabled }}
     - name: metrics
       port: 9090
       targetPort: metrics
@@ -309,8 +304,7 @@ metadata:
     {{- include "dsxAgentGateway.labels" . | nindent 4 }}
     app.kubernetes.io/component: ratelimit
 spec:
-  # Keep the rate-limit service available during voluntary disruptions.
-  minAvailable: 1
+  maxUnavailable: 1
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}

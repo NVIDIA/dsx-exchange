@@ -1,17 +1,4 @@
-// Copyright 2026 NVIDIA Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
+// Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package hub
@@ -1224,10 +1211,14 @@ func (f *fakeNATSRequester) nextResponse(subject string) (fakeNATSResponse, bool
 
 func (f *fakeNATSRequester) RequestManyMsg(ctx context.Context, msg *nats.Msg, opts ...natsext.RequestManyOpt) (iter.Seq2[*nats.Msg, error], error) {
 	f.record(ctx, msg, true, len(opts))
-	if err := f.manyErrs[msg.Subject]; err != nil {
+	f.mu.Lock()
+	err := f.manyErrs[msg.Subject]
+	responses, ok := f.many[msg.Subject]
+	responses = slices.Clone(responses)
+	f.mu.Unlock()
+	if err != nil {
 		return nil, err
 	}
-	responses, ok := f.many[msg.Subject]
 	if !ok {
 		return nil, fmt.Errorf("unexpected request-many subject: %s", msg.Subject)
 	}
@@ -1272,7 +1263,7 @@ func (f *fakeNATSRequester) recordedCalls() []fakeNATSCall {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return f.calls
+	return slices.Clone(f.calls)
 }
 
 type expectedCall struct {
@@ -1307,15 +1298,7 @@ func testHub(bus shardbus.Requester) hub {
 func postHubRPC(t *testing.T, h hub, body string) mcptransport.JSONRPCResponse {
 	t.Helper()
 
-	rr := serveHubRPCWithHeaders(t, h, http.MethodPost, body, nil)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("HTTP status = %d, want 200; body=%s", rr.Code, rr.Body.String())
-	}
-	var resp mcptransport.JSONRPCResponse
-	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("decode RPC response %s: %v", rr.Body.String(), err)
-	}
-	return resp
+	return postHubRPCWithHeaders(t, h, body, nil)
 }
 
 func postHubRPCWithHeaders(t *testing.T, h hub, body string, headers http.Header) mcptransport.JSONRPCResponse {
