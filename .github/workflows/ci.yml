@@ -52,10 +52,10 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
-          install_args: node npm:fern-api
+          cache-key: fern
+          install-args: node npm:fern-api
       - run: fern check
 
   go-lint:
@@ -132,10 +132,10 @@ jobs:
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
-          install_args: go go:github.com/google/go-licenses/v2
+          cache-key: third-party-licenses
+          install-args: go go:github.com/google/go-licenses/v2
       - name: Regenerate THIRD_PARTY_LICENSES.csv via Makefile
         # Uses the repository-wide generator, which combines all Go modules,
         # filters local packages, and applies multi-license overrides.
@@ -250,10 +250,10 @@ jobs:
       DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
-          install_args: helm
+          cache-key: helm
+          install-args: helm
       - uses: actions/cache@v4
         with:
           path: .cache
@@ -272,10 +272,10 @@ jobs:
       DOCKERHUB_MIRROR: "https://dc.local.gha-runners.nvidia.com"
     steps:
       - uses: actions/checkout@v4
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
-          install_args: helm
+          cache-key: helm
+          install-args: helm
       - uses: actions/cache@v4
         with:
           path: .cache

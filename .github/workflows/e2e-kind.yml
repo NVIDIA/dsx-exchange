@@ -24,9 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
+          cache-key: e2e
 
       - name: Cache local dependencies
         uses: actions/cache@v4
