@@ -98,7 +98,7 @@ The local stack deploys the Agent Gateway chart in three logical sites:
 - CPC-2 leaf: `cpc-2-dsx-agentgateway`
 
 The Skaffold releases are defined in
-[`agent-gateway/skaffold.sites.yaml`](agent-gateway/skaffold.sites.yaml).
+[`agent-gateway/skaffold.yaml`](agent-gateway/skaffold.yaml).
 Common and site-specific chart values are in
 [`agent-gateway/values/`](agent-gateway/values/).
 

@@ -6,7 +6,7 @@ kind: Config
 metadata:
   name: agent-gateway-fixtures
 requires:
-- path: skaffold.yaml
+- path: skaffold.images.yaml
   configs:
   - agent-gateway-images
 - path: skaffold.infra.yaml

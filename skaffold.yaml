@@ -9,6 +9,6 @@ requires:
 - path: local/event-bus/skaffold.yaml
   configs:
   - event-bus
-- path: local/agent-gateway/skaffold.sites.yaml
+- path: local/agent-gateway/skaffold.yaml
   configs:
   - agent-gateway
