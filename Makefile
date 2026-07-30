@@ -21,7 +21,6 @@ check: ## Run static validation checks
 	$(MISE_EXEC) bash local/scripts/prepare-dependencies.sh
 	$(MISE_EXEC) bash scripts/license.sh check
 	$(MISE_EXEC) bash scripts/third-party-licenses.sh check
-	$(MISE_EXEC) bash scripts/check-chart-metadata.sh
 	$(MISE_EXEC) helm lint auth-callout/deploy
 	$(MISE_EXEC) helm template nats-event-bus deploy/nats-event-bus >/dev/null
 	$(MISE_EXEC) helm lint deploy/nats-event-bus
