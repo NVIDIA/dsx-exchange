@@ -80,7 +80,8 @@ func TestDestructiveGatewayDataplanePodKillNoCallerVisibleFailure(t *testing.T) 
 	case <-ctx.Done():
 		t.Fatalf("auth-path HA probe timed out: %v", ctx.Err())
 	}
-	runner.WaitForReadyEndpointCount(t, cscGatewayNS, cscGatewayName, 2, 120*time.Second)
+	deadline, _ := ctx.Deadline()
+	runner.WaitForReadyEndpointCount(t, cscGatewayNS, cscGatewayName, 2, time.Until(deadline))
 
 	for probe := 1; probe <= minPostDeleteProbes; probe++ {
 		var lastErr error

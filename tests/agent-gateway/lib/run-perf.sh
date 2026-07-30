@@ -74,11 +74,12 @@ if [[ "${REPLICA_LOSS:-0}" == "1" ]]; then
       -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)"
     if [[ -n "$victim" ]]; then
       delete_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-      kubectl --context "$KUBE_CONTEXT" -n "$GATEWAY_NS" delete pod "$victim" --grace-period=0 --force --wait=false >/dev/null 2>&1 || true
+      kubectl --context "$KUBE_CONTEXT" -n "$GATEWAY_NS" delete pod "$victim" --grace-period=0 --force --wait=false >/dev/null
       echo "$delete_at $victim" > "$ARTIFACTS/replica-loss-event.txt"
       echo "  replica-loss orchestration: deleted pod/$victim at $delete_at" >&2
     else
-      echo "  replica-loss orchestration: SKIP — could not resolve a victim Pod" >&2
+      echo "FAIL: replica-loss orchestration could not resolve a victim Pod" >&2
+      exit 1
     fi
   ) &
   replica_loss_pid=$!
@@ -156,7 +157,10 @@ else
 fi
 
 if [[ -n "$replica_loss_pid" ]]; then
-  wait "$replica_loss_pid" 2>/dev/null || true
+  if ! wait "$replica_loss_pid"; then
+    echo "FAIL: replica-loss orchestration failed" >&2
+    rc=1
+  fi
 fi
 
 if [[ "${REPLICA_LOSS:-0}" == "1" ]]; then
@@ -191,7 +195,7 @@ per_pod_counts="$(kubectl --context "$KUBE_CONTEXT" -n "$GATEWAY_NS" logs -l "$G
   | sort | uniq -c | awk '{print $1" "$2}')"
 echo "$per_pod_counts" > "$imb_artifact"
 echo "  per-replica request counts (saved to $imb_artifact):"
-echo "$per_pod_counts" | sed 's/^/    /'
+printf '    %s\n' "${per_pod_counts//$'\n'/$'\n    '}"
 count_lines="$(printf '%s\n' "$per_pod_counts" | grep -c '^[0-9]' || true)"
 if (( count_lines < 2 )); then
   echo "  per-replica imbalance: SKIP — only $count_lines replica(s) observed serving perf requests"

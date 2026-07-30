@@ -28,6 +28,7 @@ func main() {
 	srv := &http.Server{
 		Addr:              listenAddr,
 		Handler:           newHandler(),
+		ReadTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
@@ -163,7 +164,7 @@ func logMCPPosts(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			if marker := r.Header.Get("X-Dsx-Test-Invocation"); marker != "" {
-				log.Printf("Received MCP POST request %s", marker)
+				log.Printf("Received MCP POST request %q", marker)
 			} else {
 				log.Print("Received MCP POST request")
 			}
@@ -222,7 +223,7 @@ func longRunningOperationTool(ctx context.Context, req mcp.CallToolRequest) (*mc
 			if err := waitForDelay(ctx, markerDelay); err != nil {
 				return nil, err
 			}
-			log.Printf("Idle MCP request %s", req.Header.Get("X-Dsx-Test-Invocation"))
+			log.Printf("Idle MCP request %q", req.Header.Get("X-Dsx-Test-Invocation"))
 			idle -= markerDelay
 		}
 		if err := waitForDelay(ctx, idle); err != nil {
@@ -231,7 +232,7 @@ func longRunningOperationTool(ctx context.Context, req mcp.CallToolRequest) (*mc
 		if req.GetBool("block_until_cancel", false) {
 			<-ctx.Done()
 			if marker := req.Header.Get("X-Dsx-Test-Invocation"); marker != "" {
-				log.Printf("Cancelled MCP request %s", marker)
+				log.Printf("Cancelled MCP request %q", marker)
 			}
 			return nil, ctx.Err()
 		}

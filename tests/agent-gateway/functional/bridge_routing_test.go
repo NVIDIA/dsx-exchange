@@ -290,7 +290,7 @@ func TestBridgeStreamsSSEBeforeLeafResponseCompletes(t *testing.T) {
 	}, marker)
 	assertBridgeProgressEvent(t, readSSEEvent(t, reader))
 	cancelStream()
-	waitForBackendLog(t, cpc1BackendNS, "Cancelled MCP request "+marker, 30*time.Second)
+	waitForBackendLog(t, cpc1BackendNS, fmt.Sprintf("Cancelled MCP request %q", marker), 30*time.Second)
 }
 
 func TestBridgeStreamsSSEThroughFinalResultAndEOF(t *testing.T) {
@@ -603,7 +603,7 @@ func TestDestructiveBridgeLeafGracefulDrainCompletesSSE(t *testing.T) {
 		"idle_marker_ms":        4000,
 	}, marker)
 	assertBridgeProgressEvent(t, readSSEEvent(t, reader))
-	waitForBackendLog(t, cpc1BackendNS, "Idle MCP request "+marker, 15*time.Second)
+	waitForBackendLog(t, cpc1BackendNS, fmt.Sprintf("Idle MCP request %q", marker), 15*time.Second)
 
 	deleteStarted := time.Now().Add(-time.Second)
 	deleteCtx, cancelDelete := context.WithTimeout(ctx, 20*time.Second)

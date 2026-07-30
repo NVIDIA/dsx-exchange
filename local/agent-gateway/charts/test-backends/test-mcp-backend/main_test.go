@@ -122,15 +122,19 @@ func TestMCPPostLogsInvocationMarker(t *testing.T) {
 		log.SetOutput(old)
 	})
 
+	const marker = "marker-1\nspoofed"
 	postRPC(t, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"headers","arguments":{}}}`, map[string]string{
-		"X-Dsx-Test-Invocation": "marker-1",
+		"X-Dsx-Test-Invocation": marker,
 	})
 	got := logs.String()
 	if !strings.Contains(got, "Received MCP POST request") {
 		t.Fatalf("logs missing request marker: %s", got)
 	}
-	if !strings.Contains(got, "marker-1") {
+	if !strings.Contains(got, `"marker-1\nspoofed"`) {
 		t.Fatalf("logs missing invocation marker: %s", got)
+	}
+	if strings.Contains(got, marker) {
+		t.Fatalf("logs contain an unescaped invocation marker: %s", got)
 	}
 }
 
