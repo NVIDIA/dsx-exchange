@@ -29,7 +29,7 @@ Gateway requests use the Kind NodePort, not `kubectl port-forward`.
 
 ## Running
 
-```
+```bash
 cd local/agent-gateway/tests/functional && GATEWAY_URL=http://localhost:18180/mcp go test ./...
 ```
 

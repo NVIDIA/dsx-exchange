@@ -69,7 +69,7 @@ Test throughput on a single cluster:
 
 ```bash
 # From local/
-make test
+make -C .. test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_Local'
@@ -88,7 +88,7 @@ Test cross-cluster throughput (CPC1 <-> CSC):
 
 ```bash
 # From local/
-make test
+make -C .. test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_(CPCtoCSC|CSCtoCPC)'
