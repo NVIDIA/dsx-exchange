@@ -12,6 +12,7 @@ For architecture details, see [docs/architecture.md](../docs/architecture.md).
 - Docker Desktop or equivalent
 - [mise](https://mise.jdx.dev/) — installs the locked repository toolchain
 - Make
+- Optional: `mosquitto_pub` and `mosquitto_sub` for the manual MQTT examples
 
 `mise install --locked` installs the tools pinned by the root `mise.toml`
 and `mise.lock`, including:

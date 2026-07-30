@@ -212,7 +212,7 @@ This umbrella chart bundles the following subcharts:
 helm dependency update ./nats-event-bus
 
 # Install (dry-run first)
-helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run
+helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run=client
 
 # Install
 helm install dsx ./nats-event-bus -n dsx --create-namespace

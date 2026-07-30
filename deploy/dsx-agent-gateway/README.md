@@ -142,7 +142,6 @@ Download the chart dependencies:
 
 ```bash
 helm repo add valkey https://valkey-io.github.io/valkey-helm --force-update
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
 helm dependency build deploy/dsx-agent-gateway
 ```
 

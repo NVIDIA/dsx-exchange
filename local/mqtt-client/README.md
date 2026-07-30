@@ -2,6 +2,8 @@
 
 MQTT performance and functional testing framework for evaluating event bus solutions.
 
+The manual subscribe examples require `mosquitto_sub`.
+
 ## Features
 
 - **Performance Tests**: Comprehensive throughput testing (QoS 0/1, retained, federation)
