@@ -47,7 +47,7 @@ func TestInitKeepsMetricsAndPropagationWhenTraceExporterDisabled(t *testing.T) {
 	}), "test")
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil))
 	resp := waitForPrometheus(t, metricsEndpoint+"/metrics")
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read Prometheus scrape: %v", err)

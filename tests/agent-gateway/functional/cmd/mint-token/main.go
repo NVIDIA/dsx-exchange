@@ -22,9 +22,13 @@ func main() {
 		os.Exit(2)
 	}
 
+	kubeContext := os.Getenv("KUBE_CONTEXT")
+	if kubeContext == "" {
+		kubeContext = "kind-dsx-exchange"
+	}
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		clientcmd.NewDefaultClientConfigLoadingRules(),
-		&clientcmd.ConfigOverrides{},
+		&clientcmd.ConfigOverrides{CurrentContext: kubeContext},
 	)
 	cfg, err := loader.ClientConfig()
 	if err != nil {

@@ -374,7 +374,7 @@ func newOAuthIssuerServer(t *testing.T, expiresIn int) (*httptest.Server, *[]oau
 
 	mux.HandleFunc("/jwks", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"keys":[]}`)
+		_, _ = fmt.Fprint(w, `{"keys":[]}`)
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -391,7 +391,7 @@ func newOAuthIssuerServer(t *testing.T, expiresIn int) (*httptest.Server, *[]oau
 			scope:    r.Form.Get("scope"),
 		})
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"access_token":"access-token-%d","token_type":"Bearer","expires_in":%d}`, len(requests), expiresIn)
+		_, _ = fmt.Fprintf(w, `{"access_token":"access-token-%d","token_type":"Bearer","expires_in":%d}`, len(requests), expiresIn)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/.well-known/openid-configuration") {
@@ -401,7 +401,7 @@ func newOAuthIssuerServer(t *testing.T, expiresIn int) (*httptest.Server, *[]oau
 		issuerPath := strings.TrimSuffix(r.URL.Path, "/.well-known/openid-configuration")
 		lastIssuer = server.URL + issuerPath
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{
+		_, _ = fmt.Fprintf(w, `{
 			"issuer": %q,
 			"authorization_endpoint": %q,
 			"token_endpoint": %q,

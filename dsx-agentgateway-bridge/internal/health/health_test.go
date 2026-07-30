@@ -52,7 +52,7 @@ func TestStartHealthHTTPReportsBindFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listen occupied port: %v", err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	if srv, err := Start(ln.Addr().String(), nil); err == nil {
 		Shutdown(srv)

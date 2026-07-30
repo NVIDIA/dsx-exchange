@@ -194,8 +194,8 @@ jobs:
           languages: go
           build-mode: manual
           build-command: |
-            go -C auth-callout build ./...
-            go -C dsx-agentgateway-bridge build ./...
+            (cd auth-callout && go build -a ./...)
+            (cd dsx-agentgateway-bridge && go build -a ./...)
           upload-sarif: "false"
           post-pr-comment: "true"
 
