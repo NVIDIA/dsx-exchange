@@ -1,7 +1,6 @@
 # Infrastructure Setup
 
-This directory contains the shared infrastructure for the DSX Event Bus and
-DSX Agent Gateway evaluation environment.
+This directory contains infrastructure for the local DSX Exchange environment.
 
 ## Overview
 

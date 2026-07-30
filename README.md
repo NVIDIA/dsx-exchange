@@ -1,48 +1,24 @@
 # DSX Exchange
 
-DSX Exchange contains the DSX Event Bus and DSX Agent Gateway, including their
-schemas, services, Helm charts, and shared local evaluation environment.
+DSX Exchange is a monorepo for the DSX Event Bus and DSX Agent Gateway,
+including schemas, services, Helm charts, and local evaluation tooling.
 
 Documentation for DSX Exchange is available at [https://docs.nvidia.com/dsx-exchange](https://docs.nvidia.com/dsx-exchange).
 
 ## Overview
 
-The Event Bus provides federated MQTT messaging across DSX control-plane and
-data-plane sites. The DSX Agent Gateway provides one authenticated MCP endpoint
-for direct and remote domain MCP servers. Its bridge uses the Event Bus to
-discover and invoke MCP servers in remote shards.
+DSX Exchange includes:
 
-```mermaid
-flowchart LR
-    agent[AI agent] -->|MCP + bearer| gateway[DSX Agent Gateway]
-    gateway --> direct[Domain MCP servers]
-    gateway --> hub[Agent Gateway bridge hub]
-    hub <-->|request/reply| eventbus[DSX Event Bus]
-    eventbus <-->|request/reply| leaf[Agent Gateway bridge leaf]
-    leaf --> shard[Shard DSX Agent Gateway]
-    shard --> remote[Remote domain MCP servers]
-    producers[DSX services and devices] <-->|MQTT| eventbus
-```
+- `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
+- `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
+- `dsx-agentgateway-bridge`: MCP discovery and request routing over NATS.
+- `deploy`: Helm charts for the NATS event bus and DSX Agent Gateway.
+- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT and MCP tests, and benchmark tooling.
 
-| Path | Purpose |
-|---|---|
-| `schemas/` | AsyncAPI contracts for Event Bus MQTT topics and payloads |
-| `auth-callout/` | NATS authentication and authorization service |
-| `dsx-agentgateway-bridge/` | MCP discovery and request routing across Event Bus sites |
-| `deploy/nats-event-bus/` | Event Bus Helm chart |
-| `deploy/dsx-agent-gateway/` | DSX Agent Gateway Helm chart |
-| `local/` | Shared one-cluster Kind, Skaffold, Zot, CSC, CPC-1, and CPC-2 environment |
-| `tests/agent-gateway/` | Agent Gateway functional and performance validation |
+The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
-The Event Bus is schema agnostic. AsyncAPI schemas document its external
-contracts, while NATS and the auth callout enforce routing, federation, and
-authorization. The DSX Agent Gateway exposes MCP streamable HTTP at `/mcp`,
-validates configured JWT issuers, derives tenant identity with CEL, and denies
-unauthorized MCP discovery and invocation by default.
-
-See the [Event Bus deployment guide](deploy/README.md), the
-[DSX Agent Gateway chart guide](deploy/dsx-agent-gateway/README.md), and the
-[bridge guide](dsx-agentgateway-bridge/README.md) for component configuration.
+The DSX Agent Gateway routes authenticated MCP requests to local and remote MCP
+servers; its bridge uses the Event Bus for remote discovery and request routing.
 
 ## Requirements
 
@@ -78,40 +54,21 @@ make dummy-bms
 
 ## Usage
 
-Use the root Makefile for repository-wide workflows:
+Use the top-level Makefile for repository workflows:
 
 ```bash
 make help
-make check       # static validation
+make check
 make test
-make local-up
-make test-dev
-make skaffold-dev
-make clean
-```
-
-Run focused tests while changing one component:
-
-```bash
-make -C auth-callout test
-go -C dsx-agentgateway-bridge test ./...
 ```
 
 After the local Kind environment is deployed, run the dummy BMS demo with
 `make dummy-bms`.
 
-The local environment deploys both products from the root source tree. It uses
-one Kind node and keeps CSC, CPC-1, and CPC-2 as isolated logical-site
-namespaces.
-
 ## Performance
 
 `make test` includes smoke-sized Event Bus and Agent Gateway performance
-validation suitable for Kind. Run the sustained Agent Gateway benchmark with:
-
-```bash
-make perf-benchmark
-```
+validation suitable for Kind.
 
 Run the Event Bus benchmark directly:
 
