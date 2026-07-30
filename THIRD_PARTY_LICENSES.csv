@@ -37,7 +37,7 @@ github.com/google/jsonschema-go/jsonschema,https://github.com/google/jsonschema-
 github.com/google/uuid,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/google/uuid/LICENSE,BSD-3-Clause
 github.com/gorilla/handlers,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/gorilla/handlers/LICENSE,BSD-3-Clause
 github.com/gorilla/mux,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/gorilla/mux/LICENSE,BSD-3-Clause
-github.com/gorilla/websocket,https://github.com/gorilla/websocket/blob/v1.5.3/LICENSE,BSD-2-Clause
+github.com/gorilla/websocket,https://github.com/gorilla/websocket/blob/e064f32e3674/LICENSE,BSD-2-Clause
 github.com/grafana/regexp,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/grafana/regexp/LICENSE,BSD-3-Clause
 github.com/grpc-ecosystem/grpc-gateway/v2,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/github.com/grpc-ecosystem/grpc-gateway/v2/LICENSE,BSD-3-Clause
 github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.12/LICENSE,MIT
@@ -158,7 +158,7 @@ golang.org/x/oauth2,https://cs.opensource.google/go/x/oauth2/+/v0.36.0:LICENSE,B
 golang.org/x/sync/semaphore,https://cs.opensource.google/go/x/sync/+/v0.17.0:LICENSE,BSD-3-Clause
 golang.org/x/sync/singleflight,https://cs.opensource.google/go/x/sync/+/v0.21.0:LICENSE,BSD-3-Clause
 golang.org/x/sys,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/sys/LICENSE,BSD-3-Clause
-golang.org/x/sys/unix,https://cs.opensource.google/go/x/sys/+/v0.37.0:LICENSE,BSD-3-Clause
+golang.org/x/sys/unix,https://cs.opensource.google/go/x/sys/+/v0.46.0:LICENSE,BSD-3-Clause
 golang.org/x/term,https://cs.opensource.google/go/x/term/+/v0.44.0:LICENSE,BSD-3-Clause
 golang.org/x/text,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/text/LICENSE,BSD-3-Clause
 golang.org/x/time/rate,https://github.com/NVIDIA/dsx-exchange/blob/HEAD/auth-callout/vendor/golang.org/x/time/LICENSE,BSD-3-Clause

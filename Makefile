@@ -48,7 +48,7 @@ test: check ## Run the full validation suite
 test-dev: ## Run live validation against an existing local stack
 	$(MISE_EXEC) go -C local/mqtt-client test -count=1 -v ./tests/functional/ -timeout $(FUNCTIONAL_E2E_TIMEOUT)
 	$(MISE_EXEC) env $(PERFORMANCE_E2E_ENV) go -C local/mqtt-client test -count=1 -v ./tests/performance/ -timeout 10m
-	$(MISE_EXEC) bash tests/agent-gateway/run.sh
+	$(MISE_EXEC) bash local/agent-gateway/run.sh
 
 skaffold-dev: ## Run Skaffold dev for the complete local stack
 	$(MAKE) -C "$(ROOT_DIR)/local" skaffold-dev
@@ -57,7 +57,7 @@ third-party-licenses: ## Regenerate third-party license inventories
 	$(MISE_EXEC) bash scripts/third-party-licenses.sh fix
 
 perf-benchmark: ## Run Agent Gateway e2e with the sustained k6 benchmark profile
-	$(MISE_EXEC) env RUN_PERF_BENCHMARK=1 bash tests/agent-gateway/run.sh
+	$(MISE_EXEC) env RUN_PERF_PROFILE=benchmark bash local/agent-gateway/run.sh
 
 dummy-bms: ## Publish looping dummy BMS data to the local CSC MQTT broker
 	$(MISE_EXEC) go -C local/mqtt-client run ./cmd/dummy-bms --broker "$(CSC_BROKER_URL)" --csv examples/dsx_exemplar.csv --schema ../../schemas/asyncapi/bms/bms.yaml

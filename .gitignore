@@ -32,7 +32,6 @@ scorecard.png
 /local/event-bus/nsc/
 /local/event-bus/secrets/
 /local/agent-gateway/secret-generators/demoidp/generated/
-/tests/agent-gateway/artifacts/
 
 # Local Go build and test output.
 *.prof
