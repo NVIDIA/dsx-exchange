@@ -19,10 +19,10 @@ agentgateway:
         health: 9093
         metrics: 9092
     image:
-      tag: v1.3.1@sha256:10ba2e2232df4d131ad41855b1a7cdb33556a63d89f42adf299979b124fe6170
+      tag: v1.4.1@sha256:8b9e2bbe65b6a4b2ed93acd4fd0ede11f1eb2cfa8495e2b67c2d890e7fce8cec
   proxy:
     image:
-      tag: v1.3.1@sha256:c3ce7b75da90fef70239befcc1c3adc05152d7b9dd21fcb8351178026a2c4381
+      tag: v1.4.1@sha256:efd79355b89094a8225a9db465d9a01dc656b377f0bab458761b935a13231d29
 
 gateway:
   replicaCount: 3

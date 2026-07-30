@@ -1,9 +1,9 @@
 dependencies:
 - name: agentgateway
   repository: oci://cr.agentgateway.dev/charts
-  version: v1.3.1
+  version: v1.4.1
 - name: valkey
   repository: https://valkey-io.github.io/valkey-helm
   version: 0.9.4
-digest: sha256:483612ae7b889a43e4b741a9748739ab46c61c37695ccb3f234cac8b3b86f40b
-generated: "2026-07-10T20:55:36.049095192Z"
+digest: sha256:95a90516b959004c91319be19730bd8470b5018be704627fae2e86d568b937f3
+generated: "2026-07-30T14:31:44.80307-07:00"

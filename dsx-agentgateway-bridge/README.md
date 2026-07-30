@@ -1,6 +1,6 @@
-# DSX Agent Gateway Bridge
+# dsx-agentgateway-bridge
 
-One entry DSX Agent Gateway exposes remote shard catalogs through the bridge.
+One entry Agentgateway exposes remote shard catalogs through the bridge.
 Bridge processes keep no MCP session state.
 
 The hub is a target behind the entry gateway. Leaves sit in front of shard
@@ -14,14 +14,14 @@ Broader dataplane validation is documented at the repo root.
 ```mermaid
 flowchart TB
     caller["MCP caller"]
-    entry["Entry DSX Agent Gateway"]
+    entry["Entry Agentgateway"]
     hub["Bridge hub"]
     nats["DSX Exchange NATS"]
 
     subgraph shardN["Shard N"]
         direction TB
         leafN["Bridge leaf"]
-        gatewayN["DSX Agent Gateway"]
+        gatewayN["Agentgateway"]
         domainsN["Domain MCP servers"]
         leafN -->|stateless /mcp| gatewayN
         gatewayN -->|MCP passthrough| domainsN
@@ -30,7 +30,7 @@ flowchart TB
     subgraph shard2["Shard 2"]
         direction TB
         leaf2["Bridge leaf"]
-        gateway2["DSX Agent Gateway"]
+        gateway2["Agentgateway"]
         domains2["Domain MCP servers"]
         leaf2 -->|stateless /mcp| gateway2
         gateway2 -->|MCP passthrough| domains2
@@ -39,7 +39,7 @@ flowchart TB
     subgraph shard1["Shard 1"]
         direction TB
         leaf1["Bridge leaf"]
-        gateway1["DSX Agent Gateway"]
+        gateway1["Agentgateway"]
         domains1["Domain MCP servers"]
         leaf1 -->|stateless /mcp| gateway1
         gateway1 -->|MCP passthrough| domains1
@@ -66,7 +66,7 @@ The hub also performs a synchronous refresh during startup.
 ```mermaid
 sequenceDiagram
     participant Caller
-    participant Entry as Entry DSX Agent Gateway
+    participant Entry as Entry Agentgateway
     box Hub process
     participant Hub as Bridge hub
     participant Cache as Shard cache
@@ -118,11 +118,11 @@ Example for a list response from shard `cpc-1`:
 ```mermaid
 sequenceDiagram
     participant Caller
-    participant Entry as Entry DSX Agent Gateway
+    participant Entry as Entry Agentgateway
     participant Hub as Bridge hub
     participant Bus as DSX Exchange NATS
     participant Leaf as One bridge leaf
-    participant Remote as Remote DSX Agent Gateway
+    participant Remote as Remote Agentgateway
 
     Caller->>Entry: catalog list method
     Entry->>Hub: bridge target list
@@ -153,11 +153,11 @@ resource-reference completion are not supported by the stateless bridge.
 ```mermaid
 sequenceDiagram
     participant Caller
-    participant Entry as Entry DSX Agent Gateway
+    participant Entry as Entry Agentgateway
     participant Hub as Bridge hub
     participant Bus as DSX Exchange NATS
     participant Leaf as Selected-shard leaf
-    participant Remote as Shard DSX Agent Gateway
+    participant Remote as Shard Agentgateway
 
     Caller->>Entry: request with shard value
     Entry->>Hub: bridge target request
@@ -182,7 +182,7 @@ sequenceDiagram
     participant Caller
     participant Hub as Bridge hub
     participant Leaf as Owning leaf instance
-    participant Gateway as Shard DSX Agent Gateway
+    participant Gateway as Shard Agentgateway
 
     Caller->>Hub: MCP request
     Hub->>Leaf: request through shard queue
@@ -219,7 +219,7 @@ JSON-RPC notifications, including `notifications/initialized`, list-change
 notifications, and task-status notifications, return HTTP 202 with no body.
 Methods that need MCP session state, client state, or resource path routing in
 the bridge return an unsupported JSON-RPC error. Routed shard invocations
-preserve the leaf DSX Agent Gateway's streamable HTTP response. JSON responses
+preserve the leaf Agentgateway's streamable HTTP response. JSON responses
 return as one ordinary JSON-RPC response. An SSE response identifies its leaf
 instance in the initial reply. The hub then uses ordinary request-reply reads
 against that instance. Each read returns data, a pending marker, or EOF. Reads

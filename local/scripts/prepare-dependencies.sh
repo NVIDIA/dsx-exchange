@@ -65,12 +65,12 @@ if [[ -d "${repo_root}/deploy/dsx-agent-gateway" ]]; then
   "${cache_chart}" nats-2.14.2.tgz nats 2.14.2 https://nats-io.github.io/k8s/helm/charts/
   "${cache_chart}" opentelemetry-collector-0.164.1.tgz opentelemetry-collector 0.164.1 https://open-telemetry.github.io/opentelemetry-helm-charts
   "${cache_chart}" opentelemetry-operator-0.119.0.tgz opentelemetry-operator 0.119.0 https://open-telemetry.github.io/opentelemetry-helm-charts
-  "${cache_chart}" agentgateway-crds-v1.3.1.tgz oci://cr.agentgateway.dev/charts/agentgateway-crds v1.3.1
-  "${cache_chart}" agentgateway-v1.3.1.tgz oci://cr.agentgateway.dev/charts/agentgateway v1.3.1
+  "${cache_chart}" agentgateway-crds-v1.4.1.tgz oci://cr.agentgateway.dev/charts/agentgateway-crds v1.4.1
+  "${cache_chart}" agentgateway-v1.4.1.tgz oci://cr.agentgateway.dev/charts/agentgateway v1.4.1
   "${cache_chart}" valkey-0.9.4.tgz valkey 0.9.4 https://valkey-io.github.io/valkey-helm
 
   mkdir -p "${gateway_charts}"
-  for archive in agentgateway-v1.3.1.tgz valkey-0.9.4.tgz; do
+  for archive in agentgateway-v1.4.1.tgz valkey-0.9.4.tgz; do
     cmp -s "${cache_dir}/${archive}" "${gateway_charts}/${archive}" ||
       cp "${cache_dir}/${archive}" "${gateway_charts}/${archive}"
   done

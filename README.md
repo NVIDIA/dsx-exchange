@@ -1,7 +1,7 @@
 # DSX Exchange
 
-DSX Exchange is a monorepo for the DSX Event Bus and DSX Agent Gateway,
-including schemas, services, Helm charts, and local evaluation tooling.
+DSX Exchange is a monorepo for the DSX Event Bus and Agentgateway, including
+schemas, services, Helm charts, and local evaluation tooling.
 
 Documentation for DSX Exchange is available at [https://docs.nvidia.com/dsx-exchange](https://docs.nvidia.com/dsx-exchange).
 
@@ -12,13 +12,14 @@ DSX Exchange includes:
 - `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
 - `dsx-agentgateway-bridge`: MCP discovery and request routing over NATS.
-- `deploy`: Helm charts for the NATS event bus and DSX Agent Gateway.
+- `deploy`: Helm charts for the NATS event bus and Agentgateway.
 - `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT and MCP tests, and benchmark tooling.
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
 
-The DSX Agent Gateway routes authenticated MCP requests to local and remote MCP
-servers; its bridge uses the Event Bus for remote discovery and request routing.
+Upstream Agentgateway routes authenticated MCP requests to local MCP servers.
+The `dsx-agentgateway-bridge` adds remote discovery and request routing over the
+DSX Event Bus.
 
 ## Requirements
 

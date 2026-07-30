@@ -1,17 +1,17 @@
-# DSX Agent Gateway Helm Chart
+# Agentgateway Deployment Helm Chart
 
 ## What the chart installs
 
-The chart deploys one DSX Agent Gateway that routes `/mcp` requests to selected
-in-cluster MCP Services, authenticates callers, and applies tenant authorization
-and rate limits. By default it also installs the pinned agentgateway controller,
-a two-replica rate-limit service, and Valkey via chart 0.9.4 for
-rate-limit counters. The optional bridge connects gateway shards through NATS.
+The chart deploys Agentgateway for MCP ingress. It also packages
+optional `dsx-agentgateway-bridge` cross-shard routing through NATS, deployment
+defaults, rate limiting, and observability resources. By default it installs the
+pinned Agentgateway controller, a two-replica rate-limit service, and Valkey via
+chart 0.9.4 for rate-limit counters.
 
 ## Prerequisites
 
 - Helm and `kubectl`.
-- Gateway API v1.5.1 CRDs and agentgateway v1.3.1 CRDs installed by a cluster
+- Gateway API v1.5.1 CRDs and agentgateway v1.4.1 CRDs installed by a cluster
   administrator. This chart does not install those CRDs.
 - The DSX observability stack, including Prometheus Operator CRDs and the
   OpenTelemetry Operator resources shown under Operations. Disable the
@@ -22,7 +22,7 @@ rate-limit counters. The optional bridge connects gateway shards through NATS.
 
 ## Supported deployment model
 
-The DSX Agent Gateway listens on plaintext HTTP port 80 through an internal
+The Agentgateway dataplane listens on plaintext HTTP port 80 through an internal
 `ClusterIP` Service. `NodePort` is the only other supported Service type. An
 operator-owned edge can route to this Service. See the
 [HTTP-only Envoy Gateway edge example](examples/envoy-edge-route.yaml).
@@ -135,7 +135,7 @@ helm upgrade --install agentgateway-crds \
   oci://cr.agentgateway.dev/charts/agentgateway-crds \
   --namespace agentgateway-system \
   --create-namespace \
-  --version v1.3.1
+  --version v1.4.1
 ```
 
 Download the chart dependencies:
@@ -168,7 +168,7 @@ helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \
 
 ## Gateway programming status
 
-Wait until the DSX Agent Gateway is programmed:
+Wait until the Agentgateway resource is programmed:
 
 ```bash
 kubectl wait \
@@ -253,7 +253,7 @@ valkey:
 
 | Component | Metrics source | Tracing source | Configuration source |
 |---|---|---|---|
-| DSX Agent Gateway dataplane | Native agentgateway Prometheus endpoint | Native agentgateway tracing | `observability` values and `AgentgatewayPolicy` |
+| Agentgateway dataplane | Native agentgateway Prometheus endpoint | Native agentgateway tracing | `observability` values and `AgentgatewayPolicy` |
 | agentgateway controller | Native controller Prometheus endpoint | Not supported upstream | Upstream agentgateway values and chart-owned discovery |
 | Rate-limit service | Native Prometheus support | Native OpenTelemetry support | `observability` values mapped to native settings |
 | Bridge | OpenTelemetry Go runtime and HTTP instrumentation | OpenTelemetry Go HTTP instrumentation and SDK | Standard OpenTelemetry environment configuration |
