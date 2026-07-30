@@ -1,19 +1,24 @@
 # DSX Exchange
 
-DSX Exchange is a monorepo for DSX event bus schemas, authentication, deployment, and local evaluation tooling.
+DSX Exchange is a monorepo for the DSX Event Bus and DSX Agent Gateway,
+including schemas, services, Helm charts, and local evaluation tooling.
 
 Documentation for DSX Exchange is available at [https://docs.nvidia.com/dsx-exchange](https://docs.nvidia.com/dsx-exchange).
 
 ## Overview
 
-DSX Exchange provides the repository pieces needed to describe, deploy, and validate DSX MQTT event bus integrations:
+DSX Exchange includes:
 
 - `schemas`: AsyncAPI contracts for DSX Exchange MQTT topics and payloads.
 - `auth-callout`: NATS auth callout service for OAuth2, mTLS, NKey, and no-auth profiles.
-- `deploy`: Helm chart for the NATS event bus deployment.
-- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT tests, and benchmark tooling.
+- `dsx-agentgateway-bridge`: MCP discovery and request routing over NATS.
+- `deploy`: Helm charts for the NATS event bus and DSX Agent Gateway.
+- `local`: Kind-based local evaluation environment, Skaffold deployment, MQTT and MCP tests, and benchmark tooling.
 
 The event bus itself is schema agnostic. Schemas document externally visible contracts; NATS and the auth callout enforce routing, federation, and authorization behavior.
+
+The DSX Agent Gateway routes authenticated MCP requests to local and remote MCP
+servers; its bridge uses the Event Bus for remote discovery and request routing.
 
 ## Requirements
 
@@ -37,7 +42,7 @@ mise install --locked
 make test
 ```
 
-If you already have a DSX Exchange broker and need to build or test an MQTT
+If you already have a DSX Event Bus and need to build or test an MQTT
 integration application, start with the
 [Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
 
@@ -49,36 +54,23 @@ make dummy-bms
 
 ## Usage
 
-Use the top-level Makefile for common validation:
+Use the top-level Makefile for repository workflows:
 
 ```bash
 make help
-make test
-```
-
-Run component-specific targets from the directory you are changing, and use
-`make check` for repo-level license and chart validation:
-
-```bash
-make -C auth-callout test
 make check
+make test
 ```
 
 After the local Kind environment is deployed, run the dummy BMS demo with
 `make dummy-bms`.
 
-The local evaluation environment uses the top-level `auth-callout` and `deploy` directories directly.
-
 ## Performance
 
-The full local e2e target includes a performance smoke profile sized for
-repeatable Kind validation:
+`make test` includes smoke-sized Event Bus and Agent Gateway performance
+validation suitable for Kind.
 
-```bash
-make test
-```
-
-Run the full benchmark suite directly:
+Run the Event Bus benchmark directly:
 
 ```bash
 go -C local/mqttbs run ./cmd/mqttbs run basic-suite \
@@ -147,6 +139,8 @@ Use GitHub issues and pull requests for public project discussion, bug reports, 
 
 - [NATS](https://nats.io/)
 - [NATS auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
+- [agentgateway](https://agentgateway.dev/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 - [AsyncAPI](https://www.asyncapi.com/)
 - [CloudEvents MQTT Protocol Binding](https://github.com/cloudevents/spec/blob/main/cloudevents/bindings/mqtt-protocol-binding.md)
 

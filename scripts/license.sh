@@ -61,7 +61,6 @@ args=(
 	-ignore 'local/event-bus/nsc/**'
 	-ignore 'local/event-bus/secrets/**'
 	-ignore 'local/**/secret-generators/**/generated/**'
-	-ignore 'tests/agent-gateway/artifacts/**'
 	-ignore 'THIRD_PARTY_LICENSES*'
 )
 [[ "${mode}" == "check" ]] && args=(-check "${args[@]}")

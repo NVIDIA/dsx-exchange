@@ -1,0 +1,150 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- include "dsxAgentGateway.auth.validateProviders" . }}
+{{- $tenantIdExpr := include "dsxAgentGateway.auth.tenantIdExpression" . }}
+{{- $trafficExpr := include "dsxAgentGateway.auth.trafficExpression" . }}
+{{- $mcpAuthorizationExpr := include "dsxAgentGateway.auth.mcpAuthorizationExpression" . }}
+{{- $observability := .Values.observability | default (dict) }}
+{{- $tracing := $observability.tracing | default (dict) }}
+{{- $tracingEnabled := $tracing.enabled | default false }}
+{{- $exporter := $tracing.exporter | default (dict) }}
+{{- $endpointHost := "127.0.0.1" }}
+{{- $endpointPort := 4318 }}
+{{- $agentgatewayProtocol := "HTTP" }}
+{{- $providers := .Values.auth.jwt.providers | default (dict) }}
+{{- if $tracingEnabled }}
+{{- include "dsxAgentGateway.validateOpenTelemetry" . }}
+{{/* SDK exporter values stay absent by default so the Instrumentation CR can
+inject them. Agentgateway uses the same values natively and therefore resolves
+the absent case to the standard OTLP/HTTP sidecar listener. */}}
+{{- $exporterEndpoint := $exporter.endpoint | default "http://127.0.0.1:4318" -}}
+{{- $exporterProtocol := $exporter.protocol | default "http/protobuf" -}}
+{{- $parsedEndpoint := urlParse $exporterEndpoint -}}
+{{- $endpointScheme := get $parsedEndpoint "scheme" | default "" -}}
+{{- $endpointAuthority := get $parsedEndpoint "host" | default "" -}}
+{{- $endpointPortSuffix := regexFind ":[0-9]+$" $endpointAuthority -}}
+{{- if or (ne $endpointScheme "http") (eq $endpointPortSuffix "") -}}
+{{- fail "observability.tracing.exporter.endpoint must be an http URL with an explicit port" -}}
+{{- end -}}
+{{- $endpointHost = trimSuffix $endpointPortSuffix $endpointAuthority | trimAll "[]" -}}
+{{- $endpointPort = trimPrefix ":" $endpointPortSuffix | int -}}
+{{- if eq $exporterProtocol "grpc" -}}
+{{- $agentgatewayProtocol = "GRPC" -}}
+{{- end -}}
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: {{ include "dsxAgentGateway.otelBackendName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  # The injected collector sidecar shares the dataplane Pod network namespace.
+  static:
+    host: {{ $endpointHost | quote }}
+    port: {{ $endpointPort }}
+---
+{{- end }}
+{{- range $providerName := keys $providers | sortAlpha }}
+{{- $provider := dict "root" $ "name" $providerName }}
+{{- $endpoint := include "dsxAgentGateway.auth.jwksEndpoint" $provider | fromJson }}
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: {{ include "dsxAgentGateway.auth.jwksBackendName" $provider }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" $ | nindent 4 }}
+spec:
+  {{- if eq $endpoint.scheme "https" }}
+  policies:
+    tls: {}
+  {{- end }}
+  static:
+    host: {{ $endpoint.host | quote }}
+    port: {{ $endpoint.port }}
+---
+{{- end }}
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.agentgatewayPolicyName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ include "dsxAgentGateway.gatewayName" . }}
+  {{- if $tracingEnabled }}
+  frontend:
+    tracing:
+      backendRef:
+        group: agentgateway.dev
+        kind: AgentgatewayBackend
+        name: {{ include "dsxAgentGateway.otelBackendName" . }}
+      protocol: {{ $agentgatewayProtocol }}
+      randomSampling: {{ $tracing.sampleRatio | quote }}
+      resources:
+        # Agentgateway expects CEL expressions, including quotes for literals.
+        - name: service.name
+          expression: {{ printf "%q" (printf "%s-agentgateway" .Chart.Name) | quote }}
+        - name: service.namespace
+          expression: {{ printf "%q" .Release.Namespace | quote }}
+  {{- end }}
+  traffic:
+    authorization:
+      action: Require
+      policy:
+        matchExpressions:
+          - {{ $trafficExpr | quote }}
+    jwtAuthentication:
+      mode: Strict
+      providers:
+{{ include "dsxAgentGateway.auth.jwtProviders" . | trim | indent 8 }}
+    rateLimit:
+      global:
+        domain: dsx-agent-gateway
+        backendRef:
+          group: ""
+          kind: Service
+          name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+          namespace: {{ .Release.Namespace }}
+          port: 8081
+        # Select availability or enforcement when rate limiting fails.
+        failureMode: {{ .Values.rateLimit.failureMode | default "FailOpen" | quote }}
+        descriptors:
+          - entries:
+              # Key counters by the verified tenant ID.
+              - name: tenant
+                expression: {{ $tenantIdExpr | quote }}
+            unit: Requests
+  backend:
+    auth:
+      # Preserve the caller bearer for upstream authorization.
+      passthrough: {}
+    mcp:
+      authorization:
+        policy:
+          matchExpressions:
+            - {{ $mcpAuthorizationExpr | quote }}
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.releaseResourceName" (dict "root" . "suffix" "ratelimit-timeout") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+      sectionName: "8081"
+  backend:
+    http:
+      # Bound remote rate-limit calls so FailOpen can take effect.
+      requestTimeout: 2s

@@ -1,0 +1,198 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Gateway, rate-limit, and bridge Pods. Example: kata
+runtimeClassName: ""
+
+agentgateway:
+  enabled: true
+  nameOverride: controller # Avoid collision with the release-named dataplane Service
+  # The parent chart owns metrics discovery through its ServiceMonitor.
+  podAnnotations:
+    prometheus.io/scrape: "false"
+  controller:
+    # The parent chart owns this Service so its metrics port follows the unified switch.
+    service:
+      enabled: false
+      ports:
+        agwGrpc: 9978
+        health: 9093
+        metrics: 9092
+    image:
+      tag: v1.3.1@sha256:10ba2e2232df4d131ad41855b1a7cdb33556a63d89f42adf299979b124fe6170
+  proxy:
+    image:
+      tag: v1.3.1@sha256:c3ce7b75da90fef70239befcc1c3adc05152d7b9dd21fcb8351178026a2c4381
+
+gateway:
+  replicaCount: 3
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  service:
+    type: ClusterIP # ClusterIP | NodePort
+    nodePort: null # Required with NodePort
+  ipv6:
+    enabled: true
+
+auth:
+  jwt:
+    # Map of arbitrary provider names to JWT validators. Each token aud must
+    # contain at least one configured audience. Additional audiences are allowed.
+    # Example entry:
+    # human:
+    #   issuer: https://login.example.com
+    #   audiences: [dsx-agent-gateway]
+    #   jwksUrl: https://login.example.com/.well-known/jwks.json
+    #   tenantIdExpression: '"oidc:" + jwt.sub'
+    providers: {}
+  cel:
+    # Full target access. Example: oidc:operator
+    operatorTenantId: ""
+    # Selected MCP target names: <Service>-<named port>
+    # Example: [launchlayer-mcp]
+    unprivilegedTenantMCPs: []
+
+# MCP upstreams keyed by a stable target name. Values layers can add or
+# override entries independently. Selector entries discover Service ports marked
+# appProtocol: agentgateway.dev/mcp.
+# Example selector:
+# launchlayer-selector:
+#   namespace: dsx-agent-gateway
+#   serviceLabels:
+#     app.kubernetes.io/name: launchlayer
+# Example static target:
+# launchlayer-external:
+#   mode: static
+#   address: https://launchlayer.example.com/mcp
+#   protocol: StreamableHTTP # Optional. StreamableHTTP | SSE
+#   requestTimeout: 10s # Optional response-header deadline override
+upstreams: {}
+
+# Default deadline for receiving upstream response headers. Streaming response
+# bodies may continue after this duration.
+upstreamRequestTimeout: 5s
+
+rateLimit:
+  tenantRequestsPerSecond: 30 # >= 1
+  # Derived tenant ID. One of unlimited or requestsPerSecond:
+  # - tenant: oidc:operator
+  #   unlimited: true
+  # - tenant: tenant-a
+  #   requestsPerSecond: 60
+  tenantOverrides: []
+  # Rate-limit failure: FailOpen serves, FailClosed denies
+  failureMode: FailOpen
+  image:
+    repository: envoyproxy/ratelimit
+    tag: master@sha256:35470363e917f88fde2c0dd816993a116681178af2feed0219c82745fb3db111
+  replicaCount: 2
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+
+valkey:
+  enabled: true
+  # Also used by the rate-limit wait init container.
+  image:
+    registry: docker.io
+    repository: valkey/valkey
+    pullPolicy: IfNotPresent
+    tag: "9.0.2"
+  replica:
+    enabled: true
+    persistence:
+      size: 1Gi # Per Pod
+  service:
+    port: 6379 # Parent RLS and NetworkPolicy
+  podDisruptionBudget:
+    enabled: true
+  # valkey.enabled=false: in-cluster example
+  # {serviceName: valkey, namespace: data, port: 6379}
+  # Off-cluster example: {host: valkey.example, port: 6379}
+  external: {}
+  metrics:
+    # Configured independently through the upstream Valkey chart.
+    enabled: true
+    exporter:
+      port: 9121
+      extraEnvs:
+        REDIS_EXPORTER_LOG_FORMAT: json
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        capabilities:
+          drop: [ALL]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+
+bridge:
+  enabled: false
+  role: hub # hub | leaf
+  image:
+    repository: dsx-agent-gateway/dsx-agentgateway-bridge
+    pullPolicy: IfNotPresent
+  # Registry credentials for the bridge image. Example: [{name: ngc-dsx-registry-creds}]
+  imagePullSecrets: []
+  replicaCount: 2
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  http:
+    # Maximum lifetime of a hub HTTP request.
+    requestTimeout: 5m
+    # Maximum time an individual hub response write may block.
+    writeTimeout: 30s
+  # Leaf only. One NATS subject token. Example: cpc-1
+  # Forbidden: `.`, `*`, `>`, NUL, whitespace
+  shardId: ""
+  nats:
+    # In-cluster Service example: {serviceName: nats, namespace: nats, port: 4222}
+    endpoint: {}
+    auth:
+      mode: noauth # noauth | oauth
+      # Example:
+      # issuer: {url: https://issuer.example}
+      # Or in-cluster Service issuer:
+      # issuer: {scheme: https, serviceName: oidc, namespace: identity, port: 443}
+      # scope: nats
+      # clientCredentialsSecretRef: {name: nats-oauth}
+      oauth: {}
+    # caSecretRef or serverName also enables TLS
+    # Example: {enabled: true, serverName: nats.example, caSecretRef: {name: nats-ca, key: ca.crt}}
+    tls: {}
+
+observability:
+  metrics:
+    # false omits Prometheus Operator resources and disables chart-managed export.
+    enabled: true
+    # NetworkPolicy allowlist for namespaces containing metrics scrapers.
+    scrapeNamespaces: [dsx-obs]
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
+  tracing:
+    # false removes trace configuration, Operator injection, and sidecars.
+    enabled: true
+    # OpenTelemetry Operator resources installed by the DSX observability stack.
+    # The sidecar must expose OTLP/HTTP on 127.0.0.1:4318 for agentgateway.
+    instrumentationRef: dsx-obs/default-instrumentation
+    sidecarRef: dsx-obs/default-sidecar
+    # Optional exporter override for agentgateway, bridge, and rate-limit.
+    # Endpoint and protocol must be set together. Empty values leave SDK
+    # environment injection to the Instrumentation CR while agentgateway uses
+    # its native http://127.0.0.1:4318 OTLP/HTTP default.
+    exporter: {}
+    sampleRatio: "1.0" # 0.0-1.0

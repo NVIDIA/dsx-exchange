@@ -1,0 +1,22 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: dsx-agent-gateway
+description: DSX Agent Gateway chart for agentgateway-based MCP ingress, bridge routing, rate limiting, and optional bundled agentgateway controller and Valkey.
+type: application
+version: 0.3.0
+appVersion: "0.3.0"
+home: https://github.com/NVIDIA/dsx-exchange
+sources:
+  - https://github.com/NVIDIA/dsx-exchange
+
+dependencies:
+  - name: agentgateway
+    version: "v1.3.1"
+    repository: oci://cr.agentgateway.dev/charts
+    condition: agentgateway.enabled
+  - name: valkey
+    version: "0.9.4"
+    repository: https://valkey-io.github.io/valkey-helm
+    condition: valkey.enabled

@@ -6,6 +6,10 @@ This project uses a human-readable changelog. Add entries under `Unreleased` bef
 
 ## Unreleased
 
+### Added
+
+- DSX Agent Gateway bridge, Helm chart, local deployment, and end-to-end validation.
+
 ## [v2.5.11] - 2026-05-29
 
 ### Added

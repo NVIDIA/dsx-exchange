@@ -1,0 +1,36 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: agent-gateway-infra
+requires:
+- path: ../infra/gateway-api/skaffold.yaml
+  configs:
+  - gateway-api-crds
+- path: ../infra/prometheus/skaffold.yaml
+  configs:
+  - prometheus-operator-crds
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    flags:
+      install:
+      - --timeout=5m
+      upgrade:
+      - --timeout=5m
+    releases:
+    - name: agentgateway-crds
+      chartPath: ../../.cache/helm/agentgateway-crds-v1.3.1.tgz
+      namespace: agentgateway-system
+      createNamespace: true
+      skipBuildDependencies: true
+    - name: opentelemetry-operator
+      chartPath: ../../.cache/helm/opentelemetry-operator-0.119.0.tgz
+      namespace: opentelemetry-operator-system
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values/values.opentelemetry-operator.yaml

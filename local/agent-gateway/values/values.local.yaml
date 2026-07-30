@@ -1,0 +1,32 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# CSC local profile.
+agentgateway:
+  discoveryNamespaceSelectors:
+    - matchLabels:
+        kubernetes.io/metadata.name: csc-dsx-agentgateway
+    - matchLabels:
+        kubernetes.io/metadata.name: csc-mcp-backends
+
+gateway:
+  service:
+    type: NodePort
+    nodePort: 30180
+
+bridge:
+  role: hub
+  http:
+    writeTimeout: 5s
+
+upstreams:
+  backend-a:
+    namespace: csc-mcp-backends
+    serviceLabels:
+      app.kubernetes.io/name: mcp-backend
+      app.kubernetes.io/instance: backend-a
+  backend-b:
+    namespace: csc-mcp-backends
+    serviceLabels:
+      app.kubernetes.io/name: mcp-backend
+      app.kubernetes.io/instance: backend-b

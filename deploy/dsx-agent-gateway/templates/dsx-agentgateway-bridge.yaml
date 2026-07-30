@@ -1,0 +1,275 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.bridge.enabled -}}
+{{- $bridge := .Values.bridge -}}
+{{- $bridgeHTTP := $bridge.http | default (dict) -}}
+{{- $observability := .Values.observability | default (dict) -}}
+{{- $metrics := $observability.metrics | default (dict) -}}
+{{- $metricsEnabled := $metrics.enabled | default false -}}
+{{- $tracing := $observability.tracing | default (dict) -}}
+{{- $tracingEnabled := $tracing.enabled | default false -}}
+{{- $exporter := $tracing.exporter | default (dict) -}}
+{{- $role := required "bridge.role is required when bridge.enabled=true" $bridge.role -}}
+{{- if not (has $role (list "hub" "leaf")) -}}
+{{- fail (printf "bridge.role=%q is not recognized. Use hub or leaf" $role) -}}
+{{- end -}}
+{{- $bridgeImage := $bridge.image | default (dict) -}}
+{{- $imageRepository := required "bridge.image.repository is required when bridge.enabled=true" $bridgeImage.repository -}}
+{{- $imageTag := $bridgeImage.tag | default .Chart.AppVersion -}}
+{{- $nats := $bridge.nats | default (dict) -}}
+{{- $natsEndpoint := $nats.endpoint | default (dict) -}}
+{{- include "dsxAgentGateway.validateInClusterDestination" (dict "name" "bridge.nats.endpoint" "destination" $natsEndpoint) -}}
+{{- $natsHost := include "dsxAgentGateway.destinationHost" $natsEndpoint | trim -}}
+{{- $natsURL := printf "nats://%s:%v" $natsHost $natsEndpoint.port -}}
+{{- $natsAuth := $nats.auth | default (dict) -}}
+{{- $authMode := required "bridge.nats.auth.mode is required when bridge.enabled=true" $natsAuth.mode -}}
+{{- if not (has $authMode (list "noauth" "oauth")) -}}
+{{- fail (printf "bridge.nats.auth.mode=%q is not recognized. Use noauth or oauth" $authMode) -}}
+{{- end -}}
+{{- $hasOAuth := eq $authMode "oauth" -}}
+{{- $oauthIssuerURL := "" -}}
+{{- $oauthScope := "" -}}
+{{- $oauthIssuer := dict -}}
+{{- $oauthCredentialsRef := dict -}}
+{{- if $hasOAuth -}}
+{{- $oauth := $natsAuth.oauth | default (dict) -}}
+{{- $oauthIssuer = $oauth.issuer | default (dict) -}}
+{{- $oauthIssuerURL = $oauthIssuer.url | default "" -}}
+{{- if eq $oauthIssuerURL "" -}}
+{{- include "dsxAgentGateway.validateInClusterDestination" (dict "name" "bridge.nats.auth.oauth.issuer" "destination" $oauthIssuer) -}}
+{{- $issuerScheme := required "bridge.nats.auth.oauth.issuer.scheme is required" $oauthIssuer.scheme -}}
+{{- if not (has $issuerScheme (list "http" "https")) -}}
+{{- fail (printf "bridge.nats.auth.oauth.issuer.scheme=%q is not recognized. Use http or https" $issuerScheme) -}}
+{{- end -}}
+{{- $issuerHost := include "dsxAgentGateway.destinationHost" $oauthIssuer | trim -}}
+{{- $oauthIssuerURL = printf "%s://%s:%v" $issuerScheme $issuerHost $oauthIssuer.port -}}
+{{- end -}}
+{{- $oauthScope = required "bridge.nats.auth.oauth.scope is required" $oauth.scope -}}
+{{- $oauthCredentialsRef = $oauth.clientCredentialsSecretRef | default (dict) -}}
+{{- $_ := required "bridge.nats.auth.oauth.clientCredentialsSecretRef.name is required" $oauthCredentialsRef.name -}}
+{{- end -}}
+{{- $natsTLS := $nats.tls | default (dict) -}}
+{{- $caRef := $natsTLS.caSecretRef | default (dict) -}}
+{{- $caKey := $caRef.key | default "ca.crt" -}}
+{{- $hasCA := ne ($caRef.name | default "") "" -}}
+{{/* CA or server-name settings also enable TLS. */}}
+{{- $tlsEnabled := or ($natsTLS.enabled | default false) $hasCA (ne ($natsTLS.serverName | default "") "") -}}
+{{- $hasNATSSecrets := or $hasCA $hasOAuth -}}
+{{- $shardID := "" -}}
+{{- $localGatewayOrigin := "" -}}
+{{- if eq $role "leaf" -}}
+{{- $shardID = required "bridge.shardId is required when bridge.role=leaf" $bridge.shardId -}}
+{{/* Shard IDs form NATS subject tokens, so reject separators and wildcards. */}}
+{{- if or (contains "." $shardID) (contains "*" $shardID) (contains ">" $shardID) (contains "\x00" $shardID) (regexMatch `[[:space:]]` $shardID) -}}
+{{- fail (printf "bridge.shardId=%q must not contain '.', '*', '>', null, or whitespace" $shardID) -}}
+{{- end -}}
+{{/* Route leaf work through the local gateway to preserve auth and policy. */}}
+{{- $localGatewayOrigin = printf "http://%s.%s.svc:80/mcp" (include "dsxAgentGateway.gatewayName" .) .Release.Namespace -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dsxAgentGateway.bridgeName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dsx-agentgateway-bridge
+spec:
+  replicas: {{ $bridge.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: dsx-agentgateway-bridge
+  template:
+    metadata:
+      labels:
+        {{- include "dsxAgentGateway.labels" . | nindent 8 }}
+        app.kubernetes.io/component: dsx-agentgateway-bridge
+      {{- if $tracingEnabled }}
+      annotations:
+        {{- include "dsxAgentGateway.otelPodAnnotations" (dict "root" . "serviceName" (printf "dsx-agentgateway-bridge-%s" $role)) | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
+      {{- with $bridge.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: dsx-agentgateway-bridge
+          image: {{ printf "%s:%s" $imageRepository $imageTag | quote }}
+          imagePullPolicy: {{ $bridgeImage.pullPolicy | default "IfNotPresent" }}
+          args: [{{ $role | quote }}]
+          env:
+            {{- if eq $role "leaf" }}
+            - name: SHARD_ID
+              value: {{ $shardID | quote }}
+            - name: LOCAL_GATEWAY_ORIGIN
+              value: {{ $localGatewayOrigin | quote }}
+            {{- end }}
+            - name: NATS_URL
+              value: {{ $natsURL | quote }}
+            {{- if eq $role "hub" }}
+            - name: HTTP_REQUEST_TIMEOUT
+              value: {{ $bridgeHTTP.requestTimeout | default "5m" | quote }}
+            - name: HTTP_WRITE_TIMEOUT
+              value: {{ $bridgeHTTP.writeTimeout | default "30s" | quote }}
+            {{- end }}
+            - name: NATS_AUTH_MODE
+              value: {{ $authMode | quote }}
+            {{- if $hasOAuth }}
+            - name: NATS_OAUTH_ISSUER
+              value: {{ $oauthIssuerURL | quote }}
+            - name: NATS_OAUTH_CLIENT_ID_FILE
+              value: /var/run/dsx-agentgateway/nats-oauth-client/client-id
+            - name: NATS_OAUTH_CLIENT_SECRET_FILE
+              value: /var/run/dsx-agentgateway/nats-oauth-client/client-secret
+            - name: NATS_OAUTH_SCOPE
+              value: {{ $oauthScope | quote }}
+            {{- end }}
+            {{- if $tlsEnabled }}
+            - name: NATS_TLS_ENABLED
+              value: "true"
+            {{- end }}
+            {{- with $natsTLS.serverName }}
+            - name: NATS_TLS_SERVER_NAME
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if $hasCA }}
+            - name: NATS_TLS_CA_FILE
+              value: {{ printf "/var/run/dsx-agentgateway/nats-ca/%s" $caKey | quote }}
+            {{- end }}
+            {{- if $tracingEnabled }}
+            {{- with $exporter.endpoint }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $exporter.protocol }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: {{ . | quote }}
+            {{- end }}
+            - name: OTEL_TRACES_SAMPLER
+              value: parentbased_traceidratio
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: {{ $tracing.sampleRatio | quote }}
+            {{- else }}
+            - name: OTEL_TRACES_EXPORTER
+              value: none
+            {{- end }}
+            {{- if $metricsEnabled }}
+            - name: OTEL_METRICS_EXPORTER
+              value: prometheus
+            - name: OTEL_EXPORTER_PROMETHEUS_HOST
+              value: 0.0.0.0
+            - name: OTEL_EXPORTER_PROMETHEUS_PORT
+              value: "9464"
+            {{- else }}
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            {{- end }}
+          ports:
+            - name: mcp
+              containerPort: 3001
+            {{- if $metricsEnabled }}
+            - name: metrics
+              containerPort: 9464
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: mcp
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: mcp
+            periodSeconds: 10
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $bridge.resources | nindent 12 }}
+          {{- if $hasNATSSecrets }}
+          volumeMounts:
+            {{- if $hasCA }}
+            - name: nats-ca
+              mountPath: /var/run/dsx-agentgateway/nats-ca
+              readOnly: true
+            {{- end }}
+            {{- if $hasOAuth }}
+            - name: nats-oauth-client
+              mountPath: /var/run/dsx-agentgateway/nats-oauth-client
+              readOnly: true
+            {{- end }}
+          {{- end }}
+      {{- if $hasNATSSecrets }}
+      volumes:
+        {{- if $hasCA }}
+        - name: nats-ca
+          secret:
+            secretName: {{ $caRef.name | quote }}
+            items:
+              - key: {{ $caKey | quote }}
+                path: {{ $caKey | quote }}
+        {{- end }}
+        {{- if $hasOAuth }}
+        - name: nats-oauth-client
+          secret:
+            secretName: {{ $oauthCredentialsRef.name | quote }}
+            items:
+              - key: {{ $oauthCredentialsRef.clientIDKey | default "client-id" | quote }}
+                path: client-id
+              - key: {{ $oauthCredentialsRef.clientSecretKey | default "client-secret" | quote }}
+                path: client-secret
+        {{- end }}
+      {{- end }}
+      {{- with $bridge.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $bridge.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if eq $role "hub" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dsxAgentGateway.bridgeName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dsx-agentgateway-bridge
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: dsx-agentgateway-bridge
+  ports:
+    - name: mcp
+      port: 3001
+      targetPort: mcp
+      appProtocol: agentgateway.dev/mcp
+    {{- if $metricsEnabled }}
+    - name: metrics
+      port: 9464
+      targetPort: metrics
+      appProtocol: http
+    {{- end }}
+{{- end }}
+{{- end }}

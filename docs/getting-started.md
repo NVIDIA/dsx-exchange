@@ -63,11 +63,8 @@ Version-pinned where there is a known compatibility break; see [Pre-Deployment](
 All NKey secrets must be provisioned before deploying the event bus. Any secrets pipeline that materializes Kubernetes Secrets works (see [Pre-Deployment — Secrets Pipeline](pre-deployment.md#secrets-pipeline)). Generate keys locally with the provided script:
 
 ```bash
-# Generate secrets for CSC with CPC IDs 1 and 2
-./deploy/scripts/generate-nkeys.sh -c csc 1 2
-
-# Generate secrets for CPC-1
-./deploy/scripts/generate-nkeys.sh -c cpc-1
+# Generate secrets for CSC and CPC IDs 1 and 2
+./deploy/scripts/generate-nkeys.sh 1 2
 ```
 
 See [Authentication](authentication.md) for details on the auth model and required keys.

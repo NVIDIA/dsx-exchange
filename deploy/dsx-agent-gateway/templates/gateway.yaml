@@ -1,0 +1,93 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $gatewayName := include "dsxAgentGateway.gatewayName" . -}}
+{{- $service := .Values.gateway.service | default (dict) -}}
+{{- $serviceType := $service.type | default "ClusterIP" -}}
+{{- $ipv6 := .Values.gateway.ipv6 | default (dict) -}}
+{{- if not (has $serviceType (list "ClusterIP" "NodePort")) -}}
+{{- fail (printf "gateway.service.type=%q is not recognized. Use ClusterIP or NodePort" $serviceType) -}}
+{{- end -}}
+{{- if and (eq $serviceType "NodePort") (not $service.nodePort) -}}
+{{- fail "gateway.service.type=NodePort requires gateway.service.nodePort" -}}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: agentgateway
+  infrastructure:
+    parametersRef:
+      group: agentgateway.dev
+      kind: AgentgatewayParameters
+      name: {{ include "dsxAgentGateway.agentgatewayParametersName" . }}
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayParameters
+metadata:
+  name: {{ include "dsxAgentGateway.agentgatewayParametersName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  logging:
+    level: info
+    format: json
+  {{- if and (hasKey $ipv6 "enabled") (not $ipv6.enabled) }}
+  env:
+    - name: IPV6_ENABLED
+      value: "false"
+  {{- end }}
+  {{- with .Values.gateway.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  service:
+    spec:
+      type: {{ $serviceType }}
+      {{- if eq $serviceType "NodePort" }}
+      ports:
+        - name: http
+          port: 80
+          targetPort: 80
+          nodePort: {{ $service.nodePort }}
+          protocol: TCP
+      {{- end }}
+  deployment:
+    spec:
+      replicas: {{ .Values.gateway.replicaCount }}
+      template:
+        metadata:
+          annotations:
+            # Strategic merge replacement removes the upstream scrape annotations.
+            # When enabled, metrics discovery is owned by this chart's PodMonitor.
+            $patch: replace
+            {{- include "dsxAgentGateway.otelPodAnnotations" (dict "root" . "serviceName" (printf "%s-agentgateway" .Chart.Name)) | nindent 12 }}
+        spec:
+          {{- with .Values.runtimeClassName }}
+          runtimeClassName: {{ . | quote }}
+          {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          {{- with .Values.gateway.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.gateway.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

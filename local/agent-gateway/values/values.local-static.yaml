@@ -1,0 +1,9 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Separate values layer proving upstream maps merge without replacing selectors.
+upstreams:
+  mcp-backend-b-static:
+    mode: static
+    address: http://mcp-backend-b.csc-mcp-backends.svc:3001/mcp
+    requestTimeout: 10s

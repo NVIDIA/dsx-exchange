@@ -1,0 +1,14 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: dsx-agent-gateway/demoidp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+issuers:
+  - name: human-oidc
+  - name: service-oidc
+  - name: svid-issuer
+  - name: svid-wrong-key
+  - name: unconfigured-issuer

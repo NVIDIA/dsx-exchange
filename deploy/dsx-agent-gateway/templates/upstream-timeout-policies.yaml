@@ -1,0 +1,46 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{ $upstreams := include "dsxAgentGateway.computedUpstreams" . | fromJsonArray }}
+{{ if gt (len $upstreams) 0 }}
+{{ $defaultTimeout := include "dsxAgentGateway.validateRequestTimeout" (dict "path" "upstreamRequestTimeout" "value" .Values.upstreamRequestTimeout) }}
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.upstreamTimeoutPolicyName" (dict "root" .) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: agentgateway.dev
+      kind: AgentgatewayBackend
+      name: {{ include "dsxAgentGateway.agentgatewayBackendName" . }}
+  backend:
+    http:
+      # Deadline for response headers. Streaming bodies may continue afterward.
+      requestTimeout: {{ $defaultTimeout }}
+{{ range $entry := $upstreams }}
+{{ if hasKey $entry.upstream "requestTimeout" }}
+{{ $timeoutPath := printf "upstreams.%s.requestTimeout" $entry.id }}
+{{ $timeout := include "dsxAgentGateway.validateRequestTimeout" (dict "path" $timeoutPath "value" $entry.upstream.requestTimeout) }}
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.upstreamTimeoutPolicyName" (dict "root" $ "upstreamID" $entry.id) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: agentgateway.dev
+      kind: AgentgatewayBackend
+      name: {{ include "dsxAgentGateway.agentgatewayBackendName" $ }}
+      sectionName: {{ $entry.id | quote }}
+  backend:
+    http:
+      requestTimeout: {{ $timeout }}
+{{ end }}
+{{ end }}
+{{ end }}

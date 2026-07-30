@@ -1,0 +1,29 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# CPC-2 leaf local overlay.
+observability:
+  metrics:
+    enabled: true
+  tracing:
+    enabled: false
+
+valkey:
+  metrics:
+    enabled: true
+
+agentgateway:
+  discoveryNamespaceSelectors:
+    - matchLabels:
+        kubernetes.io/metadata.name: cpc-2-dsx-agentgateway
+    - matchLabels:
+        kubernetes.io/metadata.name: cpc-2-mcp-backends
+
+bridge:
+  shardId: cpc-2
+
+upstreams:
+  backend-a:
+    namespace: cpc-2-mcp-backends
+  backend-b:
+    namespace: cpc-2-mcp-backends

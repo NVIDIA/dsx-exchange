@@ -1,0 +1,63 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: agent-gateway
+requires:
+- path: skaffold.fixtures.yaml
+  configs:
+  - agent-gateway-fixtures
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    flags:
+      install:
+      - --timeout=5m
+      upgrade:
+      - --timeout=5m
+    releases:
+    - name: csc-dsx-agentgateway
+      chartPath: ../../deploy/dsx-agent-gateway
+      namespace: csc-dsx-agentgateway
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values/values.local-common.yaml
+      - ./values/values.local.yaml
+      - ./values/values.local-static.yaml
+      setValueTemplates:
+        bridge.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+        bridge.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+      setValues:
+        bridge.image.pullPolicy: IfNotPresent
+    - name: cpc-1-dsx-agentgateway
+      chartPath: ../../deploy/dsx-agent-gateway
+      namespace: cpc-1-dsx-agentgateway
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values/values.local-common.yaml
+      - ./values/values.local-leaf.yaml
+      setValueTemplates:
+        bridge.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+        bridge.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+      setValues:
+        bridge.image.pullPolicy: IfNotPresent
+    - name: cpc-2-dsx-agentgateway
+      chartPath: ../../deploy/dsx-agent-gateway
+      namespace: cpc-2-dsx-agentgateway
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values/values.local-common.yaml
+      - ./values/values.local-leaf.yaml
+      - ./values/values.local-leaf-cpc-2.yaml
+      setValueTemplates:
+        bridge.image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+        bridge.image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_dsx_agentgateway_bridge}}'
+      setValues:
+        bridge.image.pullPolicy: IfNotPresent

@@ -4,7 +4,9 @@ Guidance for AI coding agents working in this repository.
 
 ## Repository overview
 
-DSX Exchange is a monorepo for the DSX event bus: AsyncAPI schemas, NATS auth-callout service (Go), Helm charts, Fern docs site, and a Kind-based local evaluation framework.
+DSX Exchange is a monorepo for the event bus and DSX Agent Gateway: AsyncAPI
+schemas, Go services, Helm charts, Fern docs, and one Kind-based local
+evaluation framework.
 
 ## Build and test
 
@@ -12,6 +14,7 @@ DSX Exchange is a monorepo for the DSX event bus: AsyncAPI schemas, NATS auth-ca
 make test                      # full validation, including local Kind e2e
 make check                     # license headers + helm lint
 make -C auth-callout test      # auth-callout unit tests
+go -C dsx-agentgateway-bridge test ./...
 helm lint auth-callout/deploy
 ```
 
@@ -53,6 +56,9 @@ outside the sandbox and record what passed or failed:
 - [ ] While `skaffold-dev` is running, edit auth-callout source; confirm the
       image rebuilds once, is loaded into the active Kind cluster, and the
       event-bus pods use it.
+- [ ] While `skaffold-dev` is running, edit DSX Agent Gateway bridge source;
+      confirm the image rebuilds once, is loaded into the active Kind cluster,
+      and all three logical-site releases use it.
 
 Verify each observed rollout or resource update in the default topology with
 `kubectl --context kind-dsx-exchange` and the `csc-*`, `cpc-1-*`, and `cpc-2-*`
@@ -87,8 +93,7 @@ carry comments. Run `make add-license-headers` to fix supported files.
 ## Third-party licenses
 
 Regenerate `THIRD_PARTY_LICENSES.csv` when dependencies change in any Go
-module (`auth-callout/`, `local/mqtt-client/`, `local/mqttbs/`). Use the repo
-target instead of editing it by hand:
+module. Use the repo target instead of editing it by hand:
 
 ```bash
 make third-party-licenses
@@ -99,15 +104,19 @@ made it stale.
 
 ## Go conventions
 
-- Go modules use vendored dependencies (`-mod=vendor`).
-- `auth-callout/` has its own `go.mod`, `.golangci.yml`, and `vendor/`.
+- `auth-callout/` has its own `go.mod`, `.golangci.yml`, and vendored
+  dependencies (`-mod=vendor`).
+- `dsx-agentgateway-bridge/` and local test tools are separate Go modules.
 - `local/mqtt-client/` and `local/mqttbs/` are separate Go modules.
 
 ## Helm chart conventions
 
-- The main chart is `deploy/nats-event-bus/` with `auth-callout/deploy/` as a subchart dependency.
+- Production charts are `deploy/nats-event-bus/` and
+  `deploy/dsx-agent-gateway/`.
+- `auth-callout/deploy/` remains a subchart dependency of the event-bus chart.
 - Values follow the `global.eventBus.*` namespace for bus config, `auth-callout.*` for the subchart.
-- Chart validation: `helm lint` + template rendering in CI.
+- CI renders the event-bus chart and lints the Agent Gateway chart with local
+  validation values before the combined Kind deployment.
 
 ## Fern docs
 

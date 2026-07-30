@@ -1,0 +1,81 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $observability := .Values.observability | default (dict) }}
+{{- $metrics := $observability.metrics | default (dict) }}
+{{- if ($metrics.enabled | default false) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "dsxAgentGateway.gatewayName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.monitorLabels" (dict "root" . "component" "agentgateway") | nindent 4 }}
+spec:
+  # The generated Service omits the Pod's metrics port, so discovery targets Pods.
+  selector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ include "dsxAgentGateway.gatewayName" . }}
+  podMetricsEndpoints:
+    {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+{{- if .Values.agentgateway.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "dsxAgentGateway.releaseResourceName" (dict "root" . "suffix" "controller") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.monitorLabels" (dict "root" . "component" "controller") | nindent 4 }}
+spec:
+  # Match the parent-owned Service to the pinned controller Deployment labels.
+  selector:
+    matchLabels:
+      agentgateway: agentgateway
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+    {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+{{- end }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.monitorLabels" (dict "root" . "component" "ratelimit") | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: ratelimit
+  endpoints:
+    {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+{{- if .Values.bridge.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+{{/* Leaf bridges have no Service because they initiate their NATS connection. */}}
+{{- if eq .Values.bridge.role "hub" }}
+kind: ServiceMonitor
+{{- else }}
+kind: PodMonitor
+{{- end }}
+metadata:
+  name: {{ include "dsxAgentGateway.bridgeName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.monitorLabels" (dict "root" . "component" "bridge") | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: dsx-agentgateway-bridge
+  {{- if eq .Values.bridge.role "hub" }}
+  endpoints:
+    {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+  {{- else }}
+  podMetricsEndpoints:
+    {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

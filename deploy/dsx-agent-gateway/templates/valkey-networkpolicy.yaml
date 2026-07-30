@@ -1,0 +1,56 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.valkey.enabled }}
+{{- $valkeyName := include "dsxAgentGateway.valkeyName" . | trim }}
+{{- $valkeyPort := required "valkey.service.port is required when valkey.enabled=true" .Values.valkey.service.port }}
+{{- $observability := .Values.observability | default (dict) }}
+{{- $metrics := $observability.metrics | default (dict) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.releaseResourceName" (dict "root" . "suffix" "valkey-ingress") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $valkeyName }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes:
+    - Ingress
+  # Only rate limiting and Valkey peers may access counters.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: ratelimit
+      ports:
+        - protocol: TCP
+          port: {{ $valkeyPort }}
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $valkeyName }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+      ports:
+        - protocol: TCP
+          port: {{ $valkeyPort }}
+    {{- if .Values.valkey.metrics.enabled }}
+    {{- $metricsExporterPort := required "valkey.metrics.exporter.port is required when valkey.metrics.enabled=true" .Values.valkey.metrics.exporter.port }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
+        {{- range ($metrics.scrapeNamespaces | default (list)) }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $metricsExporterPort }}
+    {{- end }}
+{{- end }}

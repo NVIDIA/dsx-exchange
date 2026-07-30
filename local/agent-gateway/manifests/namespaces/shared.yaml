@@ -1,0 +1,26 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-gateway-fixtures
+  labels:
+    app.kubernetes.io/part-of: dsx-agent-gateway
+    dsx-agent-gateway.nvidia.com/local-role: shared-infra
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dsx-obs
+  labels:
+    app.kubernetes.io/part-of: dsx-agent-gateway
+    dsx-agent-gateway.nvidia.com/local-role: shared-infra
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nats
+  labels:
+    app.kubernetes.io/part-of: dsx-agent-gateway
+    dsx-agent-gateway.nvidia.com/local-role: shared-infra

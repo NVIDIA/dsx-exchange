@@ -1,0 +1,72 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $upstreams := include "dsxAgentGateway.computedUpstreams" . | fromJsonArray -}}
+{{- $bridge := .Values.bridge | default (dict) -}}
+{{- $bridgeLeaf := and ($bridge.enabled | default false) (eq ($bridge.role | default "") "leaf") }}
+{{/* AgentgatewayBackend requires at least one target. */}}
+{{- if gt (len $upstreams) 0 }}
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: {{ include "dsxAgentGateway.agentgatewayBackendName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  mcp:
+    # Skip failed MCP targets so healthy targets remain available.
+    failureMode: FailOpen
+    {{- if $bridgeLeaf }}
+    # Leaf bridge calls carry no MCP session ID, so routing is stateless.
+    sessionRouting: Stateless
+    {{- end }}
+    # Selector tools use Service-derived names. Static tools use the map key.
+    targets:
+      {{- range $entry := $upstreams }}
+      {{- $id := $entry.id }}
+      {{- $upstream := $entry.upstream }}
+      {{- if eq ($upstream.mode | default "selector") "static" }}
+      {{- $endpoint := include "dsxAgentGateway.endpointFromURL" (dict "name" (printf "upstreams.%s.address" $id) "url" $upstream.address) | fromJson }}
+      - name: {{ $id | quote }}
+        static:
+          host: {{ $endpoint.host | quote }}
+          port: {{ $endpoint.port }}
+          protocol: {{ $upstream.protocol | default "StreamableHTTP" }}
+          path: {{ $endpoint.path | quote }}
+          {{- if eq $endpoint.scheme "https" }}
+          policies:
+            tls: {}
+      {{- end }}
+      {{- else }}
+      - name: {{ $id | quote }}
+        selector:
+          services:
+            matchLabels:
+              {{- toYaml $upstream.serviceLabels | nindent 14 }}
+          namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $upstream.namespace | quote }}
+      {{- end }}
+      {{- end }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "dsxAgentGateway.httpRouteName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ include "dsxAgentGateway.gatewayName" . }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp
+      backendRefs:
+        - group: agentgateway.dev
+          kind: AgentgatewayBackend
+          name: {{ include "dsxAgentGateway.agentgatewayBackendName" . }}
+{{- end }}

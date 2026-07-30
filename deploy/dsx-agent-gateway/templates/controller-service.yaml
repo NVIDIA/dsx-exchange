@@ -1,0 +1,39 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.agentgateway.enabled }}
+{{- $ports := .Values.agentgateway.controller.service.ports }}
+{{- $observability := .Values.observability | default (dict) }}
+{{- $metrics := $observability.metrics | default (dict) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dsxAgentGateway.releaseResourceName" (dict "root" . "suffix" "controller") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    agentgateway: agentgateway
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc-xds-agw
+      protocol: TCP
+      port: {{ $ports.agwGrpc }}
+      targetPort: grpc-xds-agw
+    - name: health
+      protocol: TCP
+      port: {{ $ports.health }}
+      targetPort: health
+    {{- if ($metrics.enabled | default false) }}
+    - name: metrics
+      protocol: TCP
+      port: {{ $ports.metrics }}
+      targetPort: metrics
+    {{- end }}
+  selector:
+    agentgateway: agentgateway
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

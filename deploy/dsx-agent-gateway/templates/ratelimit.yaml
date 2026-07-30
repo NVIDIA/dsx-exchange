@@ -1,0 +1,311 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $rateLimit := .Values.rateLimit -}}
+{{- $observability := .Values.observability | default (dict) -}}
+{{- $metrics := $observability.metrics | default (dict) -}}
+{{- $metricsEnabled := $metrics.enabled | default false -}}
+{{- $tracing := $observability.tracing | default (dict) -}}
+{{- $tracingEnabled := $tracing.enabled | default false -}}
+{{- $exporter := $tracing.exporter | default (dict) -}}
+{{- $exporterProtocol := $exporter.protocol | default "" -}}
+{{/* The OTel SDK names its HTTP transport "http/protobuf". The rate-limit
+service uses "http" for the same transport in TRACING_EXPORTER_PROTOCOL. */}}
+{{- $rateLimitExporterProtocol := $exporterProtocol -}}
+{{- if eq $exporterProtocol "http/protobuf" -}}
+{{- $rateLimitExporterProtocol = "http" -}}
+{{- end -}}
+{{- if not (hasKey $rateLimit "tenantRequestsPerSecond") -}}
+{{- fail "rateLimit.tenantRequestsPerSecond is required" -}}
+{{- end -}}
+{{- $tenantRequestsPerSecond := int $rateLimit.tenantRequestsPerSecond -}}
+{{- if lt $tenantRequestsPerSecond 1 -}}
+{{- fail "rateLimit.tenantRequestsPerSecond must be at least 1" -}}
+{{- end -}}
+{{- $replicaCount := required "rateLimit.replicaCount is required" $rateLimit.replicaCount -}}
+{{- $rateLimitImage := $rateLimit.image | default (dict) -}}
+{{- $rateLimitImageRepository := required "rateLimit.image.repository is required" $rateLimitImage.repository -}}
+{{- $rateLimitImageTag := required "rateLimit.image.tag is required" $rateLimitImage.tag -}}
+{{- $tenantOverrides := $rateLimit.tenantOverrides | default (list) -}}
+{{- if not (kindIs "slice" $tenantOverrides) -}}
+{{- fail "rateLimit.tenantOverrides must be a list" -}}
+{{- end -}}
+{{- $valkey := .Values.valkey -}}
+{{- $valkeyImage := $valkey.image | default (dict) -}}
+{{- $valkeyImageRepository := required "valkey.image.repository is required" $valkeyImage.repository -}}
+{{- $valkeyImageTag := required "valkey.image.tag is required" $valkeyImage.tag -}}
+{{- $valkeyClientImage := printf "%s:%s" $valkeyImageRepository $valkeyImageTag -}}
+{{- with $valkeyImage.registry -}}
+{{- $valkeyClientImage = printf "%s/%s" . $valkeyClientImage -}}
+{{- end -}}
+{{- $valkeyHost := "" -}}
+{{- $valkeyPort := 0 -}}
+{{- if $valkey.enabled -}}
+{{- $valkeyHost = printf "%s.%s.svc" (include "dsxAgentGateway.valkeyFullname" .) .Release.Namespace -}}
+{{- $valkeyPort = required "valkey.service.port is required when valkey.enabled=true" $valkey.service.port -}}
+{{- else -}}
+{{- $external := $valkey.external | default (dict) -}}
+{{- $_ := include "dsxAgentGateway.destinationKind" $external -}}
+{{- $valkeyHost = include "dsxAgentGateway.destinationHost" $external | trim -}}
+{{- $valkeyPort = $external.port -}}
+{{- end -}}
+{{- $valkeyURL := printf "%s:%v" $valkeyHost $valkeyPort -}}
+{{- $rateLimitConfigChecksum := dict "domain" "dsx-agent-gateway" "tenantOverrides" $tenantOverrides "tenantRequestsPerSecond" $tenantRequestsPerSecond | toYaml | sha256sum }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dsxAgentGateway.rateLimitConfigMapName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratelimit
+data:
+  dsx-agent-gateway.yaml: |
+    domain: dsx-agent-gateway
+    descriptors:
+      {{- $seenTenantOverrides := dict }}
+      {{- range $idx, $override := $tenantOverrides }}
+      {{- $tenant := required (printf "rateLimit.tenantOverrides[%d].tenant is required" $idx) $override.tenant }}
+      {{- if hasKey $seenTenantOverrides $tenant }}
+      {{- fail (printf "rateLimit.tenantOverrides[%d].tenant=%q duplicates an earlier override" $idx $tenant) }}
+      {{- end }}
+      {{- $_ := set $seenTenantOverrides $tenant true }}
+      {{- $unlimited := $override.unlimited | default false }}
+      {{- $hasRequestsPerSecond := hasKey $override "requestsPerSecond" }}
+      {{- if and $unlimited $hasRequestsPerSecond }}
+      {{- fail (printf "rateLimit.tenantOverrides[%d] must set only one of unlimited or requestsPerSecond" $idx) }}
+      {{- end }}
+      {{- if and (not $unlimited) (not $hasRequestsPerSecond) }}
+      {{- fail (printf "rateLimit.tenantOverrides[%d] requires unlimited=true or requestsPerSecond" $idx) }}
+      {{- end }}
+      {{- if and $hasRequestsPerSecond (lt (int $override.requestsPerSecond) 1) }}
+      {{- fail (printf "rateLimit.tenantOverrides[%d].requestsPerSecond must be at least 1" $idx) }}
+      {{- end }}
+      - key: tenant
+        value: {{ $tenant | quote }}
+        rate_limit:
+          {{- if $unlimited }}
+          unlimited: true
+          {{- else }}
+          unit: second
+          requests_per_unit: {{ $override.requestsPerSecond }}
+          {{- end }}
+      {{- end }}
+      - key: tenant
+        rate_limit:
+          unit: second
+          requests_per_unit: {{ $tenantRequestsPerSecond }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratelimit
+spec:
+  replicas: {{ $replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: ratelimit
+  template:
+    metadata:
+      labels:
+        {{- include "dsxAgentGateway.labels" . | nindent 8 }}
+        app.kubernetes.io/component: ratelimit
+      annotations:
+        # Restart Pods when rate-limit configuration changes.
+        checksum/ratelimit-config: {{ $rateLimitConfigChecksum | quote }}
+        {{- include "dsxAgentGateway.otelPodAnnotations" (dict "root" . "serviceName" (printf "%s-ratelimit" .Chart.Name)) | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.runtimeClassName }}
+      runtimeClassName: {{ . | quote }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-valkey
+          image: {{ $valkeyClientImage | quote }}
+          imagePullPolicy: {{ $valkeyImage.pullPolicy | default "IfNotPresent" }}
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              until [ "$(valkey-cli -h "$VALKEY_HOST" -p "$VALKEY_PORT" ping 2>/dev/null)" = "PONG" ]; do
+                sleep 1
+              done
+          env:
+            - name: VALKEY_HOST
+              value: {{ $valkeyHost | quote }}
+            - name: VALKEY_PORT
+              value: {{ $valkeyPort | quote }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: ratelimit
+          image: {{ printf "%s:%s" $rateLimitImageRepository $rateLimitImageTag | quote }}
+          imagePullPolicy: IfNotPresent
+          command: [/bin/ratelimit]
+          env:
+            - name: USE_STATSD
+              value: "false"
+            - name: USE_PROMETHEUS
+              value: {{ $metricsEnabled | quote }}
+            - name: HEALTHY_WITH_AT_LEAST_ONE_CONFIG_LOADED
+              value: "true"
+            {{- if $metricsEnabled }}
+            - name: PROMETHEUS_ADDR
+              value: ":9090"
+            - name: PROMETHEUS_PATH
+              value: /metrics
+            {{- end }}
+            - name: LOG_FORMAT
+              value: json
+            - name: TRACING_ENABLED
+              value: {{ $tracingEnabled | quote }}
+            {{- if $tracingEnabled }}
+            {{- with $exporter.endpoint }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if ne $exporterProtocol "" }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: {{ $exporterProtocol | quote }}
+            - name: TRACING_EXPORTER_PROTOCOL
+              value: {{ $rateLimitExporterProtocol | quote }}
+            {{- end }}
+            - name: TRACING_SERVICE_NAME
+              value: dsx-agent-gateway-ratelimit
+            - name: TRACING_SERVICE_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: TRACING_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TRACING_SAMPLING_RATE
+              value: {{ $tracing.sampleRatio | quote }}
+            {{- end }}
+            - name: LOG_LEVEL
+              value: info
+            - name: REDIS_SOCKET_TYPE
+              value: tcp
+            # Bound Valkey connection and I/O time so the configured failure mode can take effect.
+            - name: REDIS_TIMEOUT
+              value: 1s
+            - name: REDIS_URL
+              value: {{ $valkeyURL | quote }}
+            - name: RUNTIME_ROOT
+              value: /data
+            - name: RUNTIME_SUBDIRECTORY
+              value: ratelimit
+            - name: RUNTIME_IGNOREDOTFILES
+              value: "true"
+            - name: GRPC_PORT
+              value: "8081"
+            - name: PORT
+              value: "8080"
+          volumeMounts:
+            - name: config
+              mountPath: /data/ratelimit/config
+              readOnly: true
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8081
+              name: grpc
+            {{- if $metricsEnabled }}
+            - containerPort: 9090
+              name: metrics
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $rateLimit.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "dsxAgentGateway.rateLimitConfigMapName" . }}
+      {{- with $rateLimit.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $rateLimit.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratelimit
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: ratelimit
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 8081
+      targetPort: grpc
+      appProtocol: grpc
+    {{- if $metricsEnabled }}
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      appProtocol: http
+    {{- end }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "dsxAgentGateway.rateLimitServiceName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ratelimit
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: ratelimit

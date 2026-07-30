@@ -1,0 +1,20 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+testMcpBackend:
+  image:
+    repository: dsx-agent-gateway/test-mcp-backend
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+
+backends:
+  - name: mcp-backend-a
+    instance: backend-a
+    replicas: 2
+  - name: mcp-backend-b
+    instance: backend-b
+    replicas: 1
+
+networkPolicy:
+  enabled: true
+  gatewayNamespace: ""

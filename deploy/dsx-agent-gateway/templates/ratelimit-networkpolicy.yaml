@@ -1,0 +1,42 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $observability := .Values.observability | default (dict) }}
+{{- $metrics := $observability.metrics | default (dict) }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "dsxAgentGateway.releaseResourceName" (dict "root" . "suffix" "ratelimit-ingress") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "dsxAgentGateway.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: ratelimit
+  policyTypes:
+    - Ingress
+  # The rate-limit API has no authentication, so only gateway dataplanes may consume tenant quota.
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              gateway.networking.k8s.io/gateway-name: {{ include "dsxAgentGateway.gatewayName" . }}
+      ports:
+        - protocol: TCP
+          port: 8081
+    {{- if ($metrics.enabled | default false) }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace | quote }}
+        {{- range ($metrics.scrapeNamespaces | default (list)) }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 9090
+    {{- end }}

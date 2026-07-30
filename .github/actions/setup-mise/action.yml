@@ -1,0 +1,56 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Setup mise
+description: Install the pinned mise binary and requested repository tools
+
+inputs:
+  cache-key:
+    description: Tool subset used to keep partial mise caches complete
+    required: true
+  install-args:
+    description: Arguments passed to mise install; empty installs every pinned tool
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Cache mise
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/mise
+          ~/.local/bin/mise
+          ~/.local/share/mise
+        key: mise-v2026.7.7-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-key }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+
+    - name: Install mise
+      shell: bash
+      env:
+        MISE_CHECKSUM: 429f71e7e989908bf975aafac9066329c16e2d8fc7cd8e74fdf21dd6300ffe7c
+        MISE_URL: https://github.com/jdx/mise/releases/download/v2026.7.7/mise-v2026.7.7-linux-x64
+      run: |
+        set -euo pipefail
+
+        mise_bin="${HOME}/.local/bin/mise"
+        if [[ ! -x "${mise_bin}" ]]; then
+          mkdir -p "$(dirname "${mise_bin}")"
+          curl --fail --location --silent --show-error "${MISE_URL}" --output "${mise_bin}"
+          chmod +x "${mise_bin}"
+        fi
+        echo "${MISE_CHECKSUM}  ${mise_bin}" | sha256sum --check
+        echo "$(dirname "${mise_bin}")" >> "${GITHUB_PATH}"
+
+    - name: Install repository tools
+      shell: bash
+      env:
+        INSTALL_ARGS: ${{ inputs.install-args }}
+        MISE_GITHUB_TOKEN: ${{ github.token }}
+        MISE_YES: "1"
+      run: |
+        set -euo pipefail
+
+        read -r -a install_args <<< "${INSTALL_ARGS}"
+        "${HOME}/.local/bin/mise" install --locked "${install_args[@]}"
+        echo "${HOME}/.local/share/mise/shims" >> "${GITHUB_PATH}"

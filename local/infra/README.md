@@ -1,6 +1,6 @@
 # Infrastructure Setup
 
-This directory contains the infrastructure configuration for the DSX Event Bus evaluation environment.
+This directory contains infrastructure for the local DSX Exchange environment.
 
 ## Overview
 
@@ -340,7 +340,7 @@ make local-up
 kubectl get pods -n metallb-system --context kind-dsx-exchange
 
 # Check logs
-kubectl logs -n metallb-system -l app=metallb --context kind-dsx-exchange
+kubectl logs -n metallb-system -l app.kubernetes.io/name=metallb --context kind-dsx-exchange
 
 # Verify IP pools
 kubectl get ipaddresspools -n metallb-system --context kind-dsx-exchange
@@ -374,7 +374,7 @@ curl http://${GATEWAY_IP}/
 kubectl get pods -n keycloak --context kind-dsx-exchange
 
 # Check logs
-kubectl logs -n keycloak -l app.kubernetes.io/name=keycloak --context kind-dsx-exchange
+kubectl logs -n keycloak -l app=keycloak --context kind-dsx-exchange
 
 # Check realm import ConfigMap. The import key is realm-event-bus.json and the
 # Keycloak realm inside that file is event-bus.

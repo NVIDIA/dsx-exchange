@@ -2,6 +2,8 @@
 
 MQTT performance and functional testing framework for evaluating event bus solutions.
 
+The manual subscribe examples require `mosquitto_sub`.
+
 ## Features
 
 - **Performance Tests**: Comprehensive throughput testing (QoS 0/1, retained, federation)
@@ -67,7 +69,7 @@ Test throughput on a single cluster:
 
 ```bash
 # From local/
-make test
+make -C .. test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_Local'
@@ -86,7 +88,7 @@ Test cross-cluster throughput (CPC1 <-> CSC):
 
 ```bash
 # From local/
-make test
+make -C .. test
 
 # Or run directly when broker URLs are already exported
 go test -v ./tests/performance/ -run 'TestThroughput.*_(CPCtoCSC|CSCtoCPC)'
@@ -273,7 +275,7 @@ Error: connection refused
 telnet 172.18.200.1 1883
 
 # Check broker logs
-kubectl logs -n event-bus <pod-name>
+kubectl --context kind-dsx-exchange logs -n csc-event-bus <pod-name>
 ```
 
 ### High Latency

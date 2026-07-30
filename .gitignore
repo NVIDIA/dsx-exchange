@@ -32,8 +32,6 @@ scorecard.png
 /local/event-bus/nsc/
 /local/event-bus/secrets/
 /local/agent-gateway/secret-generators/demoidp/generated/
-/tests/agent-gateway/artifacts/*
-!/tests/agent-gateway/artifacts/perf-baseline.json
 
 # Local Go build and test output.
 *.prof

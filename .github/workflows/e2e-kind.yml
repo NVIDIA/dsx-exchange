@@ -24,9 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      - uses: ./.github/actions/setup-mise
         with:
-          version: 2026.7.7
+          cache-key: e2e
 
       - name: Cache local dependencies
         uses: actions/cache@v4
@@ -44,7 +44,7 @@ jobs:
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
       - name: Run Kind e2e
-        run: make e2e
+        run: RUN_DESTRUCTIVE_FUNCTIONAL=1 make e2e
 
       - name: Collect e2e diagnostics
         if: failure()

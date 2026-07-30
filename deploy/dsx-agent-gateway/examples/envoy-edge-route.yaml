@@ -1,0 +1,75 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Envoy Gateway-owned edge for the DSX Agent Gateway.
+#
+# This example shows the Envoy Gateway, HTTPRoute, and ReferenceGrant required
+# when the edge route and the DSX Agent Gateway Service are in different
+# namespaces.
+#
+# Topology:
+#
+#   HTTP :80 --> Envoy Gateway (envoy-edge namespace)
+#                    |
+#                    | HTTPRoute /mcp
+#                    v
+#                Service dsx-agent-gateway
+#                  (dsx-agent-gateway namespace, port 80)
+
+---
+# Envoy Gateway with an HTTP listener owned by the edge operator.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: envoy-edge
+  namespace: envoy-edge
+spec:
+  gatewayClassName: envoy
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+---
+# Envoy edge HTTPRoute fronting the agentgateway dataplane Service.
+# Cross-namespace backendRef requires the ReferenceGrant below.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mcp-edge
+  namespace: envoy-edge
+spec:
+  parentRefs:
+    - name: envoy-edge
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /mcp
+      backendRefs:
+        - name: dsx-agent-gateway
+          namespace: dsx-agent-gateway
+          port: 80
+
+---
+# ReferenceGrant authorising the cross-namespace backendRef above.
+# Required because the Envoy edge HTTPRoute lives in `envoy-edge` and
+# targets a Service in `dsx-agent-gateway`. Apply this in the Service's
+# namespace (dsx-agent-gateway).
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: envoy-edge-to-dsx-agent-gateway
+  namespace: dsx-agent-gateway
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: envoy-edge
+  to:
+    - group: ""
+      kind: Service
+      name: dsx-agent-gateway

@@ -10,6 +10,9 @@ reviews:
     - path: "local/infra/local-registry/zot-config.json"
       instructions: |
         JSON cannot carry comments; this file is explicitly excluded from license-header checks.
+    - path: "**/Chart.lock"
+      instructions: |
+        Helm generates Chart.lock files; they are explicitly excluded from license-header checks.
   auto_review:
     enabled: true
     drafts: true

@@ -1,0 +1,12 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: dsx-agent-gateway-test-backends
+description: Test MCP backend fixtures for local DSX Agent Gateway validation.
+type: application
+version: 0.3.0
+appVersion: "0.3.0"
+home: https://github.com/NVIDIA/dsx-exchange
+sources:
+  - https://github.com/NVIDIA/dsx-exchange

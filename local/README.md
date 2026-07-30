@@ -1,8 +1,9 @@
-# DSX Event Bus
+# DSX Exchange Local Development
 
-This repository contains the NATS event bus implementation for the AI Factory DSX platform.
+This directory contains the local development environment for DSX Exchange.
 
-For architecture details, see [docs/architecture.md](../docs/architecture.md).
+For Event Bus architecture details, see
+[docs/architecture.md](../docs/architecture.md).
 
 ## Quick Start
 
@@ -65,21 +66,16 @@ CPC-1, and CPC-2 remain separate logical sites through stable event-bus and
 Gateway namespaces. Cluster-scoped controllers are installed once, while each
 site keeps its fixed Envoy address and event-bus Helm release.
 
-Root Mise handles prerequisites; host scripts create Kind, configure the local
-registry, and generate NATS secret material. The root
-Skaffold graph imports shared controller packages, reusable site packages, the
-shared image build, secret manifests, and NATS releases.
+Root Mise handles prerequisites; host scripts create Kind, configure Zot, and
+generate NATS secret material. The root Skaffold graph imports the
+infrastructure, image builds, secret manifests, and Helm releases for both
+products.
 
-Zot persistently caches upstream images. Skaffold owns one auth-callout build
-artifact, reuses its local build cache when the source is unchanged, and uses
-native Kind image loading for the active physical cluster. Pull-through routing
-is selected by the image's upstream registry and accepts any repository from
-that registry.
-Pinned local dependencies are cached under the ignored root `.cache/`
-directory. Normal cleanup keeps both caches. Before Skaffold starts, Make
-stages cached subcharts into the event-bus chart's standard ignored `charts/`
-directory, so deploys never
-refresh Helm repositories.
+Zot persistently caches upstream images. Skaffold reuses its local build cache
+when source is unchanged and uses native Kind image loading. Pinned local
+dependencies are cached under the ignored root `.cache/` directory. Make stages
+chart dependencies into each chart's ignored `charts/` directory before
+Skaffold starts.
 
 For iterative development, keep Skaffold running in one terminal:
 
@@ -93,16 +89,29 @@ Then run the e2e test suite from another terminal:
 make test-dev
 ```
 
+### Agent Gateway
+
+The local stack deploys the Agent Gateway chart in three logical sites:
+
+- CSC hub: `csc-dsx-agentgateway`
+- CPC-1 leaf: `cpc-1-dsx-agentgateway`
+- CPC-2 leaf: `cpc-2-dsx-agentgateway`
+
+The Skaffold releases are defined in
+[`agent-gateway/skaffold.yaml`](agent-gateway/skaffold.yaml).
+Common and site-specific chart values are in
+[`agent-gateway/values/`](agent-gateway/values/).
+
 ### Run Tests
 
-Performance and benchmark targets require MetalLB from the local stack. Local
+Event Bus performance tests require MetalLB from the local stack. Local MQTT
 clients connect through the Envoy Gateway LoadBalancer IPs. On macOS, keep
 `docker-mac-net-connect` running so the host can reach those IPs. Linux hosts
 normally reach the Docker bridge IPs directly.
 
-`make test` runs the full local e2e suite. The default CSC broker endpoint
-is `tcp://172.18.200.1:1883`; override `CSC_BROKER_URL` only when testing a
-different broker.
+`make test` runs the Event Bus and Agent Gateway functional and performance
+tests. The default CSC broker endpoint is `tcp://172.18.200.1:1883`; override
+`CSC_BROKER_URL` only when testing a different broker.
 
 Full benchmark runs can saturate local hosts because they drive thousands of
 MQTT clients through Kind, Envoy Gateway, NATS, and auth-callout. If a full run
@@ -114,10 +123,11 @@ For the testing strategy (functional and performance coverage), see
 
 ## Targets
 
-- `make test`: deploy the stack, then run functional and performance tests.
+- `make test`: run repository validation, including local deployment and e2e.
 - `make local-up`: deploy three logical sites to one Kind cluster.
-- `make test-dev`: run the same tests against an already running local stack.
+- `make test-dev`: run functional and performance tests against the deployed stack.
 - `make skaffold-dev`: run Skaffold dev for the complete local stack.
+- `make perf-benchmark`: run the sustained Agent Gateway k6 profile.
 - `make dummy-bms`: publish looping dummy BMS data.
 - `make clean`: delete the Kind cluster and generated local artifacts.
 - `make help`: show all available targets.
