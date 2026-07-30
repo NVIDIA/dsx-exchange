@@ -273,7 +273,7 @@ Error: connection refused
 telnet 172.18.200.1 1883
 
 # Check broker logs
-kubectl logs -n event-bus <pod-name>
+kubectl --context kind-dsx-exchange logs -n csc-event-bus <pod-name>
 ```
 
 ### High Latency
