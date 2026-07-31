@@ -67,8 +67,8 @@ func newHandler() http.Handler {
 		sessions: make(map[string]*legacyErrorSSESession),
 	}
 	mux.HandleFunc("/healthz", handleHealthz)
-	mux.Handle("/legacy-sse", legacySSE)
-	mux.Handle("/legacy-message", legacySSE)
+	mux.HandleFunc("/legacy-sse", legacySSE.serveEvents)
+	mux.HandleFunc("/legacy-message", legacySSE.serveMessage)
 	mux.Handle("/", newStreamableHTTPHandler())
 	return mux
 }
@@ -181,17 +181,6 @@ type legacyErrorSSESession struct {
 type legacyErrorSSERequest struct {
 	ID     json.RawMessage `json:"id"`
 	Method string          `json:"method"`
-}
-
-func (h *legacyErrorSSEHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/legacy-sse":
-		h.serveEvents(w, r)
-	case "/legacy-message":
-		h.serveMessage(w, r)
-	default:
-		http.NotFound(w, r)
-	}
 }
 
 func (h *legacyErrorSSEHandler) serveEvents(w http.ResponseWriter, r *http.Request) {
