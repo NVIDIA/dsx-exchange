@@ -5,7 +5,6 @@ package functional
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func TestResourcesListUnsupportedWithBridgeTarget(t *testing.T) {
+func TestResourcesListIgnoresUnsupportedBridgeTarget(t *testing.T) {
 	runner.ParallelReadOnly(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -23,17 +22,18 @@ func TestResourcesListUnsupportedWithBridgeTarget(t *testing.T) {
 	s := runner.NewSession(t, tenantAUnlimited)
 	t.Cleanup(s.Close)
 
-	_, err := s.Client.ListResources(ctx, mcp.ListResourcesRequest{})
-	if err == nil {
-		t.Fatalf("resources/list unexpectedly succeeded on the bridge-participating DSX Agent Gateway")
+	result, err := s.Client.ListResources(ctx, mcp.ListResourcesRequest{})
+	if err != nil {
+		t.Fatalf("resources/list with unsupported bridge target: %v", err)
 	}
-	msg := strings.ToLower(err.Error())
-	if !errors.Is(err, mcp.ErrMethodNotFound) ||
-		!strings.Contains(msg, "resources/list") ||
-		!strings.Contains(msg, "not supported") ||
-		!strings.Contains(msg, "stateless bridge") {
-		t.Fatalf("resources/list error = %q, want stateless bridge unsupported rejection", err)
+	// Agentgateway v1.4 keeps successful resource catalogs when another target
+	// rejects resources/list, so the stateless bridge no longer fails fanout.
+	for _, resource := range result.Resources {
+		if resource.URI == "mcp-backend-a-mcp+dsx://fixture/static" {
+			return
+		}
 	}
+	t.Fatalf("resources/list = %#v, want backend resource", result.Resources)
 }
 
 func TestResourcesReadWithMultiplexing(t *testing.T) {
@@ -78,7 +78,7 @@ func TestResourcesReadUnknownResourceWithMultiplexing(t *testing.T) {
 	}
 }
 
-func TestResourcesTemplatesListUnsupportedWithBridgeTarget(t *testing.T) {
+func TestResourceTemplatesListIgnoresUnsupportedBridgeTarget(t *testing.T) {
 	runner.ParallelReadOnly(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -86,17 +86,19 @@ func TestResourcesTemplatesListUnsupportedWithBridgeTarget(t *testing.T) {
 	s := runner.NewSession(t, tenantAUnlimited)
 	t.Cleanup(s.Close)
 
-	_, err := s.Client.ListResourceTemplates(ctx, mcp.ListResourceTemplatesRequest{})
-	if err == nil {
-		t.Fatal("resources/templates/list unexpectedly succeeded with a bridge target")
+	result, err := s.Client.ListResourceTemplates(ctx, mcp.ListResourceTemplatesRequest{})
+	if err != nil {
+		t.Fatalf("resources/templates/list with unsupported bridge target: %v", err)
 	}
-	msg := strings.ToLower(err.Error())
-	if !errors.Is(err, mcp.ErrMethodNotFound) ||
-		!strings.Contains(msg, "resources/templates/list") ||
-		!strings.Contains(msg, "not supported") ||
-		!strings.Contains(msg, "stateless bridge") {
-		t.Fatalf("resources/templates/list error = %q, want stateless bridge unsupported rejection", err)
+	// Agentgateway v1.4 keeps successful template catalogs when another target
+	// rejects resources/templates/list, matching resources/list fanout.
+	for _, template := range result.ResourceTemplates {
+		if template.URITemplate != nil &&
+			template.URITemplate.Raw() == "mcp-backend-a-mcp+dsx://fixture/{name}" {
+			return
+		}
 	}
+	t.Fatalf("resources/templates/list = %#v, want backend resource template", result.ResourceTemplates)
 }
 
 func TestResourceReferenceCompletionUnsupportedAtGateway(t *testing.T) {

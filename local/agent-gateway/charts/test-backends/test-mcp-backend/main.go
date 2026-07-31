@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -61,8 +63,13 @@ func main() {
 
 func newHandler() http.Handler {
 	mux := http.NewServeMux()
+	legacySSE := &legacyErrorSSEHandler{
+		sessions: make(map[string]*legacyErrorSSESession),
+	}
 	mux.HandleFunc("/healthz", handleHealthz)
-	mux.Handle("/", newMCPHandler())
+	mux.HandleFunc("/legacy-sse", legacySSE.serveEvents)
+	mux.HandleFunc("/legacy-message", legacySSE.serveMessage)
+	mux.Handle("/", newStreamableHTTPHandler())
 	return mux
 }
 
@@ -70,7 +77,7 @@ func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func newMCPHandler() http.Handler {
+func newStreamableHTTPHandler() http.Handler {
 	s := server.NewMCPServer(
 		backendID(),
 		"0.1.0",
@@ -158,6 +165,104 @@ func newMCPHandler() http.Handler {
 	)
 
 	return logMCPPosts(server.NewStreamableHTTPServer(s, server.WithStateLess(true)))
+}
+
+type legacyErrorSSEHandler struct {
+	nextID    atomic.Uint64
+	sessions  map[string]*legacyErrorSSESession
+	sessionsM sync.RWMutex
+}
+
+type legacyErrorSSESession struct {
+	events chan []byte
+	done   chan struct{}
+}
+
+type legacyErrorSSERequest struct {
+	ID     json.RawMessage `json:"id"`
+	Method string          `json:"method"`
+}
+
+func (h *legacyErrorSSEHandler) serveEvents(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	sessionID := fmt.Sprint(h.nextID.Add(1))
+	session := &legacyErrorSSESession{
+		events: make(chan []byte, 8),
+		done:   make(chan struct{}),
+	}
+	h.sessionsM.Lock()
+	h.sessions[sessionID] = session
+	h.sessionsM.Unlock()
+	defer func() {
+		h.sessionsM.Lock()
+		delete(h.sessions, sessionID)
+		close(session.done)
+		h.sessionsM.Unlock()
+	}()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	fmt.Fprintf(w, "event: endpoint\ndata: /legacy-message?sessionId=%s\r\n\r\n", sessionID)
+	flusher.Flush()
+
+	for {
+		select {
+		case event := <-session.events:
+			fmt.Fprintf(w, "event: message\ndata: %s\r\n\r\n", event)
+			flusher.Flush()
+		case <-r.Context().Done():
+			return
+		}
+	}
+}
+
+func (h *legacyErrorSSEHandler) serveMessage(w http.ResponseWriter, r *http.Request) {
+	h.sessionsM.RLock()
+	session, ok := h.sessions[r.URL.Query().Get("sessionId")]
+	h.sessionsM.RUnlock()
+	if !ok {
+		http.Error(w, "unknown session", http.StatusBadRequest)
+		return
+	}
+	var req legacyErrorSSERequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON-RPC request", http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+	if len(req.ID) == 0 || string(req.ID) == "null" {
+		return
+	}
+
+	response := map[string]any{
+		"jsonrpc": "2.0",
+		"id":      req.ID,
+	}
+	switch req.Method {
+	case "initialize":
+		response["result"] = map[string]any{
+			"protocolVersion": "2025-06-18",
+			"capabilities":    map[string]any{"tools": map[string]any{}},
+			"serverInfo":      map[string]string{"name": backendID() + "-legacy-sse", "version": "0.1.0"},
+		}
+	case "tools/list":
+		response["result"] = map[string]any{"tools": []any{}}
+	default:
+		response["error"] = map[string]any{"code": -32601, "message": "method not found: " + req.Method}
+	}
+	event, err := json.Marshal(response)
+	if err != nil {
+		return
+	}
+	select {
+	case session.events <- event:
+	case <-session.done:
+	case <-r.Context().Done():
+	}
 }
 
 func logMCPPosts(next http.Handler) http.Handler {

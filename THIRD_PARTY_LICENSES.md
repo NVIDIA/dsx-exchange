@@ -31,7 +31,7 @@ auth-callout v0.1.1
   License: Apache-2.0
   Copyright: NVIDIA CORPORATION & AFFILIATES
 
-agentgateway v1.3.1
+agentgateway v1.4.1
   Source: https://github.com/agentgateway/agentgateway
   Repository: oci://cr.agentgateway.dev/charts
   License: Apache-2.0
