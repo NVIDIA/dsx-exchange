@@ -20,7 +20,12 @@ spec:
       protocol: TCP
       targetPort: {{ $metrics.port }}
   selector:
+    {{- if .Values.nack.useLegacyNames }}
     app: nack
+    {{- else }}
+    app.kubernetes.io/name: nack
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- end }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
