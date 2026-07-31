@@ -532,10 +532,8 @@ nack:
     scrapeTimeout: 10s
 ```
 
-Auth-callout tracing is enabled by default. Its chart injects the
-`dsx-obs/default-instrumentation` SDK configuration and
-`dsx-obs/default-sidecar` collector, then exports OTLP/gRPC to
-`127.0.0.1:4317`.
+Auth-callout tracing is enabled by default and exports OTLP/gRPC directly to
+`otel-gateway-collector.dsx-obs.svc:4317`. Operator injection is optional.
 
 ### Metrics
 

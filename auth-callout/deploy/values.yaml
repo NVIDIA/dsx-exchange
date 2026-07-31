@@ -240,8 +240,7 @@ serviceConfig:
       enabled: true
       https: false
       otlp:
-        # The injected DSX collector sidecar listens on the Pod loopback interface.
-        endpoint: 127.0.0.1:4317
+        endpoint: otel-gateway-collector.dsx-obs.svc:4317
       level: debug
       provider: otlp
     metrics:
@@ -259,7 +258,7 @@ serviceConfig:
 observability:
   tracing:
     operatorInjection:
-      enabled: true
+      enabled: false
     instrumentationRef: dsx-obs/default-instrumentation
     sidecarRef: dsx-obs/default-sidecar
 

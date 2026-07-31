@@ -309,16 +309,12 @@ ServiceMonitor is only created when:
 
 Application tracing is controlled by
 `serviceConfig.observability.tracing.enabled` and can export to any configured
-OTLP/gRPC endpoint. Kubernetes OpenTelemetry Operator injection is enabled by
-default for the local collector sidecar but remains independently configurable.
+OTLP/gRPC endpoint. Tracing is enabled by default and exports directly to
+`otel-gateway-collector.dsx-obs.svc:4317`, without requiring Kubernetes
+OpenTelemetry Operator annotations.
 
-Before installing this chart directly with its defaults, install the
-OpenTelemetry Operator and provision the `dsx-obs/default-instrumentation`
-Instrumentation and `dsx-obs/default-sidecar` OpenTelemetryCollector resources.
-The local Skaffold flow provisions these prerequisites automatically.
-
-Override the operator resource references when the platform uses different
-names:
+Operator injection remains optional. Enable it and override the resource
+references when the platform uses different names:
 
 ```yaml
 observability:
@@ -332,8 +328,8 @@ observability:
 With injection enabled, the application sends spans to `127.0.0.1:4317`; the
 sidecar forwards them through the node-local DSX collector pipeline.
 
-To export directly without operator annotations, disable injection and set the
-application OTLP endpoint:
+To export directly to a different collector, leave injection disabled and set
+the application OTLP endpoint:
 
 ```yaml
 observability:

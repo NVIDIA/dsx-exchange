@@ -323,7 +323,6 @@ func TestOpenTelemetryOperatorInjectionContract(t *testing.T) {
 		{name: "rate limit", ns: cscGatewayNS, selector: "app.kubernetes.io/instance=" + cscGatewayName + ",app.kubernetes.io/component=ratelimit", application: "ratelimit", serviceName: "dsx-agent-gateway-ratelimit", samplerEnv: "TRACING_SAMPLING_RATE", endpoint: "http://127.0.0.1:4318"},
 		{name: "bridge hub", ns: cscGatewayNS, selector: bridgePodSelector, application: "dsx-agentgateway-bridge", serviceName: "dsx-agentgateway-bridge-hub", samplerEnv: "OTEL_TRACES_SAMPLER_ARG", endpoint: "http://127.0.0.1:4318"},
 		{name: "bridge leaf", ns: cpc1GatewayNS, selector: bridgePodSelector, application: "dsx-agentgateway-bridge", serviceName: "dsx-agentgateway-bridge-leaf", samplerEnv: "OTEL_TRACES_SAMPLER_ARG", endpoint: "http://127.0.0.1:4318"},
-		{name: "auth callout", ns: cscEventBusNS, selector: "app.kubernetes.io/name=auth-callout", application: "auth-callout", serviceName: "auth-callout", endpoint: "http://127.0.0.1:4318"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pods := runner.ListPods(t, tc.ns, tc.selector, "status.phase=Running")
@@ -384,6 +383,43 @@ func TestOpenTelemetryOperatorInjectionContract(t *testing.T) {
 				t.Errorf("Pod %s %s = %q, want unified chart ratio", pod.Name, tc.samplerEnv, env[tc.samplerEnv])
 			}
 		})
+	}
+}
+
+func TestAuthCalloutDirectTracingContract(t *testing.T) {
+	runner.ParallelReadOnly(t)
+
+	pods := runner.ListPods(t, cscEventBusNS, "app.kubernetes.io/name=auth-callout", "status.phase=Running")
+	if len(pods) == 0 {
+		t.Fatal("no running auth-callout Pods")
+	}
+	pod := pods[0]
+	for _, name := range []string{
+		"instrumentation.opentelemetry.io/inject-sdk",
+		"sidecar.opentelemetry.io/inject",
+		"resource.opentelemetry.io/service.name",
+	} {
+		if value, exists := pod.Annotations[name]; exists {
+			t.Errorf("Pod %s annotation %s = %q, want absent", pod.Name, name, value)
+		}
+	}
+	for _, container := range pod.Spec.InitContainers {
+		if container.Name == "otc-container" {
+			t.Errorf("Pod %s has unexpected collector sidecar", pod.Name)
+		}
+	}
+
+	config, err := runner.K8s(t).CoreV1().ConfigMaps(cscEventBusNS).Get(
+		context.Background(), "auth-callout-config", metav1.GetOptions{},
+	)
+	if err != nil {
+		t.Fatalf("get auth-callout config: %v", err)
+	}
+	configYAML := config.Data["config.yaml"]
+	for _, want := range []string{"tracing:\n    enabled: true\n", "endpoint: otel-collector.dsx-obs.svc:4317\n"} {
+		if !strings.Contains(configYAML, want) {
+			t.Errorf("auth-callout config missing %q", want)
+		}
 	}
 }
 

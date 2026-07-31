@@ -27,3 +27,7 @@ auth-callout:
       url: "http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs"
       issuer: "http://172.18.200.1/realms/event-bus"
       audience: "dsx-exchange"
+    observability:
+      tracing:
+        otlp:
+          endpoint: otel-collector.dsx-obs.svc:4317
