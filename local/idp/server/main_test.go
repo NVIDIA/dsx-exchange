@@ -117,9 +117,25 @@ func TestTokenGrants(t *testing.T) {
 			if err != nil {
 				t.Fatalf("parse access token: %v", err)
 			}
+			if len(token.Headers) != 1 {
+				t.Fatalf("token headers = %d, want 1", len(token.Headers))
+			}
+			jwksResponse := httptest.NewRecorder()
+			s.routes().ServeHTTP(jwksResponse, httptest.NewRequest(http.MethodGet, jwksPath, nil))
+			if jwksResponse.Code != http.StatusOK {
+				t.Fatalf("JWKS status = %d, want %d", jwksResponse.Code, http.StatusOK)
+			}
+			var jwks jose.JSONWebKeySet
+			if err := json.NewDecoder(jwksResponse.Body).Decode(&jwks); err != nil {
+				t.Fatalf("decode JWKS: %v", err)
+			}
+			keys := jwks.Key(token.Headers[0].KeyID)
+			if len(keys) != 1 {
+				t.Fatalf("JWKS keys for kid %q = %d, want 1", token.Headers[0].KeyID, len(keys))
+			}
 			var registered jwt.Claims
 			var private map[string]any
-			if err := token.Claims(&signingKey.PublicKey, &registered, &private); err != nil {
+			if err := token.Claims(keys[0].Key, &registered, &private); err != nil {
 				t.Fatalf("verify access token: %v", err)
 			}
 			if registered.Issuer != "https://idp.example.com" || registered.Subject != tt.subject {
@@ -152,8 +168,10 @@ func TestTokenRejectsInvalidCredentials(t *testing.T) {
 	}, signingKey, time.Now)
 
 	tests := []struct {
-		name string
-		form url.Values
+		name       string
+		form       url.Values
+		wantStatus int
+		wantError  string
 	}{
 		{
 			name: "client secret",
@@ -162,6 +180,8 @@ func TestTokenRejectsInvalidCredentials(t *testing.T) {
 				"client_id":     {"service"},
 				"client_secret": {"wrong"},
 			},
+			wantStatus: http.StatusUnauthorized,
+			wantError:  "invalid_client",
 		},
 		{
 			name: "password",
@@ -172,6 +192,18 @@ func TestTokenRejectsInvalidCredentials(t *testing.T) {
 				"username":      {"operator"},
 				"password":      {"wrong"},
 			},
+			wantStatus: http.StatusUnauthorized,
+			wantError:  "invalid_grant",
+		},
+		{
+			name: "grant type",
+			form: url.Values{
+				"grant_type":    {"password"},
+				"client_id":     {"service"},
+				"client_secret": {"service-secret"},
+			},
+			wantStatus: http.StatusBadRequest,
+			wantError:  "unauthorized_client",
 		},
 	}
 
@@ -181,8 +213,17 @@ func TestTokenRejectsInvalidCredentials(t *testing.T) {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			rec := httptest.NewRecorder()
 			s.routes().ServeHTTP(rec, req)
-			if rec.Code != http.StatusUnauthorized {
-				t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d: %s", rec.Code, tt.wantStatus, rec.Body.String())
+			}
+			var response struct {
+				Error string `json:"error"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+				t.Fatalf("decode error response: %v", err)
+			}
+			if response.Error != tt.wantError {
+				t.Fatalf("error = %q, want %q", response.Error, tt.wantError)
 			}
 		})
 	}
