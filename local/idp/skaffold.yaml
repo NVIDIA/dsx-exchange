@@ -1,0 +1,69 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: idp
+requires:
+- path: ../infra/sites/skaffold.yaml
+  configs:
+  - sites
+build:
+  tagPolicy:
+    inputDigest: {}
+  local:
+    concurrency: 0
+    push: false
+    useDockerCLI: true
+    useBuildkit: true
+  artifacts:
+  - image: dsx-exchange/demoidp
+    context: ./server
+    docker:
+      dockerfile: Dockerfile
+profiles:
+- name: idp-build-mirror
+  activation:
+  - env: SKAFFOLD_BUILD_MIRROR_REGISTRY=.+
+  patches:
+  - op: add
+    path: /build/artifacts/0/docker/buildArgs
+    value:
+      BUILDER_IMG: '{{.SKAFFOLD_BUILD_MIRROR_REGISTRY}}/docker.io/library/golang:1.26.5-alpine'
+manifests:
+  hooks:
+    before:
+    - host:
+        command:
+        - local/idp/prepare-secrets.sh
+  kustomize:
+    paths:
+    - ./secret-generator
+    buildArgs:
+    - --load-restrictor=LoadRestrictionsNone
+  rawYaml:
+  - ./namespace.yaml
+  - ./httproute.yaml
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  helm:
+    flags:
+      install:
+      - --timeout=5m
+      upgrade:
+      - --timeout=5m
+    releases:
+    - name: idp
+      chartPath: ./chart
+      namespace: idp
+      createNamespace: true
+      skipBuildDependencies: true
+      setValueTemplates:
+        image.repository: '{{.IMAGE_REPO_dsx_exchange_demoidp}}'
+        image.tag: '{{.IMAGE_TAG_dsx_exchange_demoidp}}'
+      setValues:
+        image.pullPolicy: IfNotPresent
+  kubectl: {}

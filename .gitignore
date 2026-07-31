@@ -20,8 +20,8 @@ scorecard.png
 /deploy/dsx-agent-gateway/charts/
 /deploy/nats-event-bus/Chart.lock
 /deploy/nats-event-bus/charts/
-/local/agent-gateway/charts/demoidp/Chart.lock
-/local/agent-gateway/charts/demoidp/charts/
+/local/idp/chart/Chart.lock
+/local/idp/chart/charts/
 /local/agent-gateway/charts/test-backends/Chart.lock
 /local/agent-gateway/charts/test-backends/charts/
 
@@ -31,7 +31,7 @@ scorecard.png
 /local/event-bus/keys/
 /local/event-bus/nsc/
 /local/event-bus/secrets/
-/local/agent-gateway/secret-generators/demoidp/generated/
+/local/idp/secret-generator/generated/
 
 # Local Go build and test output.
 *.prof

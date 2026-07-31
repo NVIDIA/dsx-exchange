@@ -6,12 +6,13 @@ set -Eeuo pipefail
 umask 077
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-GENERATOR_DIR="$REPO_ROOT/local/agent-gateway/secret-generators/demoidp"
+GENERATOR_DIR="$REPO_ROOT/local/idp/secret-generator"
 OUTPUT_DIR="$GENERATOR_DIR/generated"
 TEMPLATE="$GENERATOR_DIR/credentials.yaml.tmpl"
 TEMP_DIR=""
 
 ISSUERS=(
+  event-bus
   human-oidc
   service-oidc
   svid-issuer
@@ -36,7 +37,7 @@ sources_ready() {
 generate_sources() {
   local client_secret operator viewer tenant_a tenant_b tenant_c
   local tenant_test tenant_test_b bad_svid
-  local human_key service_key svid_key wrong_key unconfigured_key
+  local event_bus_key human_key service_key svid_key wrong_key unconfigured_key
   local rendered issuer name signing_key
 
   client_secret="$(openssl rand -hex 32)"
@@ -48,6 +49,7 @@ generate_sources() {
   tenant_test="$(openssl rand -hex 32)"
   tenant_test_b="$(openssl rand -hex 32)"
   bad_svid="$(openssl rand -hex 32)"
+  event_bus_key="$(openssl genrsa 4096 2>/dev/null | base64 | tr -d '\n')"
   human_key="$(openssl genrsa 4096 2>/dev/null | base64 | tr -d '\n')"
   service_key="$(openssl genrsa 4096 2>/dev/null | base64 | tr -d '\n')"
   svid_key="$(openssl genrsa 4096 2>/dev/null | base64 | tr -d '\n')"
@@ -64,6 +66,7 @@ generate_sources() {
   DEMOIDP_TENANT_TEST_PASSWORD="$tenant_test" \
   DEMOIDP_TENANT_TEST_B_PASSWORD="$tenant_test_b" \
   DEMOIDP_BAD_SVID_PASSWORD="$bad_svid" \
+  DEMOIDP_EVENT_BUS_SIGNING_KEY_BASE64="$event_bus_key" \
   DEMOIDP_HUMAN_OIDC_SIGNING_KEY_BASE64="$human_key" \
   DEMOIDP_SERVICE_OIDC_SIGNING_KEY_BASE64="$service_key" \
   DEMOIDP_SVID_SIGNING_KEY_BASE64="$svid_key" \
@@ -79,6 +82,8 @@ generate_sources() {
       gsub(/<<DEMOIDP_TENANT_TEST_PASSWORD>>/, ENVIRON["DEMOIDP_TENANT_TEST_PASSWORD"]);
       gsub(/<<DEMOIDP_TENANT_TEST_B_PASSWORD>>/, ENVIRON["DEMOIDP_TENANT_TEST_B_PASSWORD"]);
       gsub(/<<DEMOIDP_BAD_SVID_PASSWORD>>/, ENVIRON["DEMOIDP_BAD_SVID_PASSWORD"]);
+      gsub(/<<DEMOIDP_EVENT_BUS_SIGNING_KEY_BASE64>>/,
+        ENVIRON["DEMOIDP_EVENT_BUS_SIGNING_KEY_BASE64"]);
       gsub(/<<DEMOIDP_HUMAN_OIDC_SIGNING_KEY_BASE64>>/,
         ENVIRON["DEMOIDP_HUMAN_OIDC_SIGNING_KEY_BASE64"]);
       gsub(/<<DEMOIDP_SERVICE_OIDC_SIGNING_KEY_BASE64>>/,

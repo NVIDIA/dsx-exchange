@@ -19,7 +19,7 @@ Use the local setup as the runnable end-to-end example. Its Helm values live in
 in `csc/values.yaml`, shared CPC settings in `cpc/values.yaml`, and per-cluster
 CPC overrides in `cpc/cpc-1.yaml` and `cpc/cpc-2.yaml`. Use these files as the
 concrete reference for value layering. Do not copy them to production unchanged
-because they use local images, local Keycloak, and Kind networking.
+because they use local images, the local test IdP, and Kind networking.
 
 If you already have access to a running broker and need to build or test an MQTT
 integration application, use the [Integrator Quickstart](integrator-quickstart.md)

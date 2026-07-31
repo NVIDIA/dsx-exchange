@@ -4,8 +4,8 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: keycloak
-  namespace: keycloak
+  name: idp
+  namespace: idp
 spec:
   parentRefs:
     - name: shared-gateway
@@ -13,8 +13,14 @@ spec:
   rules:
     - matches:
         - path:
-            type: PathPrefix
-            value: /
+            type: Exact
+            value: /healthz
+        - path:
+            type: Exact
+            value: /jwks.json
+        - path:
+            type: Exact
+            value: /token
       backendRefs:
-        - name: keycloak-service
-          port: 8080
+        - name: event-bus
+          port: 5556

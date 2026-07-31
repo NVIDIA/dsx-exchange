@@ -17,6 +17,6 @@ rm -rf \
   "${repo_root}/local/event-bus/nsc" \
   "${repo_root}/local/event-bus/certs" \
   "${repo_root}/local/event-bus/secrets" \
-  "${repo_root}/local/agent-gateway/secret-generators/demoidp/generated"
+  "${repo_root}/local/idp/secret-generator/generated"
 
 echo "Cleanup complete"

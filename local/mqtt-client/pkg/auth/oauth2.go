@@ -8,31 +8,28 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-// GetKeycloakToken obtains an OAuth2 access token from Keycloak using the Client Credentials flow.
-func GetKeycloakToken(keycloakURL, clientID, clientSecret string) (string, error) {
+// GetOIDCToken obtains an OAuth2 access token using the client credentials flow.
+func GetOIDCToken(idpURL, clientID, clientSecret string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return GetKeycloakTokenContext(ctx, keycloakURL, clientID, clientSecret)
+	return GetOIDCTokenContext(ctx, idpURL, clientID, clientSecret)
 }
 
-// GetKeycloakTokenContext obtains an OAuth2 access token using the supplied context.
-func GetKeycloakTokenContext(ctx context.Context, keycloakURL, clientID, clientSecret string) (string, error) {
-	// Construct the token endpoint
-	tokenURL := fmt.Sprintf("%s/realms/event-bus/protocol/openid-connect/token", keycloakURL)
-
-	// Configure OAuth2 with client credentials
+// GetOIDCTokenContext obtains an OAuth2 access token using the supplied context.
+func GetOIDCTokenContext(ctx context.Context, idpURL, clientID, clientSecret string) (string, error) {
 	config := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		TokenURL:     tokenURL,
+		TokenURL:     idpURL + "/token",
 		Scopes:       []string{"mqtt"},
+		AuthStyle:    oauth2.AuthStyleInParams,
 	}
 
-	// Obtain token using client credentials
 	token, err := config.Token(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to obtain token: %w", err)

@@ -10,7 +10,7 @@ The infrastructure consists of:
 - MetalLB for LoadBalancer services
 - Envoy Gateway controllers
 - Metrics Server for resource metrics (CPU/memory)
-- Keycloak for OAuth2 authentication (development)
+- shared local IdP for OAuth2 authentication
 - Prometheus for ServiceMonitor-backed metrics
 
 ## Quick Start
@@ -100,16 +100,16 @@ Envoy Gateway provides modern, high-performance HTTP/HTTPS ingress and API gatew
 Each site owns a `shared-gateway` in its stable `*-gateway` namespace. It
 provides TCP listeners for NATS (ports 1883, 4222, 7422), a TLS
 passthrough listener for mTLS MQTT (port 8883), and an HTTP listener (port 80)
-for Keycloak.
+for the local IdP.
 
-Example HTTPRoute for Keycloak:
+Example HTTPRoute for the local IdP:
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: keycloak
-  namespace: keycloak
+  name: idp
+  namespace: idp
 spec:
   parentRefs:
     - name: shared-gateway
@@ -117,11 +117,11 @@ spec:
   rules:
     - matches:
         - path:
-            type: PathPrefix
-            value: /
+            type: Exact
+            value: /token
       backendRefs:
-        - name: keycloak-service
-          port: 8080
+        - name: event-bus
+          port: 5556
 ```
 
 ## cert-manager
@@ -143,15 +143,14 @@ kubectl top nodes --context kind-dsx-exchange
 kubectl top pods -n csc-event-bus --context kind-dsx-exchange
 ```
 
-## Keycloak (OAuth2 Authentication)
+## Local IdP
 
-Keycloak provides OAuth2/OpenID Connect authentication for testing the event
-bus auth callout service. A single instance attaches to the CSC Gateway, and
-all sites access it through `172.18.200.1`.
+The shared local IdP provides OAuth2 tokens for event bus and Agent Gateway
+tests. The event bus issuer attaches to the CSC Gateway, and all sites access
+it through `172.18.200.1`.
 
 **Configuration:**
 
-- **Realm**: `event-bus` (auto-imported at startup via ConfigMap `keycloak-realm-import`)
 - **Grant Type**: Client Credentials (machine-to-machine authentication)
 - **Scope**: `mqtt` (required for MQTT access)
 - **Clients** (service accounts with client credentials enabled, shared across all sites):
@@ -159,34 +158,27 @@ all sites access it through `172.18.200.1`.
   - `mqtt-publisher` / `mqtt-publisher-secret` (publish only)
   - `mqtt-subscriber` / `mqtt-subscriber-secret` (subscribe only)
 
-**Access:**
-
-Keycloak is exposed via Envoy Gateway HTTPRoute on port 80 at the CSC cluster's MetalLB LoadBalancer IP: `172.18.200.1`. On macOS, keep `docker-mac-net-connect` running so the host can reach this address. Linux hosts normally reach the Docker bridge IPs directly.
+The IdP is exposed via Envoy Gateway on port 80 at the CSC cluster's MetalLB
+LoadBalancer IP: `172.18.200.1`.
 
 ```bash
-# Verify Keycloak from the host
-curl http://172.18.200.1/realms/event-bus/.well-known/openid-configuration
+# Verify the IdP from the host
+curl http://172.18.200.1/healthz
 ```
 
 **Token Endpoint (all sites):**
 
-- `http://172.18.200.1/realms/event-bus/protocol/openid-connect/token`
+- `http://172.18.200.1/token`
 
 **JWKS Endpoint (used by auth-callout in all sites):**
 
-- `http://172.18.200.1/realms/event-bus/protocol/openid-connect/certs`
-
-**Access Keycloak Admin Console:**
-
-Open `http://172.18.200.1/admin/master/console/`.
-
-Admin credentials: `admin/admin`.
+- `http://172.18.200.1/jwks.json`
 
 **Testing:**
 
 ```bash
 # Obtain a token using client credentials grant
-curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token" \
+curl -X POST "http://172.18.200.1/token" \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   -d 'grant_type=client_credentials' \
   -d 'client_id=mqtt-client' \
@@ -194,19 +186,7 @@ curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token
   -d 'scope=mqtt'
 ```
 
-**Architecture:**
-
-- Single Keycloak instance behind the CSC Gateway
-- All sites access via external IP (172.18.200.1)
-- Simplified configuration with shared OAuth2 clients
-- Consistent authentication across all sites
-
-**Note:** This is a minimal development setup using:
-
-- H2 in-memory database (no persistence)
-- HTTP only (no TLS)
-- Single replica
-- Not suitable for production
+This IdP is an HTTP-only test fixture, not a production identity provider.
 
 ## Prometheus
 
@@ -367,21 +347,17 @@ echo "Gateway IP: $GATEWAY_IP"
 curl http://${GATEWAY_IP}/
 ```
 
-### Keycloak Not Working
+### Local IdP Not Working
 
 ```bash
-# Check Keycloak pods
-kubectl get pods -n keycloak --context kind-dsx-exchange
+# Check IdP pods
+kubectl get pods -n idp --context kind-dsx-exchange
 
 # Check logs
-kubectl logs -n keycloak -l app=keycloak --context kind-dsx-exchange
-
-# Check realm import ConfigMap. The import key is realm-event-bus.json and the
-# Keycloak realm inside that file is event-bus.
-kubectl get configmap keycloak-realm-import -n keycloak --context kind-dsx-exchange -o yaml
+kubectl logs -n idp -l app.kubernetes.io/name=event-bus --context kind-dsx-exchange
 
 # Test token endpoint via external IP using client credentials
-curl -X POST "http://172.18.200.1/realms/event-bus/protocol/openid-connect/token" \
+curl -X POST "http://172.18.200.1/token" \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   -d 'grant_type=client_credentials' \
   -d 'client_id=mqtt-client' \
