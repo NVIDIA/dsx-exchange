@@ -37,11 +37,6 @@ manifests:
     - host:
         command:
         - local/idp/prepare-secrets.sh
-  kustomize:
-    paths:
-    - ./secret-generator
-    buildArgs:
-    - --load-restrictor=LoadRestrictionsNone
   rawYaml:
   - ./namespace.yaml
   - ./httproute.yaml

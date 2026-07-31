@@ -32,6 +32,7 @@ scorecard.png
 /local/event-bus/nsc/
 /local/event-bus/secrets/
 /local/idp/secret-generator/generated/
+/local/idp/chart/generated/
 
 # Local Go build and test output.
 *.prof

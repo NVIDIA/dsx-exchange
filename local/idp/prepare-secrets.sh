@@ -7,7 +7,7 @@ umask 077
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 GENERATOR_DIR="$REPO_ROOT/local/idp/secret-generator"
-OUTPUT_DIR="$GENERATOR_DIR/generated"
+OUTPUT_DIR="$REPO_ROOT/local/idp/chart/generated"
 TEMPLATE="$GENERATOR_DIR/credentials.yaml.tmpl"
 TEMP_DIR=""
 
