@@ -14,6 +14,9 @@ backends:
   - name: mcp-backend-b
     instance: backend-b
     replicas: 1
+  - name: legacy-sse
+    instance: legacy-sse
+    replicas: 1
 
 networkPolicy:
   enabled: true
