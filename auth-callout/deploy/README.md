@@ -276,7 +276,7 @@ serviceConfig:
 # ServiceMonitor for Prometheus Operator
 serviceMonitor:
   enabled: true
-  interval: "15s"
+  interval: "30s"
   scrapeTimeout: "10s"
   path: "/metrics"
 ```
@@ -307,21 +307,25 @@ ServiceMonitor is only created when:
 
 ### Tracing
 
-Tracing uses the DSX OpenTelemetry Operator resources by default. When
-`serviceConfig.observability.tracing.enabled` is `true`, the chart annotates
-the auth-callout Pod for SDK configuration and the `dsx-obs/default-sidecar`
-collector. The application sends OTLP/gRPC spans to `127.0.0.1:4317`; the
-sidecar forwards them through the node-local DSX collector pipeline.
+Application tracing is controlled by
+`serviceConfig.observability.tracing.enabled` and can export to any configured
+OTLP/gRPC endpoint. Kubernetes OpenTelemetry Operator injection is optional and
+disabled by default.
 
-Override the operator resource references only when the platform resources use
-different names:
+The DSX Event Bus parent chart enables injection for its local collector
+sidecar. Other deployments can enable it and override the resource references:
 
 ```yaml
 observability:
   tracing:
+    operatorInjection:
+      enabled: true
     instrumentationRef: dsx-obs/default-instrumentation
     sidecarRef: dsx-obs/default-sidecar
 ```
+
+With injection enabled, the application sends spans to `127.0.0.1:4317`; the
+sidecar forwards them through the node-local DSX collector pipeline.
 
 ### Health Checks Configuration
 

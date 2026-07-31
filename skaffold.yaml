@@ -6,9 +6,6 @@ kind: Config
 metadata:
   name: local-stack
 requires:
-- path: local/agent-gateway/skaffold.fixtures.yaml
-  configs:
-  - agent-gateway-fixtures
 - path: local/event-bus/skaffold.yaml
   configs:
   - event-bus

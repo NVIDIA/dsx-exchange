@@ -72,6 +72,9 @@ requires:
 - path: ../infra/skaffold.yaml
   configs:
   - infra
+- path: ../agent-gateway/skaffold.fixtures.yaml
+  configs:
+  - agent-gateway-fixtures
 deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600

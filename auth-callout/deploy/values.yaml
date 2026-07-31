@@ -255,9 +255,11 @@ serviceConfig:
       prometheus:
         port: 9090
 
-# Kubernetes OpenTelemetry Operator resources used when application tracing is enabled.
+# Optional Kubernetes OpenTelemetry Operator injection.
 observability:
   tracing:
+    operatorInjection:
+      enabled: false
     instrumentationRef: dsx-obs/default-instrumentation
     sidecarRef: dsx-obs/default-sidecar
 
@@ -404,7 +406,7 @@ vault:
 # ServiceMonitor configuration (only used when serviceConfig.observability.metrics.provider=prometheus)
 serviceMonitor:
   enabled: false # Create ServiceMonitor for Prometheus Operator (expects CRD to be installed)
-  interval: "15s" # Scrape interval
+  interval: "30s" # Scrape interval
   scrapeTimeout: "10s" # Per-scrape timeout
   path: "/metrics" # Metrics endpoint path
   labels: {} # Additional labels for ServiceMonitor discovery
