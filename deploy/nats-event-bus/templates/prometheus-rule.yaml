@@ -1,0 +1,78 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.global.eventBus.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nats-event-bus
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: nats-event-bus.rules
+      interval: 30s
+      rules:
+        - alert: NATSSurveyorMetricsAbsent
+          expr: absent(nats_survey_expected_count{namespace="{{ .Release.Namespace }}"}) == 1
+          for: 10m
+          labels:
+            severity: critical
+            team: dsx
+          annotations:
+            summary: NATS Surveyor metrics are unavailable.
+            description: No NATS Surveyor metrics have been observed for 10 minutes.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+        - alert: NATSSurveyIncomplete
+          expr: nats_survey_surveyed_count{namespace="{{ .Release.Namespace }}"} < nats_survey_expected_count{namespace="{{ .Release.Namespace }}"}
+          for: 5m
+          labels:
+            severity: critical
+            team: dsx
+          annotations:
+            summary: NATS Surveyor cannot reach every expected server.
+            description: The number of surveyed NATS servers is below the expected count.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+        - alert: NATSRepeatedReconnects
+          expr: increase(nats_survey_nats_reconnects{namespace="{{ .Release.Namespace }}"}[10m]) > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: dsx
+          annotations:
+            summary: NATS Surveyor is repeatedly reconnecting.
+            description: Surveyor reconnected to NATS more than twice in 10 minutes.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+        - alert: NATSSlowConsumers
+          expr: sum by (server_cluster) (increase(nats_core_slow_consumer_count{namespace="{{ .Release.Namespace }}"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+            team: dsx
+          annotations:
+            summary: NATS detected slow consumers.
+            description: A NATS cluster has continued to detect slow consumers.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+        - alert: NATSHighMemoryUsage
+          expr: nats_core_mem_bytes{namespace="{{ .Release.Namespace }}"} / nats_core_go_memlimit_bytes{namespace="{{ .Release.Namespace }}"} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+            team: dsx
+          annotations:
+            summary: A NATS server is using more than 80 percent of its memory limit.
+            description: NATS memory usage has remained above 80 percent for 15 minutes.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+        - alert: NATSRoutePendingData
+          expr: sum by (server_cluster, server_name) (nats_core_route_pending_bytes{namespace="{{ .Release.Namespace }}"}) > 1048576
+          for: 10m
+          labels:
+            severity: warning
+            team: dsx
+          annotations:
+            summary: A NATS route has more than 1 MiB of pending data.
+            description: Pending route data has remained above 1 MiB for 10 minutes.
+            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
+{{- end }}

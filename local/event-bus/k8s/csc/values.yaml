@@ -11,6 +11,8 @@
 global:
   eventBus:
     clusterType: csc
+    alerts:
+      enabled: true
     # List of CPC IDs that will connect as leaves
     cpcIds: ["1", "2"]
     gateway:

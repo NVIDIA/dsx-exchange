@@ -185,6 +185,9 @@ bridge:
     tls: {}
 
 observability:
+  # PrometheusRule resources belong only in the common services cluster.
+  alerts:
+    enabled: false
   metrics:
     # false omits Prometheus Operator resources and disables chart-managed export.
     enabled: true

@@ -74,6 +74,10 @@ global:
     mtls:
       enabled: true
 
+    # PrometheusRule resources belong only in the common services cluster.
+    alerts:
+      enabled: false
+
     # Extra NATS accounts.
     #
     # Extra accounts are rendered as native accounts on every cluster where they
