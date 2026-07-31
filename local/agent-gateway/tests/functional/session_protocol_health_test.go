@@ -187,7 +187,13 @@ func TestPrometheusMetricsEndpointsLive(t *testing.T) {
 			}
 		})
 	}
-	nackPod := firstRunningPodName(t, cscEventBusNS, "app=nack")
+	podMonitor := schema.GroupVersionResource{Group: "monitoring.coreos.com", Version: "v1", Resource: "podmonitors"}
+	nackMonitor := runner.GetUnstructured(t, podMonitor, cscEventBusNS, "nack")
+	nackLabels, found, err := unstructured.NestedStringMap(nackMonitor.Object, "spec", "selector", "matchLabels")
+	if err != nil || !found || len(nackLabels) == 0 {
+		t.Fatalf("PodMonitor %s/nack selector.matchLabels invalid: found=%t err=%v", cscEventBusNS, found, err)
+	}
+	nackPod := firstRunningPodName(t, cscEventBusNS, labels.SelectorFromSet(nackLabels).String())
 	if body := podProxyGET(t, ctx, cscEventBusNS, nackPod, 8080, "metrics"); !bytes.Contains(body, []byte("controller_runtime_reconcile_total")) {
 		t.Fatalf("NACK metrics body did not contain controller_runtime_reconcile_total: %.200s", body)
 	}
@@ -242,7 +248,7 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 		}
 		selector := labels.SelectorFromSet(matchLabels).String()
 		if tc.gvr == podMonitor {
-			if pods := runner.ListPods(t, tc.ns, selector, ""); len(pods) == 0 {
+			if pods := runner.ListPods(t, tc.ns, selector, "status.phase=Running"); len(pods) == 0 {
 				t.Fatalf("%s %s/%s selector %q matched no Pods", tc.gvr.Resource, tc.ns, tc.name, selector)
 			}
 		}
@@ -272,7 +278,9 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 					t.Fatalf("PodMonitor %s/%s relabelings invalid: found=%t count=%d err=%v", tc.ns, tc.name, found, len(relabelings), err)
 				}
 				relabeling, ok := relabelings[0].(map[string]any)
-				if !ok || relabeling["targetLabel"] != "__address__" || relabeling["replacement"] != "$1:8080" {
+				sourceLabels, sourceLabelsFound, sourceLabelsErr := unstructured.NestedStringSlice(relabeling, "sourceLabels")
+				if !ok || sourceLabelsErr != nil || !sourceLabelsFound || len(sourceLabels) != 1 || sourceLabels[0] != "__meta_kubernetes_pod_ip" ||
+					relabeling["targetLabel"] != "__address__" || relabeling["replacement"] != "$1:8080" {
 					t.Errorf("PodMonitor %s/%s relabeling = %v, want __address__ replacement $1:8080", tc.ns, tc.name, relabelings[0])
 				}
 				continue
