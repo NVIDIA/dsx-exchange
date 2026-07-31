@@ -1,0 +1,49 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability-operator
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 300
+  helm:
+    flags:
+      install:
+      - --timeout=5m
+      upgrade:
+      - --timeout=5m
+    releases:
+    - name: opentelemetry-operator
+      chartPath: ../../../.cache/helm/opentelemetry-operator-0.119.0.tgz
+      namespace: opentelemetry-operator-system
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values.operator.yaml
+---
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: observability
+requires:
+- configs:
+  - observability-operator
+manifests:
+  rawYaml:
+  - ./resources.yaml
+  helm:
+    releases:
+    - name: otel-collector
+      chartPath: ../../../.cache/helm/opentelemetry-collector-0.164.1.tgz
+      namespace: dsx-obs
+      createNamespace: true
+      skipBuildDependencies: true
+      valuesFiles:
+      - ./values.collector.yaml
+deploy:
+  statusCheck: true
+  statusCheckDeadlineSeconds: 600
+  tolerateFailuresUntilDeadline: true
+  kubectl: {}

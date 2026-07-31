@@ -72,9 +72,9 @@ requires:
 - path: ../infra/skaffold.yaml
   configs:
   - infra
-- path: ../agent-gateway/skaffold.fixtures.yaml
+- path: ../infra/observability/skaffold.yaml
   configs:
-  - agent-gateway-fixtures
+  - observability
 deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600

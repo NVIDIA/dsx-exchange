@@ -12,14 +12,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dsx-obs
-  labels:
-    app.kubernetes.io/part-of: dsx-agent-gateway
-    dsx-agent-gateway.nvidia.com/local-role: shared-infra
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: nats
   labels:
     app.kubernetes.io/part-of: dsx-agent-gateway

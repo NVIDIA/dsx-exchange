@@ -27,10 +27,3 @@ deploy:
       namespace: agentgateway-system
       createNamespace: true
       skipBuildDependencies: true
-    - name: opentelemetry-operator
-      chartPath: ../../.cache/helm/opentelemetry-operator-0.119.0.tgz
-      namespace: opentelemetry-operator-system
-      createNamespace: true
-      skipBuildDependencies: true
-      valuesFiles:
-      - ./values/values.opentelemetry-operator.yaml
