@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 image:
-  repository: dsx-agent-gateway/demoidp
+  repository: dsx-exchange/demoidp
   tag: latest
   pullPolicy: IfNotPresent
 
 issuers:
+  - name: event-bus
   - name: human-oidc
   - name: service-oidc
   - name: svid-issuer

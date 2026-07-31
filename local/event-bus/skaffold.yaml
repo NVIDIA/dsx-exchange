@@ -72,6 +72,9 @@ requires:
 - path: ../infra/skaffold.yaml
   configs:
   - infra
+- path: ../idp/skaffold.yaml
+  configs:
+  - idp
 deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600

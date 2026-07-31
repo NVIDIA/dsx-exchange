@@ -12,17 +12,10 @@ requires:
 - path: skaffold.infra.yaml
   configs:
   - agent-gateway-infra
+- path: ../idp/skaffold.yaml
+  configs:
+  - idp
 manifests:
-  hooks:
-    before:
-    - host:
-        command:
-        - local/agent-gateway/prepare-secrets.sh
-  kustomize:
-    paths:
-    - ./secret-generators/demoidp
-    buildArgs:
-    - --load-restrictor=LoadRestrictionsNone
   rawYaml:
   - ./manifests/namespaces/shared.yaml
   - ./manifests/namespaces/csc.yaml
@@ -36,16 +29,6 @@ manifests:
       upgrade:
       - --timeout=5m
     releases:
-    - name: demoidp
-      chartPath: ./charts/demoidp
-      namespace: agent-gateway-fixtures
-      createNamespace: true
-      skipBuildDependencies: true
-      setValueTemplates:
-        image.repository: '{{.IMAGE_REPO_dsx_agent_gateway_demoidp}}'
-        image.tag: '{{.IMAGE_TAG_dsx_agent_gateway_demoidp}}'
-      setValues:
-        image.pullPolicy: IfNotPresent
     - name: nats
       chartPath: ../../.cache/helm/nats-2.14.2.tgz
       namespace: nats
