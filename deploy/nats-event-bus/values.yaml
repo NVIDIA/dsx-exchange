@@ -515,10 +515,6 @@ nack:
 
 # Auth-callout configuration
 auth-callout:
-  observability:
-    tracing:
-      operatorInjection:
-        enabled: true
   resources:
     requests:
       cpu: 10m

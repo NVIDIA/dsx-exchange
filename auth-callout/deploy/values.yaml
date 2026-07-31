@@ -259,7 +259,7 @@ serviceConfig:
 observability:
   tracing:
     operatorInjection:
-      enabled: false
+      enabled: true
     instrumentationRef: dsx-obs/default-instrumentation
     sidecarRef: dsx-obs/default-sidecar
 
