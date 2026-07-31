@@ -6,7 +6,7 @@ name: dsx-agent-gateway
 description: Agentgateway deployment chart with optional dsx-agentgateway-bridge routing, rate limiting, observability, and defaults.
 type: application
 version: 0.3.1
-appVersion: "0.3.0"
+appVersion: "0.3.1"
 home: https://github.com/NVIDIA/dsx-exchange
 sources:
   - https://github.com/NVIDIA/dsx-exchange
