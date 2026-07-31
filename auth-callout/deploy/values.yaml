@@ -240,7 +240,8 @@ serviceConfig:
       enabled: true
       https: false
       otlp:
-        endpoint: otel-gateway-collector.dsx-obs.svc:4317
+        # The DSX collector sidecar listens on the Pod loopback interface.
+        endpoint: 127.0.0.1:4317
       level: debug
       provider: otlp
     metrics:
