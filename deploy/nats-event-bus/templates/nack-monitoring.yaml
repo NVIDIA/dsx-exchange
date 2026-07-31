@@ -1,0 +1,37 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- $metrics := .Values.nack.metrics | default dict }}
+{{- if ($metrics.enabled | default false) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: nack
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nack
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: metrics
+    {{- with $metrics.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+    {{- if .Values.nack.useLegacyNames }}
+      app: nack
+    {{- else }}
+      app.kubernetes.io/name: nack
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- end }}
+  podMetricsEndpoints:
+    - path: /metrics
+      interval: {{ required "nack.metrics.interval is required" $metrics.interval }}
+      scrapeTimeout: {{ required "nack.metrics.scrapeTimeout is required" $metrics.scrapeTimeout }}
+      # The upstream NACK chart does not declare its metrics container port.
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_ip]
+          targetLabel: __address__
+          replacement: '$1:{{ required "nack.metrics.port is required" $metrics.port }}'
+{{- end }}

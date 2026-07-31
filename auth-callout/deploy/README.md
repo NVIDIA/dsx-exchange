@@ -276,7 +276,8 @@ serviceConfig:
 # ServiceMonitor for Prometheus Operator
 serviceMonitor:
   enabled: true
-  interval: "15s"
+  interval: "30s"
+  scrapeTimeout: "10s"
   path: "/metrics"
 ```
 
@@ -303,6 +304,46 @@ ServiceMonitor is only created when:
 - `serviceConfig.observability.metrics.enabled: true`
 - `serviceConfig.observability.metrics.provider: prometheus`
 - `serviceMonitor.enabled: true`
+
+### Tracing
+
+Application tracing is controlled by
+`serviceConfig.observability.tracing.enabled` and can export to any configured
+OTLP/gRPC endpoint. Tracing is enabled by default and targets the collector
+sidecar at `127.0.0.1:4317`.
+
+Operator injection remains optional and independent from application tracing.
+Enable it to provision the default sidecar, and override the resource references
+when the platform uses different names:
+
+```yaml
+observability:
+  tracing:
+    operatorInjection:
+      enabled: true
+    instrumentationRef: dsx-obs/default-instrumentation
+    sidecarRef: dsx-obs/default-sidecar
+```
+
+With injection enabled, the application sends spans to `127.0.0.1:4317`; the
+sidecar forwards them through the node-local DSX collector pipeline.
+
+Deployments that provision the sidecar without these annotations can leave
+injection disabled. To export directly to a different collector instead, leave
+injection disabled and set the application OTLP endpoint:
+
+```yaml
+observability:
+  tracing:
+    operatorInjection:
+      enabled: false
+serviceConfig:
+  observability:
+    tracing:
+      enabled: true
+      otlp:
+        endpoint: otel-gateway.example:4317
+```
 
 ### Health Checks Configuration
 

@@ -72,6 +72,9 @@ requires:
 - path: ../infra/skaffold.yaml
   configs:
   - infra
+- path: ../infra/observability/skaffold.yaml
+  configs:
+  - observability
 - path: ../idp/skaffold.yaml
   configs:
   - idp

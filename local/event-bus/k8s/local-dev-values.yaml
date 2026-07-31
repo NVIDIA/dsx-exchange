@@ -20,12 +20,13 @@ auth-callout:
     repository: auth-callout
     tag: "latest"
     pullPolicy: Never
+  observability:
+    tracing:
+      operatorInjection:
+        enabled: true
 
   serviceConfig:
     jwks:
       url: "http://172.18.200.1/jwks.json"
       issuer: "http://172.18.200.1"
       audience: "dsx-exchange"
-    observability:
-      tracing:
-        enabled: false

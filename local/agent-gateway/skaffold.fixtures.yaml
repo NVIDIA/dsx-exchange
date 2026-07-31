@@ -12,6 +12,9 @@ requires:
 - path: skaffold.infra.yaml
   configs:
   - agent-gateway-infra
+- path: ../infra/observability/skaffold.yaml
+  configs:
+  - observability
 - path: ../idp/skaffold.yaml
   configs:
   - idp
@@ -21,7 +24,6 @@ manifests:
   - ./manifests/namespaces/csc.yaml
   - ./manifests/namespaces/cpc-1.yaml
   - ./manifests/namespaces/cpc-2.yaml
-  - ./manifests/observability-resources.yaml
   helm:
     flags:
       install:
@@ -44,13 +46,6 @@ manifests:
         container.resources.requests.memory: 64Mi
         container.resources.limits.cpu: 250m
         container.resources.limits.memory: 256Mi
-    - name: otel-collector
-      chartPath: ../../.cache/helm/opentelemetry-collector-0.164.1.tgz
-      namespace: dsx-obs
-      createNamespace: true
-      skipBuildDependencies: true
-      valuesFiles:
-      - ./values/values.otel-collector.yaml
     - name: csc-mcp-backends
       chartPath: ./charts/test-backends
       namespace: csc-mcp-backends

@@ -240,7 +240,8 @@ serviceConfig:
       enabled: true
       https: false
       otlp:
-        endpoint: localhost:4317  # TODO: Decide on the default helm value for this setting
+        # The DSX collector sidecar listens on the Pod loopback interface.
+        endpoint: 127.0.0.1:4317
       level: debug
       provider: otlp
     metrics:
@@ -253,6 +254,14 @@ serviceConfig:
         export-timeout-sec: 10
       prometheus:
         port: 9090
+
+# Optional Kubernetes OpenTelemetry Operator injection.
+observability:
+  tracing:
+    operatorInjection:
+      enabled: false
+    instrumentationRef: dsx-obs/default-instrumentation
+    sidecarRef: dsx-obs/default-sidecar
 
 # =============================================================================
 # NATS Auth Callout Permissions Configuration (NON-SECRETS)
@@ -397,7 +406,8 @@ vault:
 # ServiceMonitor configuration (only used when serviceConfig.observability.metrics.provider=prometheus)
 serviceMonitor:
   enabled: false # Create ServiceMonitor for Prometheus Operator (expects CRD to be installed)
-  interval: "15s" # Scrape interval
+  interval: "30s" # Scrape interval
+  scrapeTimeout: "10s" # Per-scrape timeout
   path: "/metrics" # Metrics endpoint path
   labels: {} # Additional labels for ServiceMonitor discovery
   relabelings: [] # Prometheus relabeling rules

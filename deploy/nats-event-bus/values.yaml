@@ -504,6 +504,14 @@ nack:
           name: nats-nack-user
           key: nack-user.nk
     controlLoop: true
+  # NACK exposes controller-runtime metrics on port 8080 but its upstream chart
+  # does not create a monitor.
+  metrics:
+    enabled: true
+    port: 8080
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
 
 # Auth-callout configuration
 auth-callout:
@@ -559,6 +567,7 @@ auth-callout:
   serviceMonitor:
     enabled: true
     interval: "30s"
+    scrapeTimeout: "10s"
     path: "/metrics"
 
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
@@ -584,3 +593,4 @@ surveyor:
   serviceMonitor:
     enabled: true
     interval: "30s"
+    scrapeTimeout: "10s"
