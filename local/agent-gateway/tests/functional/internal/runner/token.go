@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const demoIssuerNamespace = "agent-gateway-fixtures"
+const demoIssuerNamespace = "idp"
 
 // MintToken mints a JWT through the local demo issuer's OAuth token
 // endpoint. The runner reads fixture credentials from the live Secret
