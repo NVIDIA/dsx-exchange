@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,13 @@ func TestGetOIDCTokenUsesLocalIDPEndpoint(t *testing.T) {
 	}
 	if token != "token" {
 		t.Fatalf("token = %q, want token", token)
+	}
+
+	_, err = GetOIDCTokenContext(t.Context(), server.URL+"/", "mqtt-client", "mqtt-client-secret")
+	if err == nil {
+		t.Fatal("expected trailing-slash IDP URL to fail")
+	}
+	if !strings.Contains(err.Error(), "must not end with /") {
+		t.Fatalf("unexpected trailing-slash error: %v", err)
 	}
 }

@@ -45,6 +45,9 @@ func testTopicAuthorization(t *testing.T, broker string, clusterName string) {
 	testID := uuid.New().String()
 
 	idpURL := config.GetIDPURL()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
 	fullAccessClientID := "mqtt-client"
 	fullAccessSecret := "mqtt-client-secret"
 	pubOnlyClientID := "mqtt-publisher"
@@ -52,17 +55,17 @@ func testTopicAuthorization(t *testing.T, broker string, clusterName string) {
 	subOnlyClientID := "mqtt-subscriber"
 	subOnlySecret := "mqtt-subscriber-secret"
 
-	fullAccessToken, err := auth.GetOIDCTokenContext(t.Context(), idpURL, fullAccessClientID, fullAccessSecret)
+	fullAccessToken, err := auth.GetOIDCTokenContext(ctx, idpURL, fullAccessClientID, fullAccessSecret)
 	if err != nil {
 		t.Fatalf("Failed to get OAuth2 token: %v", err)
 	}
 
-	pubOnlyToken, err := auth.GetOIDCTokenContext(t.Context(), idpURL, pubOnlyClientID, pubOnlySecret)
+	pubOnlyToken, err := auth.GetOIDCTokenContext(ctx, idpURL, pubOnlyClientID, pubOnlySecret)
 	if err != nil {
 		t.Fatalf("Failed to get pub-only OAuth2 token: %v", err)
 	}
 
-	subOnlyToken, err := auth.GetOIDCTokenContext(t.Context(), idpURL, subOnlyClientID, subOnlySecret)
+	subOnlyToken, err := auth.GetOIDCTokenContext(ctx, idpURL, subOnlyClientID, subOnlySecret)
 	if err != nil {
 		t.Fatalf("Failed to get sub-only OAuth2 token: %v", err)
 	}

@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -22,6 +23,9 @@ func GetOIDCToken(idpURL, clientID, clientSecret string) (string, error) {
 
 // GetOIDCTokenContext obtains an OAuth2 access token using the supplied context.
 func GetOIDCTokenContext(ctx context.Context, idpURL, clientID, clientSecret string) (string, error) {
+	if strings.HasSuffix(idpURL, "/") {
+		return "", fmt.Errorf("invalid IDP URL %q: must not end with /", idpURL)
+	}
 	config := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

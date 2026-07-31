@@ -5,6 +5,7 @@ package main
 
 import (
 	"crypto/rsa"
+	"crypto/subtle"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -198,7 +199,7 @@ func (s *server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c, ok := s.clients[r.Form.Get("client_id")]
-	if !ok || c.Secret != r.Form.Get("client_secret") {
+	if !ok || subtle.ConstantTimeCompare([]byte(c.Secret), []byte(r.Form.Get("client_secret"))) != 1 {
 		writeOAuthError(w, http.StatusUnauthorized, "invalid_client", "client authentication failed")
 		return
 	}
@@ -214,7 +215,7 @@ func (s *server) handleToken(w http.ResponseWriter, r *http.Request) {
 	claims := c.Claims
 	if grantType == "password" {
 		u, ok := s.users[r.Form.Get("username")]
-		if !ok || u.Password != r.Form.Get("password") {
+		if !ok || subtle.ConstantTimeCompare([]byte(u.Password), []byte(r.Form.Get("password"))) != 1 {
 			writeOAuthError(w, http.StatusUnauthorized, "invalid_grant", "user authentication failed")
 			return
 		}

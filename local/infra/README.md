@@ -118,6 +118,12 @@ spec:
     - matches:
         - path:
             type: Exact
+            value: /healthz
+        - path:
+            type: Exact
+            value: /jwks.json
+        - path:
+            type: Exact
             value: /token
       backendRefs:
         - name: event-bus
