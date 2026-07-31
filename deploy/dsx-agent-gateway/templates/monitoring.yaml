@@ -18,6 +18,10 @@ spec:
       gateway.networking.k8s.io/gateway-name: {{ include "dsxAgentGateway.gatewayName" . }}
   podMetricsEndpoints:
     {{- include "dsxAgentGateway.metricsEndpoint" (dict "root" . "port" "metrics") | nindent 4 }}
+      relabelings:
+        # Required by the upstream Agent Gateway dashboard's gateway selector.
+        - sourceLabels: [__meta_kubernetes_pod_label_gateway_networking_k8s_io_gateway_name]
+          targetLabel: gateway_networking_k8s_io_gateway_name
 {{- if .Values.agentgateway.enabled }}
 ---
 apiVersion: monitoring.coreos.com/v1

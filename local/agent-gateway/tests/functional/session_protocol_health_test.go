@@ -285,6 +285,18 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 				}
 				continue
 			}
+			if tc.gvr == podMonitor && tc.name == cscGatewayName {
+				relabelings, found, err := unstructured.NestedSlice(endpoint, "relabelings")
+				if err != nil || !found || len(relabelings) != 1 {
+					t.Fatalf("PodMonitor %s/%s relabelings invalid: found=%t count=%d err=%v", tc.ns, tc.name, found, len(relabelings), err)
+				}
+				relabeling, ok := relabelings[0].(map[string]any)
+				sourceLabels, sourceLabelsFound, sourceLabelsErr := unstructured.NestedStringSlice(relabeling, "sourceLabels")
+				if !ok || sourceLabelsErr != nil || !sourceLabelsFound || len(sourceLabels) != 1 || sourceLabels[0] != "__meta_kubernetes_pod_label_gateway_networking_k8s_io_gateway_name" ||
+					relabeling["targetLabel"] != "gateway_networking_k8s_io_gateway_name" {
+					t.Errorf("PodMonitor %s/%s dashboard relabeling = %v", tc.ns, tc.name, relabelings[0])
+				}
+			}
 			port, ok := endpoint["port"].(string)
 			if !ok || port == "" {
 				t.Errorf("%s %s/%s endpoint port = %v, want named port", tc.gvr.Resource, tc.ns, tc.name, endpoint["port"])
@@ -331,6 +343,39 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 		context.Background(), cpc1GatewayNS+"-bridge", metav1.GetOptions{},
 	); !apierrors.IsNotFound(err) {
 		t.Fatalf("leaf bridge ServiceMonitor lookup error = %v, want not found", err)
+	}
+}
+
+func TestGrafanaDashboardSourcesLive(t *testing.T) {
+	runner.ParallelReadOnly(t)
+
+	for _, tc := range []struct {
+		name       string
+		ns         string
+		key        string
+		title      string
+		panelCount int
+	}{
+		{name: "nats-surveyor-dashboard", ns: cscEventBusNS, key: "nats-surveyor.json", title: "NATS Surveyor", panelCount: 35},
+		{name: cscGatewayName + "-controller-dashboard", ns: cscGatewayNS, key: "agentgateway.json", title: "Agentgateway", panelCount: 13},
+	} {
+		configMap, err := runner.K8s(t).CoreV1().ConfigMaps(tc.ns).Get(context.Background(), tc.name, metav1.GetOptions{})
+		if err != nil {
+			t.Fatalf("get ConfigMap %s/%s: %v", tc.ns, tc.name, err)
+		}
+		if got := configMap.Labels["grafana_dashboard"]; got != "1" {
+			t.Errorf("ConfigMap %s/%s grafana_dashboard = %q, want 1", tc.ns, tc.name, got)
+		}
+		var dashboard struct {
+			Title  string            `json:"title"`
+			Panels []json.RawMessage `json:"panels"`
+		}
+		if err := json.Unmarshal([]byte(configMap.Data[tc.key]), &dashboard); err != nil {
+			t.Fatalf("parse ConfigMap %s/%s key %s: %v", tc.ns, tc.name, tc.key, err)
+		}
+		if dashboard.Title != tc.title || len(dashboard.Panels) != tc.panelCount {
+			t.Errorf("ConfigMap %s/%s dashboard = %q with %d panels, want %q with %d", tc.ns, tc.name, dashboard.Title, len(dashboard.Panels), tc.title, tc.panelCount)
+		}
 	}
 }
 

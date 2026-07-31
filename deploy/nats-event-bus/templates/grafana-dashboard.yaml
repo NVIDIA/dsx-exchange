@@ -1,0 +1,20 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-surveyor-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nats-surveyor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: grafana-dashboard
+    grafana_dashboard: "1"
+  annotations:
+    grafana.com/dashboard-folder: "DSX Event Bus"
+data:
+  # Vendored from NATS Surveyor v0.9.7 to match the chart's Surveyor image.
+  nats-surveyor.json: |
+{{ required "dashboards/nats-surveyor-dashboard.json is required" (.Files.Get "dashboards/nats-surveyor-dashboard.json") | indent 4 }}
