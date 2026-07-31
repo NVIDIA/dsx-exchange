@@ -464,10 +464,27 @@ External access via Envoy Gateway TCPRoutes/TLSRoutes:
 | `nats:1883` | 1883 | MQTT 3.1.1 |
 | `nats-mtls:1883` | 1883 | MQTT listener used by the mTLS gateway |
 | `surveyor:7777` | 7777 | Prometheus metrics |
+| `auth-callout-metrics:9090` | 9090 | Auth-callout Prometheus metrics |
+| `nack-metrics:8080` | 8080 | NACK controller-runtime metrics |
 
 ## Monitoring
 
-NATS Surveyor exports Prometheus metrics from the NATS cluster. Auth-callout exposes authentication metrics on its Prometheus endpoint. The mTLS cluster's SYS account is federated to the main cluster via leaf node, enabling centralized monitoring of both clusters.
+The chart follows the DSX service observability contract: workloads log to
+stdout/stderr, metrics use standard Prometheus Operator monitors, and
+trace-capable applications export through an injected OpenTelemetry collector
+sidecar.
+
+| Component | Logs | Metrics | Traces |
+|-----------|------|---------|--------|
+| `nats` | Node agent collects stdout/stderr | Surveyor reads the NATS system account | Not supported upstream |
+| `nats-mtls` | Node agent collects stdout/stderr | Surveyor reads it through the federated system account | Not supported upstream |
+| `auth-callout` | Node agent collects structured stdout | ServiceMonitor scrapes `:9090/metrics` | OTLP/gRPC through injected DSX collector sidecar |
+| `nack` | Node agent collects stdout/stderr | ServiceMonitor scrapes controller-runtime `:8080/metrics` | Not supported upstream |
+| `surveyor` | Node agent collects stdout/stderr | ServiceMonitor scrapes `:7777/metrics` | Not supported upstream |
+
+NATS Surveyor exports Prometheus metrics from the NATS cluster. The mTLS
+cluster's SYS account is federated to the main cluster via leaf node, enabling
+centralized monitoring of both clusters.
 
 **Prerequisite:** Prometheus Operator must be installed for the ServiceMonitor CRD. Install via `kube-prometheus-stack` Helm chart or equivalent.
 
@@ -489,6 +506,7 @@ surveyor:
   serviceMonitor:
     enabled: true                 # Create ServiceMonitor for Prometheus
     interval: 30s
+    scrapeTimeout: 10s
 ```
 
 Auth-callout metrics are exposed on port 9090 at `/metrics`. The parent chart enables the auth-callout ServiceMonitor by default:
@@ -498,8 +516,26 @@ auth-callout:
   serviceMonitor:
     enabled: true
     interval: 30s
+    scrapeTimeout: 10s
     path: /metrics
 ```
+
+NACK exposes controller-runtime metrics on port 8080. The parent chart adds the
+missing metrics Service and ServiceMonitor:
+
+```yaml
+nack:
+  metrics:
+    enabled: true
+    port: 8080
+    interval: 30s
+    scrapeTimeout: 10s
+```
+
+Auth-callout tracing is enabled by default. Its chart injects the
+`dsx-obs/default-instrumentation` SDK configuration and
+`dsx-obs/default-sidecar` collector, then exports OTLP/gRPC to
+`127.0.0.1:4317`.
 
 ### Metrics
 
@@ -520,12 +556,16 @@ graph LR
         MainNATS[nats - SYS Account]
         mTLSNATS[nats-mtls - SYS Account]
         AuthCallout[auth-callout]
+        NACK[NACK controller]
+        OTelSidecar[auth-callout OTel sidecar]
     end
     
     Surveyor -->|SYS user| MainNATS
     mTLSNATS -->|SYS leaf| MainNATS
     Prometheus -->|scrape :7777| Surveyor
     Prometheus -->|scrape :9090| AuthCallout
+    Prometheus -->|scrape :8080| NACK
+    AuthCallout -->|OTLP/gRPC :4317| OTelSidecar
 ```
 
 ## Validation

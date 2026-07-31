@@ -17,6 +17,11 @@ spec:
       annotations:
         # Force pod restart when configmap changes
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if (index .Values.serviceConfig "observability" "tracing" "enabled") }}
+        instrumentation.opentelemetry.io/inject-sdk: {{ required "observability.tracing.instrumentationRef is required when tracing is enabled" .Values.observability.tracing.instrumentationRef | quote }}
+        sidecar.opentelemetry.io/inject: {{ required "observability.tracing.sidecarRef is required when tracing is enabled" .Values.observability.tracing.sidecarRef | quote }}
+        resource.opentelemetry.io/service.name: {{ (index .Values.serviceConfig "observability" "telemetry" "service-name") | quote }}
+        {{- end }}
 {{- $vaultAnnotations := tpl (.Files.Get "files/vault-annotations.yaml") . }}
   {{- if $vaultAnnotations }}
 {{ $vaultAnnotations | nindent 8 }}

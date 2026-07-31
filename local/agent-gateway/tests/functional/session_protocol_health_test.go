@@ -27,6 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+const cscEventBusNS = "csc-event-bus"
+
 func TestSessionLifecycleUnknownSessionRejectedAndReplacementWorks(t *testing.T) {
 	runner.ParallelReadOnly(t)
 
@@ -173,6 +175,9 @@ func TestPrometheusMetricsEndpointsLive(t *testing.T) {
 			wantToken: "redis_up 1",
 		},
 		{name: "agentgateway controller", ns: cscGatewayNS, service: cscGatewayName + "-controller", port: "metrics", path: "metrics", wantToken: "# HELP"},
+		{name: "auth callout", ns: cscEventBusNS, service: "auth-callout-metrics", port: "metrics", path: "metrics", wantToken: "auth_requests"},
+		{name: "NACK", ns: cscEventBusNS, service: "nack-metrics", port: "metrics", path: "metrics", wantToken: "controller_runtime_reconcile_total"},
+		{name: "NATS Surveyor", ns: cscEventBusNS, service: "nats-event-bus-csc-surveyor", port: "http", path: "metrics", wantToken: "nats_up 1"},
 	}
 	for _, tc := range cases {
 		tc := tc
@@ -215,6 +220,9 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 		{name: cscGatewayName + "-bridge", ns: cscGatewayNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
 		{name: cscGatewayName + "-valkey", ns: cscGatewayNS, gvr: serviceMonitor, endpointField: "endpoints", endpointCount: 1},
 		{name: cpc2GatewayNS + "-bridge", ns: cpc2GatewayNS, gvr: podMonitor, endpointField: "podMetricsEndpoints", path: "/metrics", endpointCount: 1},
+		{name: "auth-callout", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
+		{name: "nack", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
+		{name: "nats-event-bus-csc-surveyor", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
 	} {
 		obj := runner.GetUnstructured(t, tc.gvr, tc.ns, tc.name)
 		if got := obj.GetLabels()["app.kubernetes.io/managed-by"]; got != "Helm" {
@@ -315,6 +323,7 @@ func TestOpenTelemetryOperatorInjectionContract(t *testing.T) {
 		{name: "rate limit", ns: cscGatewayNS, selector: "app.kubernetes.io/instance=" + cscGatewayName + ",app.kubernetes.io/component=ratelimit", application: "ratelimit", serviceName: "dsx-agent-gateway-ratelimit", samplerEnv: "TRACING_SAMPLING_RATE", endpoint: "http://127.0.0.1:4318"},
 		{name: "bridge hub", ns: cscGatewayNS, selector: bridgePodSelector, application: "dsx-agentgateway-bridge", serviceName: "dsx-agentgateway-bridge-hub", samplerEnv: "OTEL_TRACES_SAMPLER_ARG", endpoint: "http://127.0.0.1:4318"},
 		{name: "bridge leaf", ns: cpc1GatewayNS, selector: bridgePodSelector, application: "dsx-agentgateway-bridge", serviceName: "dsx-agentgateway-bridge-leaf", samplerEnv: "OTEL_TRACES_SAMPLER_ARG", endpoint: "http://127.0.0.1:4318"},
+		{name: "auth callout", ns: cscEventBusNS, selector: "app.kubernetes.io/name=auth-callout", application: "auth-callout", serviceName: "auth-callout", endpoint: "http://127.0.0.1:4318"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pods := runner.ListPods(t, tc.ns, tc.selector, "status.phase=Running")

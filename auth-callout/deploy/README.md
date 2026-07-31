@@ -277,6 +277,7 @@ serviceConfig:
 serviceMonitor:
   enabled: true
   interval: "15s"
+  scrapeTimeout: "10s"
   path: "/metrics"
 ```
 
@@ -303,6 +304,24 @@ ServiceMonitor is only created when:
 - `serviceConfig.observability.metrics.enabled: true`
 - `serviceConfig.observability.metrics.provider: prometheus`
 - `serviceMonitor.enabled: true`
+
+### Tracing
+
+Tracing uses the DSX OpenTelemetry Operator resources by default. When
+`serviceConfig.observability.tracing.enabled` is `true`, the chart annotates
+the auth-callout Pod for SDK configuration and the `dsx-obs/default-sidecar`
+collector. The application sends OTLP/gRPC spans to `127.0.0.1:4317`; the
+sidecar forwards them through the node-local DSX collector pipeline.
+
+Override the operator resource references only when the platform resources use
+different names:
+
+```yaml
+observability:
+  tracing:
+    instrumentationRef: dsx-obs/default-instrumentation
+    sidecarRef: dsx-obs/default-sidecar
+```
 
 ### Health Checks Configuration
 

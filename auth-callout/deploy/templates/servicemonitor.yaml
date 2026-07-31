@@ -16,6 +16,7 @@ spec:
     # Service application metrics
     - port: metrics
       interval: {{ .Values.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
       path: {{ .Values.serviceMonitor.path }}
       {{- with .Values.serviceMonitor.relabelings }}
       relabelings:
