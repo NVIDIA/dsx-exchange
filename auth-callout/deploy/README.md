@@ -312,6 +312,11 @@ Application tracing is controlled by
 OTLP/gRPC endpoint. Kubernetes OpenTelemetry Operator injection is enabled by
 default for the local collector sidecar but remains independently configurable.
 
+Before installing this chart directly with its defaults, install the
+OpenTelemetry Operator and provision the `dsx-obs/default-instrumentation`
+Instrumentation and `dsx-obs/default-sidecar` OpenTelemetryCollector resources.
+The local Skaffold flow provisions these prerequisites automatically.
+
 Override the operator resource references when the platform uses different
 names:
 
