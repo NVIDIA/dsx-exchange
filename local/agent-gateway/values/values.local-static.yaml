@@ -7,3 +7,7 @@ upstreams:
     mode: static
     address: http://mcp-backend-b.csc-mcp-backends.svc:3001/mcp
     requestTimeout: 10s
+  legacy-sse:
+    mode: static
+    address: http://legacy-sse.csc-mcp-backends.svc:3001/legacy-sse
+    protocol: SSE

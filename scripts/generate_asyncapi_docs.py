@@ -4,7 +4,7 @@
 
 """Generate Fern MDX pages from AsyncAPI 3.1.0 YAML specs.
 
-Reads the four AsyncAPI specs under schemas/asyncapi/ and writes native MDX
+Reads the AsyncAPI specs under schemas/asyncapi/ and writes native MDX
 pages to docs/, replacing the previous iframe stubs.  Only stdlib is used
 (a minimal YAML parser is embedded so PyYAML is not required).
 
@@ -31,7 +31,6 @@ SPECS = {
     "bms": ROOT / "schemas" / "asyncapi" / "bms" / "bms.yaml",
     "dsx-flex": ROOT / "schemas" / "asyncapi" / "dsx-flex" / "dsx-flex.yaml",
     "nico": ROOT / "schemas" / "asyncapi" / "nico" / "nico.yaml",
-    "spiffe-exchange": ROOT / "schemas" / "asyncapi" / "spiffe-exchange" / "pub-keysets.yaml",
 }
 
 # ---------------------------------------------------------------------------

@@ -170,7 +170,7 @@ func GetCPC2BrokerURL() string {
 	return GetBrokerURL("CPC2_BROKER_URL", "tcp://172.18.202.1:1883")
 }
 
-// GetKeycloakURL returns Keycloak URL (consolidated in CSC cluster)
-func GetKeycloakURL() string {
-	return GetBrokerURL("KEYCLOAK_URL", "http://172.18.200.1")
+// GetIDPURL returns the local IdP URL.
+func GetIDPURL() string {
+	return GetBrokerURL("IDP_URL", "http://172.18.200.1")
 }

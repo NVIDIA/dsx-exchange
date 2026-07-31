@@ -505,7 +505,7 @@ nack:
           key: nack-user.nk
     controlLoop: true
   # NACK exposes controller-runtime metrics on port 8080 but its upstream chart
-  # does not create a metrics Service or monitor.
+  # does not create a monitor.
   metrics:
     enabled: true
     port: 8080

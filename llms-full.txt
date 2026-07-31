@@ -10,7 +10,6 @@ DSX Exchange is the integration layer within DSX OS that connects AI factory sub
   - `schemas/asyncapi/bms/bms.yaml` — BMS telemetry and metadata
   - `schemas/asyncapi/power-management/power-management.yaml` — power management events
   - `schemas/asyncapi/nico/nico.yaml` — NICo host state changes
-  - `schemas/asyncapi/spiffe-exchange/pub-keysets.yaml` — SPIFFE key exchange
   - `schemas/asyncapi/launch-layer/notifications.yaml` — launch layer notifications
   - `schemas/asyncapi/mission-control/leak-response.yaml` — leak response events
   - `schemas/asyncapi/monitoring/break-fix.yaml` — break/fix monitoring

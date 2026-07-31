@@ -75,6 +75,9 @@ requires:
 - path: ../infra/observability/skaffold.yaml
   configs:
   - observability
+- path: ../idp/skaffold.yaml
+  configs:
+  - idp
 deploy:
   statusCheck: true
   statusCheckDeadlineSeconds: 600

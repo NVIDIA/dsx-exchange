@@ -599,9 +599,9 @@ func launchLayerOAuthToken(t *testing.T) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	token, err := auth.GetKeycloakTokenContext(
+	token, err := auth.GetOIDCTokenContext(
 		ctx,
-		config.GetKeycloakURL(),
+		config.GetIDPURL(),
 		"launchlayer-client",
 		"launchlayer-client-secret",
 	)

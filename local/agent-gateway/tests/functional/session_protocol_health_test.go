@@ -176,7 +176,6 @@ func TestPrometheusMetricsEndpointsLive(t *testing.T) {
 		},
 		{name: "agentgateway controller", ns: cscGatewayNS, service: cscGatewayName + "-controller", port: "metrics", path: "metrics", wantToken: "# HELP"},
 		{name: "auth callout", ns: cscEventBusNS, service: "auth-callout-metrics", port: "metrics", path: "metrics", wantToken: "auth_requests"},
-		{name: "NACK", ns: cscEventBusNS, service: "nack-metrics", port: "metrics", path: "metrics", wantToken: "controller_runtime_reconcile_total"},
 		{name: "NATS Surveyor", ns: cscEventBusNS, service: "nats-event-bus-csc-surveyor", port: "http", path: "metrics", wantToken: "nats_up 1"},
 	}
 	for _, tc := range cases {
@@ -187,6 +186,10 @@ func TestPrometheusMetricsEndpointsLive(t *testing.T) {
 				t.Fatalf("%s metrics body did not contain %q: %.200s", tc.name, tc.wantToken, body)
 			}
 		})
+	}
+	nackPod := firstRunningPodName(t, cscEventBusNS, "app=nack")
+	if body := podProxyGET(t, ctx, cscEventBusNS, nackPod, 8080, "metrics"); !bytes.Contains(body, []byte("controller_runtime_reconcile_total")) {
+		t.Fatalf("NACK metrics body did not contain controller_runtime_reconcile_total: %.200s", body)
 	}
 	requireRateLimitRequestMetric(t, ctx)
 	leafPod := firstRunningPodName(t, cpc2GatewayNS, bridgePodSelector)
@@ -221,7 +224,7 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 		{name: cscGatewayName + "-valkey", ns: cscGatewayNS, gvr: serviceMonitor, endpointField: "endpoints", endpointCount: 1},
 		{name: cpc2GatewayNS + "-bridge", ns: cpc2GatewayNS, gvr: podMonitor, endpointField: "podMetricsEndpoints", path: "/metrics", endpointCount: 1},
 		{name: "auth-callout", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
-		{name: "nack", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
+		{name: "nack", ns: cscEventBusNS, gvr: podMonitor, endpointField: "podMetricsEndpoints", path: "/metrics", endpointCount: 1},
 		{name: "nats-event-bus-csc-surveyor", ns: cscEventBusNS, gvr: serviceMonitor, endpointField: "endpoints", path: "/metrics", endpointCount: 1},
 	} {
 		obj := runner.GetUnstructured(t, tc.gvr, tc.ns, tc.name)
@@ -238,6 +241,11 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 			}
 		}
 		selector := labels.SelectorFromSet(matchLabels).String()
+		if tc.gvr == podMonitor {
+			if pods := runner.ListPods(t, tc.ns, selector, ""); len(pods) == 0 {
+				t.Fatalf("%s %s/%s selector %q matched no Pods", tc.gvr.Resource, tc.ns, tc.name, selector)
+			}
+		}
 		endpoints, found, err := unstructured.NestedSlice(obj.Object, "spec", tc.endpointField)
 		if err != nil || !found || len(endpoints) != tc.endpointCount {
 			t.Fatalf("%s %s/%s %s invalid: found=%t count=%d err=%v", tc.gvr.Resource, tc.ns, tc.name, tc.endpointField, found, len(endpoints), err)
@@ -257,6 +265,17 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 				t.Errorf("%s %s/%s endpoint path = %v, want %s", tc.gvr.Resource, tc.ns, tc.name, got, tc.path)
 			} else if tc.path == "" && got != nil && got != "/metrics" {
 				t.Errorf("%s %s/%s endpoint path = %v, want default /metrics", tc.gvr.Resource, tc.ns, tc.name, got)
+			}
+			if tc.name == "nack" {
+				relabelings, found, err := unstructured.NestedSlice(endpoint, "relabelings")
+				if err != nil || !found || len(relabelings) != 1 {
+					t.Fatalf("PodMonitor %s/%s relabelings invalid: found=%t count=%d err=%v", tc.ns, tc.name, found, len(relabelings), err)
+				}
+				relabeling, ok := relabelings[0].(map[string]any)
+				if !ok || relabeling["targetLabel"] != "__address__" || relabeling["replacement"] != "$1:8080" {
+					t.Errorf("PodMonitor %s/%s relabeling = %v, want __address__ replacement $1:8080", tc.ns, tc.name, relabelings[0])
+				}
+				continue
 			}
 			port, ok := endpoint["port"].(string)
 			if !ok || port == "" {

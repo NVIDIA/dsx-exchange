@@ -15,6 +15,3 @@ requires:
 - path: prometheus/skaffold.yaml
   configs:
   - prometheus
-- path: keycloak/skaffold.yaml
-  configs:
-  - keycloak

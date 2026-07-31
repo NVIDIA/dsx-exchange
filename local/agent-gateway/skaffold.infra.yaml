@@ -23,7 +23,7 @@ deploy:
       - --timeout=5m
     releases:
     - name: agentgateway-crds
-      chartPath: ../../.cache/helm/agentgateway-crds-v1.3.1.tgz
+      chartPath: ../../.cache/helm/agentgateway-crds-v1.4.1.tgz
       namespace: agentgateway-system
       createNamespace: true
       skipBuildDependencies: true

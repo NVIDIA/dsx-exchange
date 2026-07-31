@@ -391,22 +391,3 @@ navigation:
           - page: Schemas
             path: ../docs/schema-nico-schemas.mdx
             slug: schemas
-      - section: SPIFFE Exchange
-        contents:
-          - page: Overview
-            path: ../docs/schema-spiffe-exchange.mdx
-            slug: overview
-          - section: Operations
-            contents:
-              - page: Publish Pub Key Set
-                path: ../docs/schema-spiffe-exchange-publishpubkeyset.mdx
-                slug: publishpubkeyset
-              - page: Subscribe Pub Key Set
-                path: ../docs/schema-spiffe-exchange-subscribepubkeyset.mdx
-                slug: subscribepubkeyset
-          - page: Messages
-            path: ../docs/schema-spiffe-exchange-messages.mdx
-            slug: messages
-          - page: Schemas
-            path: ../docs/schema-spiffe-exchange-schemas.mdx
-            slug: schemas

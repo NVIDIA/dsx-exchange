@@ -4,8 +4,8 @@
 apiVersion: v2
 name: demoidp
 description: |
-  Demo OIDC identity providers for local verification of the DSX Agent
-  Gateway. Stands up human OIDC, service OIDC, and SPIFFE
+  Demo OIDC identity providers for local DSX Exchange verification. Stands up
+  event bus, human OIDC, service OIDC, and SPIFFE
   JWT-SVID issuers with JWKS and token endpoints. Fixture chart only.
 type: application
 version: 0.4.0

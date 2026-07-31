@@ -465,7 +465,6 @@ External access via Envoy Gateway TCPRoutes/TLSRoutes:
 | `nats-mtls:1883` | 1883 | MQTT listener used by the mTLS gateway |
 | `surveyor:7777` | 7777 | Prometheus metrics |
 | `auth-callout-metrics:9090` | 9090 | Auth-callout Prometheus metrics |
-| `nack-metrics:8080` | 8080 | NACK controller-runtime metrics |
 
 ## Monitoring
 
@@ -479,14 +478,14 @@ sidecar.
 | `nats` | Node agent collects stdout/stderr | Surveyor reads the NATS system account | Not supported upstream |
 | `nats-mtls` | Node agent collects stdout/stderr | Surveyor reads it through the federated system account | Not supported upstream |
 | `auth-callout` | Node agent collects structured stdout | ServiceMonitor scrapes `:9090/metrics` | OTLP/gRPC through injected DSX collector sidecar |
-| `nack` | Node agent collects stdout/stderr | ServiceMonitor scrapes controller-runtime `:8080/metrics` | Not supported upstream |
+| `nack` | Node agent collects stdout/stderr | PodMonitor scrapes controller-runtime `:8080/metrics` | Not supported upstream |
 | `surveyor` | Node agent collects stdout/stderr | ServiceMonitor scrapes `:7777/metrics` | Not supported upstream |
 
 NATS Surveyor exports Prometheus metrics from the NATS cluster. The mTLS
 cluster's SYS account is federated to the main cluster via leaf node, enabling
 centralized monitoring of both clusters.
 
-**Prerequisite:** Prometheus Operator must be installed for the ServiceMonitor CRD. Install via `kube-prometheus-stack` Helm chart or equivalent.
+**Prerequisite:** Prometheus Operator must be installed for the ServiceMonitor and PodMonitor CRDs. Install via `kube-prometheus-stack` Helm chart or equivalent.
 
 ### Surveyor Configuration
 
@@ -520,8 +519,8 @@ auth-callout:
     path: /metrics
 ```
 
-NACK exposes controller-runtime metrics on port 8080. The parent chart adds the
-missing metrics Service and ServiceMonitor:
+NACK exposes controller-runtime metrics on port 8080. The parent chart adds a
+PodMonitor that scrapes the NACK pods directly:
 
 ```yaml
 nack:

@@ -44,9 +44,10 @@ func TestTopicAuthorization(t *testing.T) {
 func testTopicAuthorization(t *testing.T, broker string, clusterName string) {
 	testID := uuid.New().String()
 
-	// Get OAuth2 tokens from Keycloak using client credentials
-	// All clusters use the consolidated Keycloak in CSC
-	keycloakURL := config.GetKeycloakURL()
+	idpURL := config.GetIDPURL()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
 	fullAccessClientID := "mqtt-client"
 	fullAccessSecret := "mqtt-client-secret"
 	pubOnlyClientID := "mqtt-publisher"
@@ -54,17 +55,17 @@ func testTopicAuthorization(t *testing.T, broker string, clusterName string) {
 	subOnlyClientID := "mqtt-subscriber"
 	subOnlySecret := "mqtt-subscriber-secret"
 
-	fullAccessToken, err := auth.GetKeycloakTokenContext(t.Context(), keycloakURL, fullAccessClientID, fullAccessSecret)
+	fullAccessToken, err := auth.GetOIDCTokenContext(ctx, idpURL, fullAccessClientID, fullAccessSecret)
 	if err != nil {
 		t.Fatalf("Failed to get OAuth2 token: %v", err)
 	}
 
-	pubOnlyToken, err := auth.GetKeycloakTokenContext(t.Context(), keycloakURL, pubOnlyClientID, pubOnlySecret)
+	pubOnlyToken, err := auth.GetOIDCTokenContext(ctx, idpURL, pubOnlyClientID, pubOnlySecret)
 	if err != nil {
 		t.Fatalf("Failed to get pub-only OAuth2 token: %v", err)
 	}
 
-	subOnlyToken, err := auth.GetKeycloakTokenContext(t.Context(), keycloakURL, subOnlyClientID, subOnlySecret)
+	subOnlyToken, err := auth.GetOIDCTokenContext(ctx, idpURL, subOnlyClientID, subOnlySecret)
 	if err != nil {
 		t.Fatalf("Failed to get sub-only OAuth2 token: %v", err)
 	}

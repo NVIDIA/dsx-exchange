@@ -3,32 +3,8 @@
 
 {{- $metrics := .Values.nack.metrics | default dict }}
 {{- if ($metrics.enabled | default false) }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: nack-metrics
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: nack
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/component: metrics
-spec:
-  ports:
-    - name: metrics
-      port: {{ required "nack.metrics.port is required" $metrics.port }}
-      protocol: TCP
-      targetPort: {{ $metrics.port }}
-  selector:
-    {{- if .Values.nack.useLegacyNames }}
-    app: nack
-    {{- else }}
-    app.kubernetes.io/name: nack
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    {{- end }}
----
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
   name: nack
   namespace: {{ .Release.Namespace }}
@@ -43,12 +19,19 @@ metadata:
 spec:
   selector:
     matchLabels:
+    {{- if .Values.nack.useLegacyNames }}
+      app: nack
+    {{- else }}
       app.kubernetes.io/name: nack
       app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: metrics
-  endpoints:
-    - port: metrics
-      path: /metrics
+    {{- end }}
+  podMetricsEndpoints:
+    - path: /metrics
       interval: {{ required "nack.metrics.interval is required" $metrics.interval }}
       scrapeTimeout: {{ required "nack.metrics.scrapeTimeout is required" $metrics.scrapeTimeout }}
+      # The upstream NACK chart does not declare its metrics container port.
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_ip]
+          targetLabel: __address__
+          replacement: '$1:{{ required "nack.metrics.port is required" $metrics.port }}'
 {{- end }}

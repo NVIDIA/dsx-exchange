@@ -31,16 +31,6 @@ cache_dir="${repo_root}/.cache/helm"
 "${cache_file}" manifests/cert-manager-v1.16.2.yaml \
   https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml \
   1d51cdecd442f1f5f89783e9e0169b95d372724da203cc75dd7a5c4e50a10ce6
-"${cache_file}" manifests/keycloak/keycloaks.k8s.keycloak.org-v1-26.0.7.yaml \
-  https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.0.7/kubernetes/keycloaks.k8s.keycloak.org-v1.yml \
-  f8cf7e76df7ae348aa01ed834adf0e84922d56f71aa4260c4a895cd550833a11
-"${cache_file}" manifests/keycloak/keycloakrealmimports.k8s.keycloak.org-v1-26.0.7.yaml \
-  https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.0.7/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml \
-  cc6944ccd61f02446145598ce88c6c0da47655891357bed9945fe7cf37bef7f4
-"${cache_file}" manifests/keycloak/operator-26.0.7.yaml \
-  https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.0.7/kubernetes/kubernetes.yml \
-  d626a9418695007acb517f21a91fb9f5a76da498068a0f6afb69f34e72e1e5d6
-
 if [[ -d "${repo_root}/deploy/nats-event-bus" ]]; then
   event_bus_charts="${repo_root}/deploy/nats-event-bus/charts"
   "${cache_chart}" nats-2.12.6.tgz nats 2.12.6 https://nats-io.github.io/k8s/helm/charts/
@@ -65,12 +55,12 @@ if [[ -d "${repo_root}/deploy/dsx-agent-gateway" ]]; then
   "${cache_chart}" nats-2.14.2.tgz nats 2.14.2 https://nats-io.github.io/k8s/helm/charts/
   "${cache_chart}" opentelemetry-collector-0.164.1.tgz opentelemetry-collector 0.164.1 https://open-telemetry.github.io/opentelemetry-helm-charts
   "${cache_chart}" opentelemetry-operator-0.119.0.tgz opentelemetry-operator 0.119.0 https://open-telemetry.github.io/opentelemetry-helm-charts
-  "${cache_chart}" agentgateway-crds-v1.3.1.tgz oci://cr.agentgateway.dev/charts/agentgateway-crds v1.3.1
-  "${cache_chart}" agentgateway-v1.3.1.tgz oci://cr.agentgateway.dev/charts/agentgateway v1.3.1
+  "${cache_chart}" agentgateway-crds-v1.4.1.tgz oci://cr.agentgateway.dev/charts/agentgateway-crds v1.4.1
+  "${cache_chart}" agentgateway-v1.4.1.tgz oci://cr.agentgateway.dev/charts/agentgateway v1.4.1
   "${cache_chart}" valkey-0.9.4.tgz valkey 0.9.4 https://valkey-io.github.io/valkey-helm
 
   mkdir -p "${gateway_charts}"
-  for archive in agentgateway-v1.3.1.tgz valkey-0.9.4.tgz; do
+  for archive in agentgateway-v1.4.1.tgz valkey-0.9.4.tgz; do
     cmp -s "${cache_dir}/${archive}" "${gateway_charts}/${archive}" ||
       cp "${cache_dir}/${archive}" "${gateway_charts}/${archive}"
   done

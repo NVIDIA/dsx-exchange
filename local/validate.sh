@@ -111,11 +111,11 @@ for site in csc cpc-1 cpc-2; do
 done
 
 echo ""
-echo "Validating Keycloak admin route"
-if curl -fsSL -o /dev/null "http://172.18.200.1/admin/master/console/"; then
-  echo "PASS: Keycloak admin console"
+echo "Validating local IdP"
+if curl -fsSL -o /dev/null "http://172.18.200.1/healthz"; then
+  echo "PASS: local IdP"
 else
-  echo "FAIL: Keycloak admin console"
+  echo "FAIL: local IdP"
   failures=$((failures + 1))
 fi
 
