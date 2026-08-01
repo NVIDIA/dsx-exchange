@@ -46,7 +46,7 @@ spec:
             description: An Agent Gateway proxy has reported unsynchronized configuration for 5 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayHighErrorRate
-          expr: sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m])) / sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
+          expr: sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m])) / sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
           for: 10m
           labels:
             severity: warning
@@ -56,7 +56,7 @@ spec:
             description: The 5xx response rate has remained above 5 percent for 10 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayHighP99Latency
-          expr: histogram_quantile(0.99, sum by (le, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
+          expr: histogram_quantile(0.99, sum by (le, namespace, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
           for: 10m
           labels:
             severity: warning
