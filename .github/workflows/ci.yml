@@ -147,7 +147,7 @@ jobs:
         run: git diff --exit-code -- THIRD_PARTY_LICENSES.csv
 
   docker-build:
-    name: Docker Build (auth-callout)
+    name: Docker Build and Scan (auth-callout)
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
@@ -159,6 +159,7 @@ jobs:
           dockerfile: auth-callout/build/package/Dockerfile
           platforms: linux/amd64
           push: "false"
+          security-scan-enabled: "true"
 
   docker-build-agentgateway:
     name: Docker Build (dsx-agentgateway-bridge)
@@ -215,24 +216,6 @@ jobs:
           fail-on-findings: "true"
           extra-args: "--exclude-paths=.trufflehog-exclude-paths"
 
-  security-container-scan:
-    name: Container Scan (auth-callout)
-    needs: docker-build
-    runs-on: linux-amd64-cpu4
-    steps:
-      - uses: actions/checkout@v4
-      - uses: NVIDIA/dsx-github-actions/.github/actions/docker-build@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
-        with:
-          image: dsx-exchange-auth-callout
-          tags: scan-validation
-          context: auth-callout
-          dockerfile: auth-callout/build/package/Dockerfile
-          platforms: linux/amd64
-          push: "false"
-      - uses: NVIDIA/dsx-github-actions/.github/actions/security-container-scan@0969f64c3efa9e757135cbf457ea13cde4c3fa38 # v1.17.0
-        with:
-          image: dsx-exchange-auth-callout:scan-validation
-
   helm-validate-auth-callout:
     name: Helm Validate (auth-callout)
     runs-on: linux-amd64-cpu4
@@ -285,20 +268,6 @@ jobs:
 
   e2e-kind:
     name: E2E (Kind)
-    needs:
-      - license-headers
-      - go-lint
-      - unit-test
-      - unit-test-local-mqtt
-      - unit-test-local-mqttbs
-      - go-lint-agentgateway
-      - unit-test-agentgateway
-      - third-party-licenses
-      - docker-build
-      - docker-build-agentgateway
-      - helm-validate-auth-callout
-      - helm-validate-nats-event-bus
-      - helm-validate-dsx-agent-gateway
     uses: ./.github/workflows/e2e-kind.yml
 
   slack-notify:
@@ -318,7 +287,6 @@ jobs:
       - docker-build-agentgateway
       - codeql-scan
       - trufflehog-scan
-      - security-container-scan
       - helm-validate-auth-callout
       - helm-validate-nats-event-bus
       - helm-validate-dsx-agent-gateway

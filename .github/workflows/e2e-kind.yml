@@ -43,8 +43,19 @@ jobs:
       - name: Prepare e2e runner
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
-      - name: Run Kind e2e
-        run: RUN_DESTRUCTIVE_FUNCTIONAL=1 make e2e
+      - name: Deploy local stack
+        run: make local-up
+
+      - name: Test Event Bus functional behavior
+        run: make test-event-bus-functional
+
+      - name: Test Event Bus performance
+        run: make test-event-bus-performance
+
+      - name: Test Agent Gateway
+        env:
+          RUN_DESTRUCTIVE_FUNCTIONAL: "1"
+        run: make test-agent-gateway
 
       - name: Collect e2e diagnostics
         if: failure()
