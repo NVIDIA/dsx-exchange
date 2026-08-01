@@ -217,7 +217,6 @@ jobs:
 
   security-container-scan:
     name: Container Scan (auth-callout)
-    needs: docker-build
     runs-on: linux-amd64-cpu4
     steps:
       - uses: actions/checkout@v4
