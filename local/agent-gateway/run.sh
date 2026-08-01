@@ -144,15 +144,18 @@ fi
 
 # Collate test results from go test -json output.
 SUMMARY="$ARTIFACTS/tests-summary.txt"
+TIMINGS="$ARTIFACTS/tests-timings.txt"
 SKIP_DETAIL="$ARTIFACTS/skip-events.txt"
 FAILED_DETAIL="$ARTIFACTS/failed-tests.txt"
 : > "$SUMMARY"
+: > "$TIMINGS"
 : > "$SKIP_DETAIL"
 : > "$FAILED_DETAIL"
-python3 - "$SUITE_JSON" "$SUMMARY" "$SKIP_DETAIL" "$FAILED_DETAIL" <<'PY' || true
+python3 - "$SUITE_JSON" "$SUMMARY" "$TIMINGS" "$SKIP_DETAIL" "$FAILED_DETAIL" <<'PY' || true
 import json, sys
-src, out, skip_out, failed_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+src, out, timings_out, skip_out, failed_out = sys.argv[1:]
 status = {}
+elapsed = {}
 # Both top-level tests AND `/`-delimited subtests, so a subtest
 # SKIP can't hide behind a parent PASS.
 skip_events = []
@@ -187,9 +190,15 @@ with open(src) as f:
             status[key] = "FAIL"
         elif a == "skip":
             status[key] = "SKIP"
+        if a in {"pass", "fail", "skip"}:
+            elapsed[key] = ev.get("Elapsed", 0)
 with open(out, "w") as o:
     for pkg, name in sorted(status):
         o.write(f"{status[(pkg, name)]} {pkg} {name}\n")
+with open(timings_out, "w") as o:
+    for (pkg, name), seconds in sorted(elapsed.items(), key=lambda item: item[1], reverse=True):
+        if "/" not in name:
+            o.write(f"{seconds:8.3f}s {pkg} {name}\n")
 with open(skip_out, "w") as o:
     for pkg, t, r in skip_events:
         r = r.replace("\n", " ").replace("\t", " ").strip()
@@ -232,6 +241,16 @@ if [[ "$RUN_DESTRUCTIVE_FUNCTIONAL" == "1" ]]; then
   log "Destructive functional results: PASS=$DESTRUCTIVE_PASS  FAIL=$DESTRUCTIVE_FAIL  SKIP=$DESTRUCTIVE_SKIP  TOTAL=$DESTRUCTIVE_TOTAL"
 else
   log "Destructive functional results: not run (set RUN_DESTRUCTIVE_FUNCTIONAL=1)"
+fi
+log "Slowest Agent Gateway functional tests"
+sed -n '1,20p' "$TIMINGS"
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  {
+    echo "### Slowest Agent Gateway functional tests"
+    echo '```text'
+    sed -n '1,20p' "$TIMINGS"
+    echo '```'
+  } >> "$GITHUB_STEP_SUMMARY"
 fi
 if (( FAIL > 0 )); then
   log "Failed functional test detail"

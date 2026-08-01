@@ -43,8 +43,17 @@ jobs:
       - name: Prepare e2e runner
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
+      - name: Install e2e tools
+        run: make -C local install-e2e-prereqs
+
+      - name: Prepare local dependencies
+        run: make -C local prepare-local-dependencies
+
+      - name: Set up Kind cluster
+        run: make -C local setup-cluster
+
       - name: Deploy local stack
-        run: make local-up
+        run: make -C local skaffold-deploy
 
       - name: Test Event Bus functional behavior
         run: make test-event-bus-functional

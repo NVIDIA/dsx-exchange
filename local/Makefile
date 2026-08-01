@@ -12,7 +12,7 @@ SKAFFOLD_FLAGS ?= --cleanup=false --digest-source=tag --iterative-status-check=t
 override SKAFFOLD_FLAGS += --kube-context=kind-dsx-exchange
 SKAFFOLD_BUILD_MIRROR_REGISTRY ?= localhost:5001
 
-.PHONY: clean install-e2e-prereqs prepare-local-dependencies setup-cluster skaffold-dev skaffold-run
+.PHONY: clean install-e2e-prereqs prepare-local-dependencies setup-cluster skaffold-deploy skaffold-dev skaffold-run
 
 install-e2e-prereqs:
 	MISE_LOCKED=1 "$(MISE)" --cd "$(ROOT_DIR)" install --locked
@@ -24,6 +24,9 @@ setup-cluster:
 	$(MISE_EXEC) bash local/scripts/setup-cluster.sh
 
 skaffold-run: install-e2e-prereqs prepare-local-dependencies setup-cluster
+	$(MAKE) skaffold-deploy
+
+skaffold-deploy:
 	$(MISE_EXEC) env SKAFFOLD_BUILD_MIRROR_REGISTRY="$(SKAFFOLD_BUILD_MIRROR_REGISTRY)" "$(SKAFFOLD)" run -f skaffold.yaml --module local-stack $(SKAFFOLD_FLAGS)
 
 skaffold-dev: install-e2e-prereqs prepare-local-dependencies setup-cluster
