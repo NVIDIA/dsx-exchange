@@ -78,9 +78,7 @@ spec:
         - alert: AgentGatewayXDSAuthorizationFailures
           expr: |
             sum by (namespace) (
-              increase(agentgateway_xds_auth_rq_total{namespace="{{ .Release.Namespace }}"}[5m])
-                -
-              increase(agentgateway_xds_auth_rq_success_total{namespace="{{ .Release.Namespace }}"}[5m])
+              increase(agentgateway_xds_auth_rq_failure_total{namespace="{{ .Release.Namespace }}"}[5m])
             ) > 0
           for: 5m
           labels:
