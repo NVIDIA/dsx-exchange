@@ -20,59 +20,64 @@ spec:
           for: 10m
           labels:
             severity: critical
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: Agent Gateway proxy metrics are unavailable.
             description: No Agent Gateway proxy metrics have been observed for 10 minutes.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
         - alert: AgentGatewayControllerMetricsAbsent
           expr: absent(agentgateway_controller_build_info{namespace="{{ .Release.Namespace }}"})
           for: 10m
           labels:
             severity: critical
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: Agent Gateway controller metrics are unavailable.
             description: No Agent Gateway controller metrics have been observed for 10 minutes.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
         - alert: AgentGatewayConfigNotSynchronized
           expr: agentgateway_config_synchronized{namespace="{{ .Release.Namespace }}"} == 0
           for: 5m
           labels:
             severity: critical
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: An Agent Gateway proxy has not synchronized configuration.
             description: An Agent Gateway proxy has reported unsynchronized configuration for 5 minutes.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
         - alert: AgentGatewayHighErrorRate
-          expr: sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m])) / sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
+          expr: |
+            sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m]))
+              / sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
+            and sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.01
           for: 10m
           labels:
             severity: warning
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: Agent Gateway 5xx error rate is above 5 percent.
             description: The 5xx response rate has remained above 5 percent for 10 minutes.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
         - alert: AgentGatewayHighP99Latency
-          expr: histogram_quantile(0.99, sum by (le, namespace, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
+          expr: |
+            histogram_quantile(0.99, sum by (le, namespace, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
+            and sum by (namespace, gateway) (rate(agentgateway_request_duration_seconds_count{namespace="{{ .Release.Namespace }}"}[5m])) > 0.01
           for: 10m
           labels:
             severity: warning
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: Agent Gateway p99 request latency is above 5 seconds.
             description: The p99 request latency has remained above 5 seconds for 10 minutes.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
         - alert: AgentGatewayXDSAuthorizationFailures
           expr: sum by (namespace) (increase(agentgateway_xds_auth_rq_failure_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0
           for: 5m
           labels:
             severity: warning
-            team: dsx
+            team: {{ .Values.observability.alerts.team | quote }}
           annotations:
             summary: Agent Gateway rejected xDS authorization requests.
             description: The Agent Gateway controller reported xDS authorization failures.
-            runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
+            runbook_url: {{ .Values.observability.alerts.runbookUrl | quote }}
 {{- end }}

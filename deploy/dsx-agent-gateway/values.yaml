@@ -15,6 +15,9 @@ agentgateway:
     proxy:
       podMonitor:
         enabled: false
+    grafanaDashboard:
+      enabled: false
+      labels: {}
   # The parent chart owns metrics discovery through its ServiceMonitor.
   podAnnotations:
     prometheus.io/scrape: "false"
@@ -186,6 +189,8 @@ observability:
   # PrometheusRule resources belong only in the common services cluster.
   alerts:
     enabled: false
+    team: ""
+    runbookUrl: ""
   metrics:
     # false omits Prometheus Operator resources and disables chart-managed export.
     enabled: true

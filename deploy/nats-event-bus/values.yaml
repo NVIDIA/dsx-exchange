@@ -77,6 +77,8 @@ global:
     # PrometheusRule resources belong only in the common services cluster.
     alerts:
       enabled: false
+      team: ""
+      runbookUrl: ""
 
     # Extra NATS accounts.
     #
@@ -577,6 +579,10 @@ auth-callout:
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
 # See https://github.com/nats-io/nats-surveyor for metrics reference
 surveyor:
+  grafanaDashboard:
+    enabled: false
+    labels: {}
+    annotations: {}
   resources:
     requests:
       cpu: 10m

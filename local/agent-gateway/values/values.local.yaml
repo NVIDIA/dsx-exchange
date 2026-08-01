@@ -5,8 +5,15 @@
 observability:
   alerts:
     enabled: true
+    team: dsx
+    runbookUrl: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
 
 agentgateway:
+  monitoring:
+    grafanaDashboard:
+      enabled: true
+      labels:
+        grafana_dashboard: "1"
   discoveryNamespaceSelectors:
     - matchLabels:
         kubernetes.io/metadata.name: csc-dsx-agentgateway
