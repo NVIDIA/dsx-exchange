@@ -10,8 +10,8 @@ MISE_EXEC := MISE_LOCKED=1 "$(MISE)" exec --cd "$(ROOT_DIR)" --
 SKAFFOLD ?= skaffold
 SKAFFOLD_FLAGS ?= --cleanup=false --digest-source=tag --iterative-status-check=true --label=skaffold.dev/run-id=local-e2e
 override SKAFFOLD_FLAGS += --kube-context=kind-dsx-exchange
-SKAFFOLD_TAG ?=
-override SKAFFOLD_FLAGS += $(if $(SKAFFOLD_TAG),--tag=$(SKAFFOLD_TAG))
+SKAFFOLD_EXTRA_FLAGS ?=
+override SKAFFOLD_FLAGS += $(SKAFFOLD_EXTRA_FLAGS)
 SKAFFOLD_BUILD_MIRROR_REGISTRY ?= localhost:5001
 
 .PHONY: clean install-e2e-prereqs prepare-local-dependencies setup-cluster skaffold-deploy skaffold-dev skaffold-run
