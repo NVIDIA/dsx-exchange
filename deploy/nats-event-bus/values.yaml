@@ -74,7 +74,6 @@ global:
     mtls:
       enabled: true
 
-    # PrometheusRule resources belong only in the common services cluster.
     alerts:
       enabled: false
       team: ""

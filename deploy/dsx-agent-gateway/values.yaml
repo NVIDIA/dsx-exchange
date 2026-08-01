@@ -186,7 +186,6 @@ bridge:
     tls: {}
 
 observability:
-  # PrometheusRule resources belong only in the common services cluster.
   alerts:
     enabled: false
     team: ""
