@@ -15,8 +15,6 @@ agentgateway:
     proxy:
       podMonitor:
         enabled: false
-    grafanaDashboard:
-      enabled: true
   # The parent chart owns metrics discovery through its ServiceMonitor.
   podAnnotations:
     prometheus.io/scrape: "false"

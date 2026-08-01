@@ -285,18 +285,6 @@ func TestPrometheusMonitorResourcesLive(t *testing.T) {
 				}
 				continue
 			}
-			if tc.gvr == podMonitor && tc.name == cscGatewayName {
-				relabelings, found, err := unstructured.NestedSlice(endpoint, "relabelings")
-				if err != nil || !found || len(relabelings) != 1 {
-					t.Fatalf("PodMonitor %s/%s relabelings invalid: found=%t count=%d err=%v", tc.ns, tc.name, found, len(relabelings), err)
-				}
-				relabeling, ok := relabelings[0].(map[string]any)
-				sourceLabels, sourceLabelsFound, sourceLabelsErr := unstructured.NestedStringSlice(relabeling, "sourceLabels")
-				if !ok || sourceLabelsErr != nil || !sourceLabelsFound || len(sourceLabels) != 1 || sourceLabels[0] != "__meta_kubernetes_pod_label_gateway_networking_k8s_io_gateway_name" ||
-					relabeling["targetLabel"] != "gateway_networking_k8s_io_gateway_name" {
-					t.Errorf("PodMonitor %s/%s dashboard relabeling = %v", tc.ns, tc.name, relabelings[0])
-				}
-			}
 			port, ok := endpoint["port"].(string)
 			if !ok || port == "" {
 				t.Errorf("%s %s/%s endpoint port = %v, want named port", tc.gvr.Resource, tc.ns, tc.name, endpoint["port"])

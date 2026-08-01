@@ -16,7 +16,7 @@ spec:
       interval: 30s
       rules:
         - alert: NATSSurveyorMetricsAbsent
-          expr: absent(nats_survey_expected_count{namespace="{{ .Release.Namespace }}"}) == 1
+          expr: absent(nats_survey_expected_count{namespace="{{ .Release.Namespace }}"})
           for: 10m
           labels:
             severity: critical

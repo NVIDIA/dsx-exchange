@@ -1,9 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-{{- $observability := .Values.observability | default (dict) }}
-{{- $alerts := $observability.alerts | default (dict) }}
-{{- if ($alerts.enabled | default false) }}
+{{- if .Values.observability.alerts.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -18,7 +16,7 @@ spec:
       interval: 30s
       rules:
         - alert: AgentGatewayProxyMetricsAbsent
-          expr: absent(agentgateway_build_info{namespace="{{ .Release.Namespace }}"}) == 1
+          expr: absent(agentgateway_build_info{namespace="{{ .Release.Namespace }}"})
           for: 10m
           labels:
             severity: critical
@@ -28,7 +26,7 @@ spec:
             description: No Agent Gateway proxy metrics have been observed for 10 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayControllerMetricsAbsent
-          expr: absent(agentgateway_controller_build_info{namespace="{{ .Release.Namespace }}"}) == 1
+          expr: absent(agentgateway_controller_build_info{namespace="{{ .Release.Namespace }}"})
           for: 10m
           labels:
             severity: critical
@@ -48,11 +46,7 @@ spec:
             description: An Agent Gateway proxy has reported unsynchronized configuration for 5 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayHighErrorRate
-          expr: |
-            sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m]))
-              /
-            sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m]))
-              > 0.05
+          expr: sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m])) / sum by (gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
           for: 10m
           labels:
             severity: warning
@@ -62,11 +56,7 @@ spec:
             description: The 5xx response rate has remained above 5 percent for 10 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayHighP99Latency
-          expr: |
-            histogram_quantile(
-              0.99,
-              sum by (le, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))
-            ) > 5
+          expr: histogram_quantile(0.99, sum by (le, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
           for: 10m
           labels:
             severity: warning
@@ -76,10 +66,7 @@ spec:
             description: The p99 request latency has remained above 5 seconds for 10 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
         - alert: AgentGatewayXDSAuthorizationFailures
-          expr: |
-            sum by (namespace) (
-              increase(agentgateway_xds_auth_rq_failure_total{namespace="{{ .Release.Namespace }}"}[5m])
-            ) > 0
+          expr: sum by (namespace) (increase(agentgateway_xds_auth_rq_failure_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0
           for: 5m
           labels:
             severity: warning
