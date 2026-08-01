@@ -1,7 +1,9 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-{{- if .Values.observability.alerts.enabled }}
+{{- $observability := .Values.observability | default (dict) }}
+{{- $alerts := $observability.alerts | default (dict) }}
+{{- if ($alerts.enabled | default false) }}
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:

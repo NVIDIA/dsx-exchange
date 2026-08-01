@@ -46,7 +46,7 @@ spec:
             description: Surveyor reconnected to NATS more than twice in 10 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
         - alert: NATSSlowConsumers
-          expr: sum by (server_cluster) (increase(nats_core_slow_consumer_count{namespace="{{ .Release.Namespace }}"}[5m])) > 0
+          expr: sum by (server_cluster) (nats_core_slow_consumer_count{namespace="{{ .Release.Namespace }}"}) > 0
           for: 5m
           labels:
             severity: warning
@@ -56,7 +56,7 @@ spec:
             description: A NATS cluster has continued to detect slow consumers.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
         - alert: NATSHighMemoryUsage
-          expr: nats_core_mem_bytes{namespace="{{ .Release.Namespace }}"} / nats_core_go_memlimit_bytes{namespace="{{ .Release.Namespace }}"} > 0.8
+          expr: (nats_core_mem_bytes{namespace="{{ .Release.Namespace }}"} / nats_core_go_memlimit_bytes{namespace="{{ .Release.Namespace }}"} > 0.8) and nats_core_go_memlimit_bytes{namespace="{{ .Release.Namespace }}"} > 0
           for: 15m
           labels:
             severity: warning
@@ -66,7 +66,7 @@ spec:
             description: NATS memory usage has remained above 80 percent for 15 minutes.
             runbook_url: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
         - alert: NATSRoutePendingData
-          expr: sum by (server_cluster, server_name) (nats_core_route_pending_bytes{namespace="{{ .Release.Namespace }}"}) > 1048576
+          expr: sum by (server_cluster, server_name, server_id, server_route_name, server_route_name_id) (nats_core_route_pending_bytes{namespace="{{ .Release.Namespace }}"}) > 1048576
           for: 10m
           labels:
             severity: warning
