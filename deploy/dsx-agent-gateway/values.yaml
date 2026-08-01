@@ -190,7 +190,6 @@ observability:
   alerts:
     enabled: false
     team: ""
-    runbookUrl: ""
   metrics:
     # false omits Prometheus Operator resources and disables chart-managed export.
     enabled: true

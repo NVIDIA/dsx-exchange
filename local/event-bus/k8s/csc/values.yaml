@@ -14,7 +14,6 @@ global:
     alerts:
       enabled: true
       team: dsx
-      runbookUrl: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/README.md
     # List of CPC IDs that will connect as leaves
     cpcIds: ["1", "2"]
     gateway:

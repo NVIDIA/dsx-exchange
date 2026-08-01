@@ -6,7 +6,6 @@ observability:
   alerts:
     enabled: true
     team: dsx
-    runbookUrl: https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/README.md
 
 agentgateway:
   monitoring:

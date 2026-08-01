@@ -78,7 +78,6 @@ global:
     alerts:
       enabled: false
       team: ""
-      runbookUrl: ""
 
     # Extra NATS accounts.
     #
