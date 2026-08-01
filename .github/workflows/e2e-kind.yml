@@ -53,8 +53,6 @@ jobs:
         run: make -C local setup-cluster
 
       - name: Deploy local stack
-        env:
-          SKAFFOLD_EXTRA_FLAGS: --tag=ci-${{ github.sha }} --cache-artifacts=false
         run: make -C local skaffold-deploy
 
       - name: Test Event Bus functional behavior
