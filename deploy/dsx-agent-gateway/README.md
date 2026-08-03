@@ -253,9 +253,10 @@ valkey:
 
 ### Dashboard and alerts
 
-The dashboard and alert rules are disabled by default. Enable either resource
-in any release that should own it. The chart does not install Grafana or
-configure dashboard or `PrometheusRule` discovery.
+The dashboard and alert rules are disabled by default. Enable them independently
+through deployment values. Set dashboard labels to match Grafana discovery.
+Enable alerts where Prometheus discovers `PrometheusRule` resources. The chart
+does not install either system or configure its discovery selectors.
 
 The dashboard comes from the pinned Agent Gateway chart. Supply labels that
 match the target Grafana sidecar or operator. Keep metrics enabled so its
