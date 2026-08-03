@@ -20,6 +20,7 @@ nodeExporter:
 
 prometheus:
   prometheusSpec:
+    ruleSelectorNilUsesHelmValues: false
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     retention: 1h

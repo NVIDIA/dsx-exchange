@@ -1,0 +1,26 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.global.eventBus.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-surveyor-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: nats-surveyor
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: grafana-dashboard
+    {{- with .Values.global.eventBus.grafanaDashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.global.eventBus.grafanaDashboard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  # Vendored from NATS Surveyor v0.9.7 to match the chart's Surveyor image.
+  nats-surveyor.json: |
+{{ required "dashboards/nats-surveyor-dashboard.json is required" (.Files.Get "dashboards/nats-surveyor-dashboard.json") | indent 4 }}
+{{- end }}

@@ -7,6 +7,17 @@ runtimeClassName: ""
 agentgateway:
   enabled: true
   nameOverride: controller # Avoid collision with the release-named dataplane Service
+  # Reuse the upstream dashboard; the parent chart owns metrics discovery.
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+    proxy:
+      podMonitor:
+        enabled: false
+    grafanaDashboard:
+      enabled: false
+      labels: {}
   # The parent chart owns metrics discovery through its ServiceMonitor.
   podAnnotations:
     prometheus.io/scrape: "false"
@@ -175,6 +186,9 @@ bridge:
     tls: {}
 
 observability:
+  alerts:
+    enabled: false
+    team: ""
   metrics:
     # false omits Prometheus Operator resources and disables chart-managed export.
     enabled: true

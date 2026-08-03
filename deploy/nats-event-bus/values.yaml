@@ -74,6 +74,15 @@ global:
     mtls:
       enabled: true
 
+    alerts:
+      enabled: false
+      team: ""
+
+    grafanaDashboard:
+      enabled: false
+      labels: {}
+      annotations: {}
+
     # Extra NATS accounts.
     #
     # Extra accounts are rendered as native accounts on every cluster where they

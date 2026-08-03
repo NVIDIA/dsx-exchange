@@ -51,6 +51,7 @@ args=(
 	-ignore '**/vendor/**'
 	-ignore 'auth-callout/vault-agent/templates/**'
 	-ignore 'deploy/**/charts/**'
+	-ignore 'deploy/nats-event-bus/dashboards/nats-surveyor-dashboard.json'
 	-ignore 'docs/schema-viewer/**'
 	-ignore 'LICENSE'
 	-ignore 'local/**/charts/**/charts/**'

@@ -25,12 +25,13 @@ In the sandbox this has failed with Docker buildx permission errors and
 host-side networking timeouts. Use the root Make targets with unsandboxed
 execution, for example `make local-up` and `make test`.
 
-For local deploy and infrastructure scripts, prefer direct validation over
-meta-level tests. Do not add shell tests whose main purpose is to inspect deploy
-script text or mock/assert exact command sequences such as Helm repo updates,
-Kind image loads, timeouts, or Gateway YAML fields. Validate these changes with
-syntax checks, Helm rendering/linting when applicable, and the real affected
-local Make target outside the sandbox.
+For local deployment and infrastructure changes, prefer direct validation over
+meta-level tests. Do not add tests in any language whose primary purpose is to
+inspect source text, rendered manifests, deployed resource fields, or exact
+command sequences. This includes Helm repo updates, Kind image loads, timeout
+values, and Gateway or monitor YAML fields. Validate changes with syntax checks,
+Helm rendering or linting when applicable, and the real affected local Make
+target and behavior outside the sandbox.
 
 ## Skaffold validation checklist
 

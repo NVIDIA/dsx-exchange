@@ -1,0 +1,77 @@
+# Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+{{- if .Values.observability.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: dsx-agent-gateway
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+    - name: dsx-agent-gateway.rules
+      interval: 30s
+      rules:
+        - alert: AgentGatewayProxyMetricsAbsent
+          expr: absent(agentgateway_build_info{namespace="{{ .Release.Namespace }}"})
+          for: 10m
+          labels:
+            severity: critical
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: Agent Gateway proxy metrics are unavailable.
+            description: No Agent Gateway proxy metrics have been observed for 10 minutes.
+        - alert: AgentGatewayControllerMetricsAbsent
+          expr: absent(agentgateway_controller_build_info{namespace="{{ .Release.Namespace }}"})
+          for: 10m
+          labels:
+            severity: critical
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: Agent Gateway controller metrics are unavailable.
+            description: No Agent Gateway controller metrics have been observed for 10 minutes.
+        - alert: AgentGatewayConfigNotSynchronized
+          expr: agentgateway_config_synchronized{namespace="{{ .Release.Namespace }}"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: An Agent Gateway proxy has not synchronized configuration.
+            description: An Agent Gateway proxy has reported unsynchronized configuration for 5 minutes.
+        - alert: AgentGatewayHighErrorRate
+          expr: |
+            sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}",status=~"5.."}[5m]))
+              / sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.05
+            and sum by (namespace, gateway) (rate(agentgateway_requests_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0.01
+          for: 10m
+          labels:
+            severity: warning
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: Agent Gateway 5xx error rate is above 5 percent.
+            description: The 5xx response rate has remained above 5 percent for 10 minutes.
+        - alert: AgentGatewayHighP99Latency
+          expr: |
+            histogram_quantile(0.99, sum by (le, namespace, gateway) (rate(agentgateway_request_duration_seconds_bucket{namespace="{{ .Release.Namespace }}"}[5m]))) > 5
+            and sum by (namespace, gateway) (rate(agentgateway_request_duration_seconds_count{namespace="{{ .Release.Namespace }}"}[5m])) > 0.01
+          for: 10m
+          labels:
+            severity: warning
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: Agent Gateway p99 request latency is above 5 seconds.
+            description: The p99 request latency has remained above 5 seconds for 10 minutes.
+        - alert: AgentGatewayXDSAuthorizationFailures
+          expr: sum by (namespace) (increase(agentgateway_xds_auth_rq_failure_total{namespace="{{ .Release.Namespace }}"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+            team: {{ .Values.observability.alerts.team | quote }}
+          annotations:
+            summary: Agent Gateway rejected xDS authorization requests.
+            description: The Agent Gateway controller reported xDS authorization failures.
+{{- end }}

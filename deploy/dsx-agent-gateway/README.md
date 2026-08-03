@@ -198,7 +198,7 @@ examples inline. Additional native settings passed to the `agentgateway` and
 | `rateLimit` | Tenant limits and the chart-owned rate-limit service |
 | `valkey` | Bundled or external Valkey storage |
 | `bridge` | Optional hub or leaf bridge and its NATS connection |
-| `observability` | Prometheus metrics discovery and OTLP tracing |
+| `observability` | Prometheus metrics discovery, alerts, and OTLP tracing |
 
 For agentgateway concepts, use the
 [agentgateway Kubernetes documentation](https://agentgateway.dev/docs/kubernetes/).
@@ -250,6 +250,32 @@ valkey:
   metrics:
     enabled: true # Upstream Valkey exporter sidecar and ServiceMonitor.
 ```
+
+### Dashboard and alerts
+
+Both default off:
+
+```yaml
+agentgateway:
+  monitoring:
+    grafanaDashboard:
+      enabled: true
+      labels:
+        <dashboard-discovery-label>: <dashboard-discovery-value>
+
+observability:
+  alerts:
+    enabled: true
+    team: <alert-owner>
+  metrics:
+    enabled: true
+```
+
+The dashboard comes from the pinned Agent Gateway chart and requires metrics.
+Labels must match Grafana discovery. Prometheus must discover rules in the
+release namespace. Rules detect missing metrics, configuration sync failures,
+high 5xx rate or p99 latency, and xDS authorization failures. `team` labels
+every alert.
 
 | Component | Metrics source | Tracing source | Configuration source |
 |---|---|---|---|
