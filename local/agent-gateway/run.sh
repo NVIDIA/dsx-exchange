@@ -63,9 +63,9 @@ run_functional_phase() {
 
   start_heartbeat "$phase_name"
   if [[ "$mode" == "destructive" ]]; then
-    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=1 go test -count=1 -parallel "$parallel" -json -run "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_DESTRUCTIVE_TIMEOUT" 2>"$stderr_out") | tee "$json_out" || rc=$?
+    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=1 go test -count=1 -parallel "$parallel" -json -run "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_DESTRUCTIVE_TIMEOUT") 2>"$stderr_out" | tee "$json_out" || rc=$?
   else
-    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=0 go test -count=1 -parallel "$parallel" -json -run '^Test' -skip "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_FUNCTIONAL_TIMEOUT" 2>"$stderr_out") | tee "$json_out" || rc=$?
+    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=0 go test -count=1 -parallel "$parallel" -json -run '^Test' -skip "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_FUNCTIONAL_TIMEOUT") 2>"$stderr_out" | tee "$json_out" || rc=$?
   fi
   stop_heartbeat
 
