@@ -43,8 +43,10 @@ jobs:
       - name: Prepare e2e runner
         run: bash .github/workflows/e2e-kind/prepare-runner.sh
 
-      - name: Run Kind e2e
-        run: RUN_DESTRUCTIVE_FUNCTIONAL=1 make e2e
+      - name: Run e2e
+        env:
+          RUN_DESTRUCTIVE_FUNCTIONAL: "1"
+        run: make e2e
 
       - name: Collect e2e diagnostics
         if: failure()

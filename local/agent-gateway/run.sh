@@ -63,9 +63,9 @@ run_functional_phase() {
 
   start_heartbeat "$phase_name"
   if [[ "$mode" == "destructive" ]]; then
-    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=1 go test -count=1 -parallel "$parallel" -json -run "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_DESTRUCTIVE_TIMEOUT") > "$json_out" 2>"$stderr_out" || rc=$?
+    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=1 go test -count=1 -parallel "$parallel" -json -run "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_DESTRUCTIVE_TIMEOUT") 2>"$stderr_out" | tee "$json_out" || rc=$?
   else
-    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=0 go test -count=1 -parallel "$parallel" -json -run '^Test' -skip "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_FUNCTIONAL_TIMEOUT") > "$json_out" 2>"$stderr_out" || rc=$?
+    (cd "$FUNCTIONAL" && RUN_DESTRUCTIVE_FUNCTIONAL=0 go test -count=1 -parallel "$parallel" -json -run '^Test' -skip "^${DESTRUCTIVE_TEST_PREFIX}" ./... -timeout "$E2E_FUNCTIONAL_TIMEOUT") 2>"$stderr_out" | tee "$json_out" || rc=$?
   fi
   stop_heartbeat
 
@@ -151,7 +151,7 @@ FAILED_DETAIL="$ARTIFACTS/failed-tests.txt"
 : > "$FAILED_DETAIL"
 python3 - "$SUITE_JSON" "$SUMMARY" "$SKIP_DETAIL" "$FAILED_DETAIL" <<'PY' || true
 import json, sys
-src, out, skip_out, failed_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+src, out, skip_out, failed_out = sys.argv[1:]
 status = {}
 # Both top-level tests AND `/`-delimited subtests, so a subtest
 # SKIP can't hide behind a parent PASS.

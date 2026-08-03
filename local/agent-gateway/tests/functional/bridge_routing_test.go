@@ -479,73 +479,63 @@ func TestDestructiveBridgeLocalCallWorksWhenNoLeavesReachable(t *testing.T) {
 	}
 }
 
-func TestDestructiveBridgeNATSOutageDoesNotBreakLocalTools(t *testing.T) {
+func TestDestructiveBridgeNATSOutage(t *testing.T) {
 	runner.DestructiveFunctional(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	s := runner.NewSession(t, "operator")
-	t.Cleanup(s.Close)
-
 	prepareNATSOutage(t)
 
-	names := listToolNamesEventually(t, ctx, s, "NATS outage")
-	if !slices.Contains(names, cscHeaderTool) {
-		t.Fatalf("tools/list during NATS outage missing local CSC tool %q: %v", cscHeaderTool, names)
-	}
+	t.Run("local tools remain available", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 
-	req := mcp.CallToolRequest{}
-	req.Params.Name = cscHeaderTool
-	req.Params.Arguments = map[string]any{}
-	if _, err := s.Client.CallTool(ctx, req); err != nil {
-		t.Fatalf("local CSC tools/call during NATS outage: %v", err)
-	}
-}
+		s := runner.NewSession(t, "operator")
+		t.Cleanup(s.Close)
+		names := listToolNamesEventually(t, ctx, s, "NATS outage")
+		if !slices.Contains(names, cscHeaderTool) {
+			t.Fatalf("tools/list during NATS outage missing local CSC tool %q: %v", cscHeaderTool, names)
+		}
 
-func TestDestructiveBridgeNATSOutageReturnsRemoteErrors(t *testing.T) {
-	runner.DestructiveFunctional(t)
+		req := mcp.CallToolRequest{}
+		req.Params.Name = cscHeaderTool
+		req.Params.Arguments = map[string]any{}
+		if _, err := s.Client.CallTool(ctx, req); err != nil {
+			t.Fatalf("local CSC tools/call during NATS outage: %v", err)
+		}
+	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
+	t.Run("remote tools return errors", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 
-	s := runner.NewSession(t, "operator")
-	t.Cleanup(s.Close)
+		s := runner.NewSession(t, "operator")
+		t.Cleanup(s.Close)
+		names := listToolNamesEventually(t, ctx, s, "NATS outage")
+		if slices.Contains(names, bridgeHeaderTool) {
+			t.Fatalf("tools/list during NATS outage still included bridge tool %q: %v", bridgeHeaderTool, names)
+		}
+		assertBridgeLeafUnavailable(t, ctx, s, bridgeHeaderTool)
+	})
 
-	prepareNATSOutage(t)
+	t.Run("readiness reflects outage", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
 
-	names := listToolNamesEventually(t, ctx, s, "NATS outage")
-	if slices.Contains(names, bridgeHeaderTool) {
-		t.Fatalf("tools/list during NATS outage still included bridge tool %q: %v", bridgeHeaderTool, names)
-	}
-	assertBridgeLeafUnavailable(t, ctx, s, bridgeHeaderTool)
-}
-
-func TestDestructiveBridgeNATSOutageReadinessSplit(t *testing.T) {
-	runner.DestructiveFunctional(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-
-	prepareNATSOutage(t)
-
-	for _, tc := range []struct {
-		name   string
-		ns     string
-		labels string
-		port   int
-	}{
-		{name: "hub", ns: cscGatewayNS, labels: bridgePodSelector, port: 3001},
-		{name: "cpc-1 leaf", ns: cpc1GatewayNS, labels: bridgePodSelector, port: 3001},
-		{name: "cpc-2 leaf", ns: cpc2GatewayNS, labels: bridgePodSelector, port: 3001},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			pod := firstRunningPodName(t, tc.ns, tc.labels)
-			podProxyGET(t, ctx, tc.ns, pod, tc.port, "livez")
-			requirePodProxyGETFails(t, ctx, tc.ns, pod, tc.port, "readyz")
-		})
-	}
+		for _, tc := range []struct {
+			name   string
+			ns     string
+			labels string
+			port   int
+		}{
+			{name: "hub", ns: cscGatewayNS, labels: bridgePodSelector, port: 3001},
+			{name: "cpc-1 leaf", ns: cpc1GatewayNS, labels: bridgePodSelector, port: 3001},
+			{name: "cpc-2 leaf", ns: cpc2GatewayNS, labels: bridgePodSelector, port: 3001},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				pod := firstRunningPodName(t, tc.ns, tc.labels)
+				podProxyGET(t, ctx, tc.ns, pod, tc.port, "livez")
+				requirePodProxyGETFails(t, ctx, tc.ns, pod, tc.port, "readyz")
+			})
+		}
+	})
 }
 
 func TestDestructiveBridgeLeafReplicaLossDoesNotBreakInvocation(t *testing.T) {
