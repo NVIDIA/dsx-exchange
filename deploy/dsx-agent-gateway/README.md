@@ -253,14 +253,7 @@ valkey:
 
 ### Dashboard and alerts
 
-Both resources default off. Enable the dashboard with
-`agentgateway.monitoring.grafanaDashboard.enabled` and alerts with
-`observability.alerts.enabled`. Dashboard labels must match Grafana discovery.
-Prometheus must discover rules in the release namespace. The chart installs
-neither system.
-
-The dashboard comes from the pinned Agent Gateway chart. Keep metrics enabled
-so its Prometheus queries have data.
+Both default off:
 
 ```yaml
 agentgateway:
@@ -278,9 +271,11 @@ observability:
     enabled: true
 ```
 
-Alert rules cover missing proxy and controller metrics, configuration sync,
-5xx rate, p99 latency, and xDS authorization failures. The configured `team`
-is added to every alert.
+The dashboard comes from the pinned Agent Gateway chart and requires metrics.
+Labels must match Grafana discovery. Prometheus must discover rules in the
+release namespace. Rules detect missing metrics, configuration sync failures,
+high 5xx rate or p99 latency, and xDS authorization failures. `team` labels
+every alert.
 
 | Component | Metrics source | Tracing source | Configuration source |
 |---|---|---|---|

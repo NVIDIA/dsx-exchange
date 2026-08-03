@@ -78,6 +78,11 @@ global:
       enabled: false
       team: ""
 
+    grafanaDashboard:
+      enabled: false
+      labels: {}
+      annotations: {}
+
     # Extra NATS accounts.
     #
     # Extra accounts are rendered as native accounts on every cluster where they
@@ -577,10 +582,6 @@ auth-callout:
 # Surveyor configuration - Prometheus metrics exporter for NATS monitoring
 # See https://github.com/nats-io/nats-surveyor for metrics reference
 surveyor:
-  grafanaDashboard:
-    enabled: false
-    labels: {}
-    annotations: {}
   resources:
     requests:
       cpu: 10m

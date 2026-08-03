@@ -1,7 +1,7 @@
 # Copyright 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-{{- if .Values.surveyor.grafanaDashboard.enabled }}
+{{- if .Values.global.eventBus.grafanaDashboard.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,10 +12,10 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
     app.kubernetes.io/component: grafana-dashboard
-    {{- with .Values.surveyor.grafanaDashboard.labels }}
+    {{- with .Values.global.eventBus.grafanaDashboard.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.surveyor.grafanaDashboard.annotations }}
+  {{- with .Values.global.eventBus.grafanaDashboard.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}

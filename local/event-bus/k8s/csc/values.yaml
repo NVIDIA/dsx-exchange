@@ -14,6 +14,12 @@ global:
     alerts:
       enabled: true
       team: dsx
+    grafanaDashboard:
+      enabled: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana.com/dashboard-folder: DSX Event Bus
     # List of CPC IDs that will connect as leaves
     cpcIds: ["1", "2"]
     gateway:
@@ -78,11 +84,3 @@ global:
                 allow: ["test.>"]
         noauth:
           account: "CSC"
-
-surveyor:
-  grafanaDashboard:
-    enabled: true
-    labels:
-      grafana_dashboard: "1"
-    annotations:
-      grafana.com/dashboard-folder: DSX Event Bus
