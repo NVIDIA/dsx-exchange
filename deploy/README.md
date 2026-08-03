@@ -489,14 +489,14 @@ centralized monitoring of both clusters.
 
 ### Dashboard and alerts
 
-The Surveyor dashboard and NATS alert rules are disabled by default. Enable
-them independently through deployment values. Set dashboard labels to match
-Grafana discovery. Enable alerts where Prometheus discovers `PrometheusRule`
-resources. The chart does not install either system or configure its discovery
-selectors.
+Both resources default off. Enable the dashboard with
+`surveyor.grafanaDashboard.enabled` and alerts with
+`global.eventBus.alerts.enabled`. Dashboard labels must match Grafana discovery.
+Prometheus must discover rules in the release namespace. The chart installs
+neither system.
 
-The dashboard is the unchanged NATS Surveyor v0.9.7 dashboard. Supply labels
-and annotations that match the target Grafana sidecar or operator.
+The dashboard is unchanged from NATS Surveyor v0.9.7. Labels and annotations
+are passed to its ConfigMap.
 
 ```yaml
 global:
@@ -516,8 +516,7 @@ surveyor:
 
 Alert rules cover missing or incomplete Surveyor data, reconnects, slow
 consumers, memory pressure, and route backlog. The configured `team` is added
-to every alert. Route alert notifications and select `PrometheusRule`
-resources in the platform observability configuration.
+to every alert.
 
 ### Surveyor Configuration
 
