@@ -487,6 +487,36 @@ centralized monitoring of both clusters.
 
 **Prerequisite:** Prometheus Operator must be installed for the ServiceMonitor and PodMonitor CRDs. Install via `kube-prometheus-stack` Helm chart or equivalent.
 
+### Dashboard and alerts
+
+The Surveyor dashboard and NATS alert rules are disabled by default. Enable
+either resource in any release that should own it. The chart does not install
+Grafana or configure dashboard or `PrometheusRule` discovery.
+
+The dashboard is the unchanged NATS Surveyor v0.9.7 dashboard. Supply labels
+and annotations that match the target Grafana sidecar or operator.
+
+```yaml
+global:
+  eventBus:
+    alerts:
+      enabled: true
+      team: <alert-owner>
+
+surveyor:
+  grafanaDashboard:
+    enabled: true
+    labels:
+      <dashboard-discovery-label>: <dashboard-discovery-value>
+    annotations:
+      <dashboard-folder-annotation>: <dashboard-folder>
+```
+
+Alert rules cover missing or incomplete Surveyor data, reconnects, slow
+consumers, memory pressure, and route backlog. The configured `team` is added
+to every alert. Route alert notifications and select `PrometheusRule`
+resources in the platform observability configuration.
+
 ### Surveyor Configuration
 
 Surveyor is configured via the `surveyor` section in values:
