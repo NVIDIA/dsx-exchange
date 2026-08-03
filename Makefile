@@ -12,7 +12,7 @@ MISE_EXEC := "$(MISE)" exec --cd "$(ROOT_DIR)" --
 PERFORMANCE_E2E_ENV ?= PERF_TEST_PAIRS=1 PERF_TEST_DURATION=2s PERF_TEST_WARMUP=1s PERF_PUBLISH_DELAY=5ms PERF_MIN_SUCCESS_RATE=99
 FUNCTIONAL_E2E_TIMEOUT ?= 3m
 CSC_BROKER_URL ?= tcp://172.18.200.1:1883
-.PHONY: add-license-headers check clean dummy-bms e2e help local-up perf-benchmark skaffold-dev test test-agent-gateway test-dev test-event-bus-functional test-event-bus-performance third-party-licenses
+.PHONY: add-license-headers check clean dummy-bms e2e help local-up perf-benchmark skaffold-dev test test-dev third-party-licenses
 
 add-license-headers: ## Add SPDX license headers across repository sources
 	$(MISE_EXEC) bash scripts/license.sh fix
@@ -46,17 +46,8 @@ test: check ## Run the full validation suite
 	$(MAKE) e2e
 
 test-dev: ## Run live validation against an existing local stack
-	$(MAKE) test-event-bus-functional
-	$(MAKE) test-event-bus-performance
-	$(MAKE) test-agent-gateway
-
-test-event-bus-functional: ## Run Event Bus functional tests against an existing local stack
 	$(MISE_EXEC) go -C local/mqtt-client test -count=1 -v ./tests/functional/ -timeout $(FUNCTIONAL_E2E_TIMEOUT)
-
-test-event-bus-performance: ## Run Event Bus performance tests against an existing local stack
 	$(MISE_EXEC) env $(PERFORMANCE_E2E_ENV) go -C local/mqtt-client test -count=1 -v ./tests/performance/ -timeout 10m
-
-test-agent-gateway: ## Run Agent Gateway tests against an existing local stack
 	$(MISE_EXEC) bash local/agent-gateway/run.sh
 
 skaffold-dev: ## Run Skaffold dev for the complete local stack
