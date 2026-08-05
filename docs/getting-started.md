@@ -53,10 +53,10 @@ Version-pinned where there is a known compatibility break; see [Pre-Deployment](
 ## Install Order
 
 1. Infrastructure (Gateway API controller, MetalLB, cert-manager)
-2. Keycloak or OIDC provider (if using OAuth2)
-3. Build the auth-callout container image — see [Pre-Deployment](pre-deployment.md#auth-callout-container-image)
-4. CSC cluster event bus
-5. CPC cluster event buses (connect to CSC via leaf nodes)
+1. Keycloak or OIDC provider (if using OAuth2)
+1. Build the auth-callout container image — see [Pre-Deployment](pre-deployment.md#auth-callout-container-image)
+1. CSC cluster event bus
+1. CPC cluster event buses (connect to CSC via leaf nodes)
 
 ## Secrets
 
@@ -205,8 +205,8 @@ global:
 The `mqttMtls` route uses a TLSRoute (Passthrough mode). Three values must agree or clients get a silent connection reset:
 
 1. **Server certificate SANs** — the hostname or IP the cert is issued for
-2. **`mqttMtls.hostnames`** — the SNI values the TLSRoute accepts
-3. **Client broker URL** — MQTT clients derive SNI from the host portion of the URL
+1. **`mqttMtls.hostnames`** — the SNI values the TLSRoute accepts
+1. **Client broker URL** — MQTT clients derive SNI from the host portion of the URL
 
 If a client connects to `ssl://<LB-IP>:8883`, it sends SNI=`<LB-IP>`. If the TLSRoute hostname is a DNS name, Envoy drops the connection before the TLS handshake reaches the NATS pod. Either add the LB IP to both the cert SANs and the TLSRoute hostnames, or assign a DNS name to the LB IP and have clients use that name.
 
