@@ -146,6 +146,10 @@ func (h hub) handleToolsCall(w http.ResponseWriter, r *http.Request, req mcptran
 	}
 	// shard_id is routing metadata for the hub, not part of the leaf tool's API.
 	params.Arguments = nilIfEmpty(args)
+	// mcp-go preserves the original argument bytes for lossless integer
+	// round-tripping. Clear them after mutating Arguments so MarshalJSON uses the
+	// sanitized value instead of replaying the original shard_id.
+	params.RawArguments = nil
 	req.Params = params
 	h.forwardShardRPC(w, r, req, shardID)
 }

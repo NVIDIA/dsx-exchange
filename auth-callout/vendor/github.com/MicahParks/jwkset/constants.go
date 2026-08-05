@@ -101,6 +101,13 @@ func (alg ALG) IANARegistered() bool {
 	}
 	return false
 }
+func (alg ALG) IANAProhibited() bool {
+	switch alg {
+	case AlgRS1, AlgA128CBC, AlgA192CBC, AlgA256CBC, AlgA128CTR, AlgA192CTR, AlgA256CTR, AlgHS1:
+		return true
+	}
+	return false
+}
 func (alg ALG) String() string {
 	return string(alg)
 }
