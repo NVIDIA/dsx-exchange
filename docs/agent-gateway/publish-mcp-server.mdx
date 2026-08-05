@@ -1,0 +1,197 @@
+---
+title: Publish an MCP Server
+position: 40
+last-updated: August 5, 2026
+---
+
+Use this guide to make a Model Context Protocol (MCP) server available through DSX Agent Gateway. You can discover a Kubernetes Service by labels or configure a server with a static address.
+
+## Understand the Request Path
+
+DSX Agent Gateway authenticates the caller, derives a tenant ID, and checks access to the selected MCP target. The gateway then forwards the original bearer token to the selected server.
+
+Your MCP server remains responsible for authorizing the caller within its domain. Do not use caller-supplied tenant headers as an authenticated identity.
+
+Use the [architecture guide](architecture.mdx) for the complete direct and bridged request paths.
+
+## Prepare the MCP Server
+
+The server must meet the following requirements.
+
+- Serve MCP through the Streamable HTTP transport at `/mcp`.
+- Support the MCP initialization handshake and the capabilities that the server advertises.
+- Accept `Content-Type: application/json` requests.
+- Support `Accept: application/json, text/event-stream` when a response can use JSON or Server-Sent Events (SSE).
+- Preserve JSON-RPC request IDs in responses to requests.
+- Accept the caller's bearer token in the `Authorization` header.
+- Return headers before the configured upstream response-header deadline.
+- Continue streaming a response body only while the client connection remains active.
+
+Expose a separate health endpoint for Kubernetes startup, readiness, and liveness probes. The health endpoint is not an MCP method and does not replace `/mcp`.
+
+<Note>
+Static upstreams can use the legacy `SSE` protocol when required. Use `StreamableHTTP` for new servers.
+</Note>
+
+## Publish a Kubernetes Service
+
+Create a named Service port for the MCP endpoint. Set the port's `appProtocol` to `agentgateway.dev/mcp`.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory
+  namespace: agent-services
+  labels:
+    app.kubernetes.io/name: inventory-mcp
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: inventory-mcp
+  ports:
+    - name: mcp
+      port: 3001
+      targetPort: mcp
+      appProtocol: agentgateway.dev/mcp
+```
+
+The Service selector must identify the Pods that serve `/mcp` on the named target port. Configure startup, readiness, and liveness probes on the workload before you publish it.
+
+## Configure Service Discovery
+
+Add a selector entry under `upstreams` in the DSX Agent Gateway values. The `serviceLabels` map matches labels on the Service, not labels only on its Pods.
+
+```yaml
+upstreams:
+  inventory-selector:
+    namespace: agent-services
+    serviceLabels:
+      app.kubernetes.io/name: inventory-mcp
+```
+
+The upstream entry name identifies the selector configuration. The discovered MCP target name is `<service-name>-<port-name>`. The example Service creates the target `inventory-mcp`.
+
+The bundled Agentgateway controller watches all namespaces by default. If the deployment restricts discovery with `agentgateway.discoveryNamespaceSelectors`, include the MCP server namespace.
+
+The gateway skips an unavailable target when it builds a combined catalog, so healthy targets remain available. Use the [operations guide](operations.mdx) to monitor discovery and programming status.
+
+## Configure a Static Upstream
+
+Use a static upstream when the MCP server has a stable HTTP or HTTPS address. The map key becomes the target name.
+
+```yaml
+upstreams:
+  inventory-external:
+    mode: static
+    address: https://inventory.example.com/mcp
+    protocol: StreamableHTTP
+    requestTimeout: 10s
+```
+
+The address must include the scheme, host, and path. The chart accepts `http` and `https` schemes. An HTTPS address enables Transport Layer Security from the gateway to the server.
+
+Do not include credentials, a query string, or a fragment in the static address. Use `protocol: SSE` only for a server that requires the legacy SSE transport.
+
+## Configure Timeouts
+
+`upstreamRequestTimeout` sets the default deadline for receiving response headers from every MCP target. The default is `5s`. Streaming response bodies can continue after this deadline.
+
+Set `upstreams.<name>.requestTimeout` when one target needs a different response-header deadline.
+
+```yaml
+upstreamRequestTimeout: 5s
+
+upstreams:
+  inventory-external:
+    mode: static
+    address: https://inventory.example.com/mcp
+    requestTimeout: 10s
+```
+
+Set a timeout that covers the server's normal time to produce response headers. Do not use the response-header timeout as the maximum duration for a streaming tool call.
+
+## Grant Tenant Access
+
+The configured operator tenant can access every MCP target. Every other authenticated tenant can access only targets in `auth.cel.unprivilegedTenantMCPs`.
+
+Add the runtime target name, not the selector configuration name.
+
+```yaml
+auth:
+  cel:
+    operatorTenantId: oidc:operator
+    unprivilegedTenantMCPs:
+      - inventory-mcp
+      - inventory-external
+```
+
+In this example, `inventory-mcp` is the discovered Service target. `inventory-external` is the static target.
+
+The current allowlist applies to all authenticated non-operator tenants. Apply finer operation-level authorization in the MCP server after it validates the forwarded token.
+
+## Understand Published Names
+
+When the gateway aggregates multiple targets, it prefixes tools and prompts with their target name. The published name has the form `<target>_<name>`.
+
+For example, the `lookup` tool from `inventory-mcp` is published as `inventory-mcp_lookup`. Clients must use the complete published name in `tools/call`. An unprefixed tool or prompt name does not select a default target.
+
+Choose stable, lowercase, hyphenated Service, port, and static target names. Changing a target name also changes its published tool and prompt names.
+
+## Apply the Configuration
+
+Apply the Service and workload before you update the gateway release.
+
+```bash
+kubectl apply --filename inventory-mcp.yaml
+```
+
+Upgrade the gateway with the updated values.
+
+```bash
+helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \
+  --namespace dsx-agent-gateway \
+  --values dsx-agent-gateway-values.yaml \
+  --wait \
+  --timeout 5m
+```
+
+Use the [deployment guide](deployment.mdx) when the gateway release is not installed.
+
+## Verify the Published Server
+
+Confirm that the Service exposes an MCP port with the required application protocol.
+
+```bash
+export MCP_NAMESPACE='agent-services'
+export MCP_SERVICE='inventory'
+
+kubectl get service "${MCP_SERVICE}" \
+  --namespace "${MCP_NAMESPACE}" \
+  --output jsonpath='{range .spec.ports[*]}{.name}{"\t"}{.appProtocol}{"\n"}{end}'
+```
+
+The MCP port must show `agentgateway.dev/mcp`.
+
+Confirm that the gateway is programmed after the release update.
+
+```bash
+kubectl wait \
+  --namespace dsx-agent-gateway \
+  --for=condition=Programmed \
+  gateway/dsx-agent-gateway \
+  --timeout=5m
+```
+
+Follow the [client quickstart](client-quickstart.mdx) to initialize a session and call `tools/list`. Confirm that an authorized tenant sees the expected prefixed tool names. Confirm that a tenant without target access does not see or invoke the target.
+
+If the target is absent, check the following configuration.
+
+- The Service labels match `upstreams.<name>.serviceLabels`.
+- The selector uses the Service namespace.
+- The Service port is named and sets `appProtocol: agentgateway.dev/mcp`.
+- The controller watches the server namespace.
+- `auth.cel.unprivilegedTenantMCPs` contains the runtime target name for non-operator access.
+- The MCP server responds at `/mcp` before the response-header deadline.
+
+Use the [configuration reference](configuration-reference.mdx) for every chart-owned setting and default.

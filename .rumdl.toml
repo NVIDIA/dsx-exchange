@@ -57,7 +57,7 @@ exclude = [
     "LICENSE.md",
 ]
 
-# Respect .gitignore files when scanning directories (default: true)
+# Respect .gitignore files when scanning directories (default: true, but including here as a reminder)
 respect_gitignore = true
 
 # Markdown flavor/dialect (uncomment to enable)
@@ -69,8 +69,15 @@ flavor = "mdx"
 
 # Disable specific rules for specific files
 [per-file-ignores]
-"**/snippets/**/*.mdx" = ["MD041"]  # Snippets don't need to start with an H1
-"docs/schema-*.mdx" = ["MD024", "MD026"]  # Can't eliminate duplicate headings and heading punctuation right now
+# Snippets don't need to start with an H1
+"**/snippets/**/*.mdx" = ["MD041"]
+# Can't eliminate duplicate headings or heading punctuation right
+# now (and sequential ordered list style makes sense in the YAML
+# specs)
+"docs/schema-*.mdx" = ["MD024", "MD026", "MD029"]
+# Sequential ordered list style also makes sense in the
+# Agents specs
+"**/AGENTS.md" = ["MD029"]
 
 # Rule-specific configurations
 
@@ -118,7 +125,7 @@ allow-with-separators = true    # Allow multiple H1s as document section titles 
 # - "ordered0": Zero-based sequential (0, 1, 2...)
 # - "one-or-ordered": Auto-detect per list (either all-ones OR sequential)
 # - "consistent": Document-wide consistency - uses most common style across all lists
-style = "one-or-ordered"
+style = "one-one"
 
 [MD041]
 # first-line-heading

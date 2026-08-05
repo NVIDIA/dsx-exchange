@@ -47,6 +47,9 @@ If you already have a DSX Event Bus and need to build or test an MQTT
 integration application, start with the
 [Integrator Quickstart](https://docs.nvidia.com/dsx-exchange/integrator-quickstart).
 
+To deploy or integrate with DSX Agent Gateway, start with the
+[DSX Agent Gateway overview](https://docs.nvidia.com/dsx-exchange/agent-gateway/overview).
+
 Publish looping dummy BMS data into the local CSC MQTT broker:
 
 ```bash
@@ -90,7 +93,7 @@ See [local/mqttbs/README.md](local/mqttbs/README.md) for smoke-sized options.
 DSX Exchange follows [Semantic Versioning](https://semver.org/) (`vX.Y.Z`), automated via semantic-release. A new version is published automatically when a semantic-release compliant commit is merged to `main`.
 
 | Commit prefix | Version bump | When to use |
-|---------------|-------------|-------------|
+|---------------|--------------|-------------|
 | `fix:` | Patch (Z) | Bug fixes, CVE remediation |
 | `feat:` | Minor (Y) | New features, backward-compatible changes |
 | `feat!:` or `BREAKING CHANGE:` | Major (X) | Breaking API, schema, or chart changes |

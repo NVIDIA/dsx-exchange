@@ -1,0 +1,164 @@
+---
+title: Configuration Reference
+position: 70
+last-updated: August 5, 2026
+---
+
+Use this reference to select the chart settings that DSX Agent Gateway owns. The checked-in [`values.yaml`](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/values.yaml) is the source of truth for all defaults. Settings under the `agentgateway` and `valkey` keys can also pass values to their pinned subcharts.
+
+## Chart Versions
+
+The chart pins these components.
+
+| Component | Version |
+| --------- | ------- |
+| DSX Agent Gateway chart | `0.3.0` |
+| Agentgateway chart and images | `v1.4.1` |
+| Valkey chart | `0.9.4` |
+| Valkey image | `9.0.2` |
+
+Install Gateway API `v1.5.1` and Agentgateway `v1.4.1` CRDs with this chart release.
+
+## Top-Level Settings
+
+The following groups control the DSX Agent Gateway deployment.
+
+| Setting | Default | Purpose |
+| ------- | ------- | ------- |
+| `runtimeClassName` | `""` | Selects a Kubernetes RuntimeClass for gateway, rate-limit, and bridge Pods. |
+| `agentgateway` | Enabled | Configures the bundled Agentgateway controller subchart. |
+| `gateway` | Three replicas | Configures the gateway dataplane and its Service. |
+| `auth` | No providers | Configures JWT verification and tenant authorization. |
+| `upstreams` | `{}` | Defines Kubernetes selector or static MCP targets. |
+| `upstreamRequestTimeout` | `5s` | Sets the default upstream response-header deadline. |
+| `rateLimit` | 30 requests per second | Configures per-tenant rate limiting. |
+| `valkey` | Enabled | Configures counter storage for the rate-limit service. |
+| `bridge` | Disabled | Configures optional cross-shard routing through the DSX Event Bus. |
+| `observability` | Metrics and tracing enabled | Configures metrics, alerts, and OpenTelemetry tracing. |
+
+## Gateway Dataplane
+
+`gateway.replicaCount` defaults to `3`. Use `gateway.resources`, `gateway.nodeSelector`, and `gateway.tolerations` to control Pod placement and resources.
+
+`gateway.service.type` accepts `ClusterIP` or `NodePort`. The default is `ClusterIP`. Set `gateway.service.nodePort` when you select `NodePort`. The chart does not support a `LoadBalancer` Service.
+
+The dataplane listens for plaintext HTTP on port `80`. Terminate external Transport Layer Security at an operator-owned edge.
+
+`gateway.ipv6.enabled` defaults to `true`. Set it to `false` to disable IPv6 in the dataplane.
+
+## Authentication
+
+`auth.jwt.providers` must contain at least one provider. Each map key must be a lowercase DNS label with no more than 56 characters.
+
+Each provider requires the following settings.
+
+| Setting | Requirement |
+| ------- | ----------- |
+| `issuer` | Must be unique across configured providers. |
+| `audiences` | Must contain at least one accepted token audience. |
+| `jwksUrl` | Must be a complete HTTP or HTTPS URL with a host and path. |
+| `tenantIdExpression` | Must derive a nonempty tenant ID from verified `jwt.*` claims. |
+
+The chart rejects a tenant expression that reads an unverified request header. The gateway accepts a token when its audience claim contains at least one configured audience.
+
+`auth.cel.operatorTenantId` is required. The value must exactly match a tenant ID produced by a provider expression. The operator tenant can access every configured MCP target.
+
+`auth.cel.unprivilegedTenantMCPs` lists the target names available to every other authenticated tenant. An unprivileged tenant cannot discover or invoke a target outside this list.
+
+## MCP Upstreams
+
+Each key under `upstreams` identifies one configured upstream entry. The chart reserves the `bridge` key for an enabled hub bridge.
+
+Use selector mode for Kubernetes Service discovery.
+
+```yaml
+upstreams:
+  inventory-selector:
+    namespace: inventory
+    serviceLabels:
+      app.kubernetes.io/name: inventory-mcp
+```
+
+A matching Service port must set `appProtocol: agentgateway.dev/mcp`. The discovered target name uses the Service name and named port, such as `inventory-mcp`.
+
+Use static mode for an MCP endpoint with a stable address.
+
+```yaml
+upstreams:
+  vendor-mcp:
+    mode: static
+    address: https://mcp.vendor.example/mcp
+    protocol: StreamableHTTP
+    requestTimeout: 10s
+```
+
+`protocol` accepts `StreamableHTTP` or `SSE` for a static upstream. It defaults to `StreamableHTTP`. An HTTPS address enables Transport Layer Security between the gateway and that upstream.
+
+`upstreamRequestTimeout` controls how long the gateway waits for upstream response headers. Streaming bodies can continue after this deadline. Set `upstreams.<name>.requestTimeout` to override the deadline for one upstream.
+
+Use `agentgateway.discoveryNamespaceSelectors` to restrict the namespaces watched by the bundled controller. Include the release namespace and every namespace used by a selector upstream.
+
+## Rate Limiting
+
+`rateLimit.tenantRequestsPerSecond` defaults to `30` and must be at least `1`. The gateway applies the limit independently to each derived tenant ID.
+
+Use `rateLimit.tenantOverrides` to grant a different limit or unlimited access.
+
+```yaml
+rateLimit:
+  tenantRequestsPerSecond: 30
+  tenantOverrides:
+    - tenant: oidc:operator
+      unlimited: true
+    - tenant: service:batch-runner
+      requestsPerSecond: 60
+```
+
+Each override must set exactly one of `unlimited: true` or `requestsPerSecond`. Duplicate tenant overrides are invalid.
+
+`rateLimit.failureMode` accepts `FailOpen` or `FailClosed`. The default `FailOpen` value serves requests when rate limiting fails. Tenant limits are not enforced during that failure.
+
+The bundled rate-limit service defaults to two replicas. Use its `resources`, `nodeSelector`, and `tolerations` settings for scheduling.
+
+## Valkey
+
+Valkey stores rate-limit counters. The bundled deployment uses one primary, two replicas, and `1Gi` of persistent storage for each Pod by default.
+
+Set `valkey.enabled: false` to use an external Valkey service. Configure `valkey.external` with either Kubernetes Service coordinates or an external host and port.
+
+```yaml
+valkey:
+  enabled: false
+  external:
+    serviceName: valkey
+    namespace: data
+    port: 6379
+```
+
+An external destination cannot mix Kubernetes Service coordinates with an external host.
+
+## Bridge
+
+Set `bridge.enabled: true` only when the deployment must route MCP traffic across DSX Event Bus shards. `bridge.role` accepts `hub` or `leaf`. The bridge defaults to two replicas when enabled.
+
+A hub runs behind the entry gateway and routes calls to remote shards. A leaf runs in front of one shard gateway. Each leaf requires a unique `bridge.shardId` that is one valid NATS subject token.
+
+Every bridge requires `bridge.nats.endpoint` and an explicit `bridge.nats.auth.mode`. Authentication mode accepts `noauth` or `oauth`. OAuth mode requires an issuer, scope, and client credentials Secret reference.
+
+Configure `bridge.nats.tls` when the NATS connection requires Transport Layer Security. A certificate authority Secret or server name also enables Transport Layer Security.
+
+`bridge.http.requestTimeout` defaults to `5m`. `bridge.http.writeTimeout` defaults to `30s`. These values bound hub request lifetime and response writes.
+
+## Observability
+
+`observability.metrics.enabled` defaults to `true`. The chart creates Prometheus Operator resources and chart-managed metric export when this value is enabled. The default scrape interval is `30s`, and the default scrape timeout is `10s`.
+
+`observability.tracing.enabled` defaults to `true`. Tracing requires the configured OpenTelemetry Operator `Instrumentation` and sidecar resources. The default sample ratio is `1.0`.
+
+Set both `observability.tracing.exporter.endpoint` and `observability.tracing.exporter.protocol` to override the injected exporter. The protocol accepts `grpc` or `http/protobuf`.
+
+`observability.alerts.enabled` defaults to `false`. When enabled, the chart creates rules for missing metrics, configuration synchronization failures, high HTTP error rates, high latency, and authorization failures.
+
+## Related Guides
+
+Use the [deployment guide](deployment.mdx) for a production installation workflow. Use the [operations guide](operations.mdx) to monitor and troubleshoot the configured deployment. Use [validated capabilities](validated-capabilities.mdx) to review behavior covered by repository tests.
