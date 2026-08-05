@@ -11,7 +11,7 @@ deploy:
   helm:
     releases:
     - name: metrics-server
-      chartPath: ../../../.cache/helm/metrics-server-3.13.0.tgz
+      chartPath: ../../../.cache/helm/metrics-server-3.13.1.tgz
       namespace: kube-system
       skipBuildDependencies: true
       setValues:

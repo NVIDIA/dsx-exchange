@@ -96,7 +96,7 @@ rateLimit:
   failureMode: FailOpen
   image:
     repository: envoyproxy/ratelimit
-    tag: master@sha256:35470363e917f88fde2c0dd816993a116681178af2feed0219c82745fb3db111
+    tag: master@sha256:f60ff931deb77c0db01d61bb24694b8916f5f286f2ebc57aecb23e736ea869fa
   replicaCount: 2
   resources: {}
   nodeSelector: {}
@@ -109,7 +109,7 @@ valkey:
     registry: docker.io
     repository: valkey/valkey
     pullPolicy: IfNotPresent
-    tag: "9.0.2"
+    tag: "9.1.1"
   replica:
     enabled: true
     persistence:

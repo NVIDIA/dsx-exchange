@@ -11,10 +11,14 @@ deploy:
   helm:
     releases:
     - name: metallb
-      chartPath: ../../../.cache/helm/metallb-0.15.2.tgz
+      chartPath: ../../../.cache/helm/metallb-0.16.1.tgz
       namespace: metallb-system
       createNamespace: true
       skipBuildDependencies: true
+      setValues:
+        # The local topology uses L2 advertisements only. MetalLB 0.16 enables
+        # the separate frr-k8s BGP backend by default unless explicitly disabled.
+        frrk8s.enabled: false
 ---
 apiVersion: skaffold/v4beta14
 kind: Config

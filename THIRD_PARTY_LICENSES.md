@@ -7,19 +7,19 @@ declared in the charts under `deploy/`. This file is maintained manually.
 Please update this file when adding or removing dependencies.
 
 
-nats v2.12.6
+nats v2.14.2
   Source: https://github.com/nats-io/k8s (helm/charts/nats)
   Repository: https://nats-io.github.io/k8s/helm/charts/
   License: Apache-2.0
   Copyright: The NATS Authors
 
-nack v0.33.2
+nack v0.34.0
   Source: https://github.com/nats-io/nack
   Repository: https://nats-io.github.io/k8s/helm/charts/
   License: Apache-2.0
   Copyright: The NATS Authors
 
-surveyor v0.20.7
+surveyor v0.20.9
   Source: https://github.com/nats-io/k8s (helm/charts/surveyor)
   Repository: https://nats-io.github.io/k8s/helm/charts/
   License: Apache-2.0
@@ -37,7 +37,7 @@ agentgateway v1.4.1
   License: Apache-2.0
   Copyright: The agentgateway Authors
 
-valkey v0.9.4
+valkey v0.11.0
   Source: https://github.com/valkey-io/valkey-helm
   Repository: https://valkey-io.github.io/valkey-helm
   License: BSD-3-Clause

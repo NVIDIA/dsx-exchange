@@ -16,7 +16,7 @@ deploy:
       - --timeout=5m
     releases:
     - name: opentelemetry-operator
-      chartPath: ../../../.cache/helm/opentelemetry-operator-0.119.0.tgz
+      chartPath: ../../../.cache/helm/opentelemetry-operator-0.120.1.tgz
       namespace: opentelemetry-operator-system
       createNamespace: true
       skipBuildDependencies: true
@@ -36,7 +36,7 @@ manifests:
   helm:
     releases:
     - name: otel-collector
-      chartPath: ../../../.cache/helm/opentelemetry-collector-0.164.1.tgz
+      chartPath: ../../../.cache/helm/opentelemetry-collector-0.166.0.tgz
       namespace: dsx-obs
       createNamespace: true
       skipBuildDependencies: true
