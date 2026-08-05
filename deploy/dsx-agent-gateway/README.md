@@ -6,7 +6,7 @@ The chart deploys Agentgateway for MCP ingress. It also packages
 optional `dsx-agentgateway-bridge` cross-shard routing through NATS, deployment
 defaults, rate limiting, and observability resources. By default it installs the
 pinned Agentgateway controller, a two-replica rate-limit service, and Valkey via
-chart 0.9.4 for rate-limit counters.
+chart 0.11.0 for rate-limit counters.
 
 ## Prerequisites
 
@@ -205,7 +205,7 @@ For agentgateway concepts, use the
 The pinned chart defaults are the source of truth for supported native settings.
 
 For native Valkey settings, see the
-[Valkey chart 0.9.4 documentation](https://github.com/valkey-io/valkey-helm/tree/valkey-0.9.4/valkey).
+[Valkey chart 0.11.0 documentation](https://github.com/valkey-io/valkey-helm/tree/valkey-0.11.0/valkey).
 
 ## Operations
 

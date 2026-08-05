@@ -11,7 +11,7 @@ deploy:
   helm:
     releases:
     - name: metallb
-      chartPath: ../../../.cache/helm/metallb-0.15.2.tgz
+      chartPath: ../../../.cache/helm/metallb-0.16.1.tgz
       namespace: metallb-system
       createNamespace: true
       skipBuildDependencies: true

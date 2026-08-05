@@ -9,7 +9,7 @@ manifests:
   helm:
     releases:
     - name: prometheus-operator-crds
-      chartPath: ../../../.cache/helm/prometheus-operator-crds-30.0.1.tgz
+      chartPath: ../../../.cache/helm/prometheus-operator-crds-31.0.0.tgz
       namespace: monitoring
       skipBuildDependencies: true
 deploy:
@@ -33,7 +33,7 @@ deploy:
   helm:
     releases:
     - name: prometheus
-      chartPath: ../../../.cache/helm/kube-prometheus-stack-86.1.0.tgz
+      chartPath: ../../../.cache/helm/kube-prometheus-stack-88.1.5.tgz
       namespace: monitoring
       createNamespace: true
       skipBuildDependencies: true

@@ -17,6 +17,6 @@ dependencies:
     repository: oci://cr.agentgateway.dev/charts
     condition: agentgateway.enabled
   - name: valkey
-    version: "0.9.4"
+    version: "0.11.0"
     repository: https://valkey-io.github.io/valkey-helm
     condition: valkey.enabled
