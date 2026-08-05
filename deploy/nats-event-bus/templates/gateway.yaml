@@ -6,7 +6,7 @@ Gateway API routes to expose NATS services through Envoy Gateway.
 Routes are created for MQTT, NATS client, leafnode, and mTLS MQTT endpoints.
 */}}
 {{- if .Values.global.eventBus.gateway.routes.mqtt.enabled }}
-apiVersion: gateway.networking.k8s.io/{{ ternary "v1" "v1alpha2" (eq .Values.global.eventBus.gateway.routes.mqtt.kind "TLSRoute") }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: {{ .Values.global.eventBus.gateway.routes.mqtt.kind }}
 metadata:
   name: nats-mqtt
@@ -29,7 +29,7 @@ spec:
 {{- end }}
 {{- if .Values.global.eventBus.gateway.routes.natsClient.enabled }}
 ---
-apiVersion: gateway.networking.k8s.io/{{ ternary "v1" "v1alpha2" (eq .Values.global.eventBus.gateway.routes.natsClient.kind "TLSRoute") }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: {{ .Values.global.eventBus.gateway.routes.natsClient.kind }}
 metadata:
   name: nats-client
@@ -52,7 +52,7 @@ spec:
 {{- end }}
 {{- if .Values.global.eventBus.gateway.routes.natsLeafnode.enabled }}
 ---
-apiVersion: gateway.networking.k8s.io/{{ ternary "v1" "v1alpha2" (eq .Values.global.eventBus.gateway.routes.natsLeafnode.kind "TLSRoute") }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: {{ .Values.global.eventBus.gateway.routes.natsLeafnode.kind }}
 metadata:
   name: nats-leafnode
@@ -75,7 +75,7 @@ spec:
 {{- end }}
 {{- if and .Values.global.eventBus.mtls.enabled .Values.global.eventBus.gateway.routes.mqttMtls.enabled }}
 ---
-apiVersion: gateway.networking.k8s.io/{{ ternary "v1" "v1alpha2" (eq .Values.global.eventBus.gateway.routes.mqttMtls.kind "TLSRoute") }}
+apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: {{ .Values.global.eventBus.gateway.routes.mqttMtls.kind }}
 metadata:
   name: nats-mqtt-mtls
