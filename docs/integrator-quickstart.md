@@ -97,10 +97,10 @@ are examples, not a required list:
 All SDKs follow the same basic flow:
 
 1. Load broker host, port, topic, and auth material from configuration.
-2. Create an MQTT 3.1.1 client with a stable client ID.
-3. Connect with the authentication mode assigned by the operator.
-4. Subscribe, publish, or both, using topics allowed by your permissions.
-5. Handle reconnects, publish acknowledgements, and application shutdown.
+1. Create an MQTT 3.1.1 client with a stable client ID.
+1. Connect with the authentication mode assigned by the operator.
+1. Subscribe, publish, or both, using topics allowed by your permissions.
+1. Handle reconnects, publish acknowledgements, and application shutdown.
 
 ## CLI Debug Smoke Test
 
