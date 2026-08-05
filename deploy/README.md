@@ -211,6 +211,12 @@ This umbrella chart bundles the following subcharts:
 # Update dependencies
 helm dependency update ./nats-event-bus
 
+# Existing installations only: update NACK CRDs before upgrading the release.
+# Helm installs files from a chart's crds/ directory but does not upgrade them.
+helm show crds nack \
+  --repo https://nats-io.github.io/k8s/helm/charts/ \
+  --version 0.34.0 | kubectl apply --server-side -f -
+
 # Install (dry-run first)
 helm install dsx ./nats-event-bus -n dsx --create-namespace --dry-run=client
 

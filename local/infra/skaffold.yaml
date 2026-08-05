@@ -6,9 +6,6 @@ kind: Config
 metadata:
   name: infra
 requires:
-- path: cert-manager/skaffold.yaml
-  configs:
-  - cert-manager
 - path: metrics-server/skaffold.yaml
   configs:
   - metrics-server

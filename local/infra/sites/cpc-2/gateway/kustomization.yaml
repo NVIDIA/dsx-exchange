@@ -13,5 +13,5 @@ patches:
       name: shared-gateway
     patch: |-
       - op: replace
-        path: /spec/provider/kubernetes/envoyService/annotations/metallb.universe.tf~1address-pool
+        path: /spec/provider/kubernetes/envoyService/annotations/metallb.io~1address-pool
         value: cpc-2-envoy-pool

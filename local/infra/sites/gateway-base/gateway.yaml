@@ -91,4 +91,4 @@ spec:
               memory: 256Mi
       envoyService:
         annotations:
-          metallb.universe.tf/address-pool: site-envoy-pool
+          metallb.io/address-pool: site-envoy-pool

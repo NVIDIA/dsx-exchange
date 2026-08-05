@@ -130,11 +130,6 @@ spec:
           port: 5556
 ```
 
-## cert-manager
-
-cert-manager provides automatic certificate management for TLS certificates.
-It is installed once per physical cluster.
-
 ## Metrics Server
 
 Kubernetes Metrics Server provides resource metrics (CPU/memory) for nodes and pods, enabling `kubectl top` commands and Horizontal Pod Autoscaling (HPA).
