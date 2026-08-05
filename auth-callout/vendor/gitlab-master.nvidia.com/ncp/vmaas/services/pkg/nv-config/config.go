@@ -648,6 +648,7 @@ func NewForTesting(defaultYAML string, providers []LibraryConfigProvider) (*Conf
 	return NewWithOptions(
 		WithDefaultYAML(defaultYAML),
 		WithProviders(providers...),
+		WithEnvPrefix("TESTING"),
 		WithStandardConfigFiles(), // Empty list - no external files for tests
 	)
 }

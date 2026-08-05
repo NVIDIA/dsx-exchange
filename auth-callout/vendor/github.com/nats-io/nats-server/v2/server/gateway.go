@@ -1,4 +1,4 @@
-// Copyright 2018-2024 The NATS Authors
+// Copyright 2018-2025 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -35,6 +35,7 @@ import (
 const (
 	defaultSolicitGatewaysDelay         = time.Second
 	defaultGatewayConnectDelay          = time.Second
+	defaultGatewayConnectMaxDelay       = 30 * time.Second
 	defaultGatewayReconnectDelay        = time.Second
 	defaultGatewayRecentSubExpiration   = 2 * time.Second
 	defaultGatewayMaxRUnsubBeforeSwitch = 1000
@@ -59,6 +60,7 @@ const (
 
 var (
 	gatewayConnectDelay          = defaultGatewayConnectDelay
+	gatewayConnectMaxDelay       = defaultGatewayConnectMaxDelay
 	gatewayReconnectDelay        = defaultGatewayReconnectDelay
 	gatewayMaxRUnsubBeforeSwitch = defaultGatewayMaxRUnsubBeforeSwitch
 	gatewaySolicitDelay          = int64(defaultSolicitGatewaysDelay)
@@ -424,38 +426,48 @@ func (s *Server) newGateway(opts *Options) error {
 func (g *srvGateway) updateRemotesTLSConfig(opts *Options) {
 	g.Lock()
 	defer g.Unlock()
-
-	for _, ro := range opts.Gateway.Gateways {
-		if ro.Name == g.name {
+	// Instead of going over opts.Gateway.Gateways, which would include only
+	// explicit remotes, we are going to go through g.remotes.
+	for name, cfg := range g.remotes {
+		if name == g.name {
 			continue
 		}
-		if cfg, ok := g.remotes[ro.Name]; ok {
-			cfg.Lock()
-			// If TLS config is in remote, use that one, otherwise,
-			// use the TLS config from the main block.
-			if ro.TLSConfig != nil {
-				cfg.TLSConfig = ro.TLSConfig.Clone()
-			} else if opts.Gateway.TLSConfig != nil {
-				cfg.TLSConfig = opts.Gateway.TLSConfig.Clone()
-			}
-
-			// Ensure that OCSP callbacks are always setup after a reload if needed.
-			mustStaple := opts.OCSPConfig != nil && opts.OCSPConfig.Mode == OCSPModeAlways
-			if mustStaple && opts.Gateway.TLSConfig != nil {
-				clientCB := opts.Gateway.TLSConfig.GetClientCertificate
-				verifyCB := opts.Gateway.TLSConfig.VerifyConnection
-				if mustStaple && cfg.TLSConfig != nil {
-					if clientCB != nil && cfg.TLSConfig.GetClientCertificate == nil {
-						cfg.TLSConfig.GetClientCertificate = clientCB
-					}
-					if verifyCB != nil && cfg.TLSConfig.VerifyConnection == nil {
-						cfg.TLSConfig.VerifyConnection = verifyCB
-					}
+		var ro *RemoteGatewayOpts
+		// We now need to go back and find the RemoteGatewayOpts but only if
+		// this remote is explicit (otherwise it won't be found).
+		if !cfg.isImplicit() {
+			for _, r := range opts.Gateway.Gateways {
+				if r.Name == name {
+					ro = r
+					break
 				}
 			}
-
-			cfg.Unlock()
 		}
+		cfg.Lock()
+		// If we have an `ro` (that means an explicitly defined remote gateway)
+		// and it has an explicit TLS config, use that one, otherwise (no explicit
+		// TLS config in the remote, or implicit remote), use the TLS config from
+		// the main block.
+		if ro != nil && ro.TLSConfig != nil {
+			cfg.TLSConfig = ro.TLSConfig.Clone()
+		} else if opts.Gateway.TLSConfig != nil {
+			cfg.TLSConfig = opts.Gateway.TLSConfig.Clone()
+		}
+		// Ensure that OCSP callbacks are always setup after a reload if needed.
+		mustStaple := opts.OCSPConfig != nil && opts.OCSPConfig.Mode == OCSPModeAlways
+		if mustStaple && opts.Gateway.TLSConfig != nil {
+			clientCB := opts.Gateway.TLSConfig.GetClientCertificate
+			verifyCB := opts.Gateway.TLSConfig.VerifyConnection
+			if mustStaple && cfg.TLSConfig != nil {
+				if clientCB != nil && cfg.TLSConfig.GetClientCertificate == nil {
+					cfg.TLSConfig.GetClientCertificate = clientCB
+				}
+				if verifyCB != nil && cfg.TLSConfig.VerifyConnection == nil {
+					cfg.TLSConfig.VerifyConnection = verifyCB
+				}
+			}
+		}
+		cfg.Unlock()
 	}
 }
 
@@ -693,10 +705,11 @@ func (s *Server) reconnectGateway(cfg *gatewayCfg) {
 // to the given Gateway. It will return once a connection has been created.
 func (s *Server) solicitGateway(cfg *gatewayCfg, firstConnect bool) {
 	var (
-		opts       = s.getOpts()
-		isImplicit = cfg.isImplicit()
-		attempts   int
-		typeStr    string
+		opts         = s.getOpts()
+		isImplicit   = cfg.isImplicit()
+		attemptDelay = gatewayConnectDelay
+		attempts     int
+		typeStr      string
 	)
 	if isImplicit {
 		typeStr = "implicit"
@@ -759,7 +772,14 @@ func (s *Server) solicitGateway(cfg *gatewayCfg, firstConnect bool) {
 		select {
 		case <-s.quitCh:
 			return
-		case <-time.After(gatewayConnectDelay):
+		case <-time.After(attemptDelay):
+			if opts.Gateway.ConnectBackoff {
+				// Use exponential backoff for connection attempts.
+				attemptDelay *= 2
+				if attemptDelay > gatewayConnectMaxDelay {
+					attemptDelay = gatewayConnectMaxDelay
+				}
+			}
 			continue
 		}
 	}
@@ -913,7 +933,7 @@ func (s *Server) createGateway(cfg *gatewayCfg, url *url.URL, conn net.Conn) {
 	if tlsRequired {
 		c.Debugf("TLS handshake complete")
 		cs := c.nc.(*tls.Conn).ConnectionState()
-		c.Debugf("TLS version %s, cipher suite %s", tlsVersion(cs.Version), tlsCipher(cs.CipherSuite))
+		c.Debugf("TLS version %s, cipher suite %s", tlsVersion(cs.Version), tls.CipherSuiteName(cs.CipherSuite))
 	}
 
 	// For outbound, we can't set the normal ping timer yet since the other
@@ -936,8 +956,9 @@ func (s *Server) createGateway(cfg *gatewayCfg, url *url.URL, conn net.Conn) {
 // Builds and sends the CONNECT protocol for a gateway.
 // Client lock held on entry.
 func (c *client) sendGatewayConnect(opts *Options) {
-	// FIXME: This can race with updateRemotesTLSConfig
+	c.gw.cfg.RLock()
 	tlsRequired := c.gw.cfg.TLSConfig != nil
+	c.gw.cfg.RUnlock()
 	url := c.gw.connectURL
 	c.gw.connectURL = nil
 	var user, pass string
@@ -1136,9 +1157,7 @@ func (c *client) processGatewayInfo(info *Info) {
 				// defensive code above that if we did not register this connection
 				// because we already have an outbound for this name, then
 				// close this connection (and make sure it does not try to reconnect)
-				c.mu.Lock()
-				c.flags.set(noReconnect)
-				c.mu.Unlock()
+				c.setNoReconnect()
 				c.closeConnection(WrongGateway)
 				return
 			}
@@ -1961,7 +1980,7 @@ func (c *client) processGatewayRUnsub(arg []byte) error {
 		return nil
 	} else {
 		// Plain sub, assume optimistic sends, create entry.
-		e = &outsie{ni: make(map[string]struct{}), sl: NewSublistWithCache()}
+		e = &outsie{ni: make(map[string]struct{}), sl: NewSublistForServer(c.srv)}
 		newe = true
 	}
 	// This is when a sub or queue sub is supposed to be in
@@ -2070,7 +2089,7 @@ func (c *client) processGatewayRSub(arg []byte) error {
 	} else if queue == nil {
 		return nil
 	} else {
-		e = &outsie{ni: make(map[string]struct{}), sl: NewSublistWithCache()}
+		e = &outsie{ni: make(map[string]struct{}), sl: NewSublistForServer(c.srv)}
 		newe = true
 		useSl = true
 	}
@@ -2541,12 +2560,10 @@ func (c *client) sendMsgToGateways(acc *Account, msg, subject, reply []byte, qgr
 		return false
 	}
 
+	// Copy off original pa in case it changes.
+	pa := c.pa
+
 	mt, _ := c.isMsgTraceEnabled()
-	if mt != nil {
-		pa := c.pa
-		msg = mt.setOriginAccountHeaderIfNeeded(c, acc, msg)
-		defer func() { c.pa = pa }()
-	}
 
 	var (
 		queuesa    = [512]byte{}
@@ -2559,6 +2576,7 @@ func (c *client) sendMsgToGateways(acc *Account, msg, subject, reply []byte, qgr
 		didDeliver bool
 		prodIsMQTT = c.isMqtt()
 		dlvMsgs    int64
+		dlvExtraSz int64
 	)
 
 	// Get a subscription from the pool
@@ -2656,8 +2674,11 @@ func (c *client) sendMsgToGateways(acc *Account, msg, subject, reply []byte, qgr
 			}
 		}
 
+		// Assume original message
+		dmsg := msg
 		if mt != nil {
-			msg = mt.setHopHeader(c, msg)
+			// If trace is enabled, we need to set the hop header per gateway.
+			dmsg = mt.setHopHeader(c, dmsg)
 		}
 
 		// Setup the message header.
@@ -2707,23 +2728,33 @@ func (c *client) sendMsgToGateways(acc *Account, msg, subject, reply []byte, qgr
 		sub.nm, sub.max = 0, 0
 		sub.client = gwc
 		sub.subject = subject
-		if c.deliverMsg(prodIsMQTT, sub, acc, subject, mreply, mh, msg, false) {
+		if c.deliverMsg(prodIsMQTT, sub, acc, subject, mreply, mh, dmsg, false) {
 			// We don't count internal deliveries so count only if sub.icb is nil
 			if sub.icb == nil {
 				dlvMsgs++
+				dlvExtraSz += int64(len(dmsg) - len(msg))
 			}
 			didDeliver = true
 		}
+
+		// If we set the header reset the origin pub args.
+		if mt != nil {
+			c.pa = pa
+		}
 	}
 	if dlvMsgs > 0 {
-		totalBytes := dlvMsgs * int64(len(msg))
+		totalBytes := dlvMsgs*int64(len(msg)) + dlvExtraSz
 		// For non MQTT producers, remove the CR_LF * number of messages
 		if !prodIsMQTT {
 			totalBytes -= dlvMsgs * int64(LEN_CR_LF)
 		}
 		if acc != nil {
-			atomic.AddInt64(&acc.outMsgs, dlvMsgs)
-			atomic.AddInt64(&acc.outBytes, totalBytes)
+			acc.stats.Lock()
+			acc.stats.outMsgs += dlvMsgs
+			acc.stats.outBytes += totalBytes
+			acc.stats.gw.outMsgs += dlvMsgs
+			acc.stats.gw.outBytes += totalBytes
+			acc.stats.Unlock()
 		}
 		atomic.AddInt64(&srv.outMsgs, dlvMsgs)
 		atomic.AddInt64(&srv.outBytes, totalBytes)
@@ -2911,6 +2942,16 @@ func getSubjectFromGWRoutedReply(reply []byte, isOldPrefix bool) []byte {
 	return reply[gwSubjectOffset:]
 }
 
+// Returns the subject embedded in the given routed
+// reply subject and whether the prefix was stripped.
+// If the subject is not routed, returns it unchanged.
+func getGWRoutedSubjectOrSelf(subject []byte) ([]byte, bool) {
+	if isGWPrefix, oldPrefix := isGWRoutedSubjectAndIsOldPrefix(subject); isGWPrefix {
+		return getSubjectFromGWRoutedReply(subject, oldPrefix), true
+	}
+	return subject, false
+}
+
 // This should be invoked only from processInboundGatewayMsg() or
 // processInboundRoutedMsg() and is checking if the subject
 // (c.pa.subject) has the _GR_ prefix. If so, this is processed
@@ -3067,7 +3108,8 @@ func (c *client) processInboundGatewayMsg(msg []byte) {
 	// Update statistics
 	c.in.msgs++
 	// The msg includes the CR_LF, so pull back out for accounting.
-	c.in.bytes += int32(len(msg) - LEN_CR_LF)
+	size := len(msg) - LEN_CR_LF
+	c.in.bytes += int32(size)
 
 	if c.opts.Verbose {
 		c.sendOK()
@@ -3091,6 +3133,13 @@ func (c *client) processInboundGatewayMsg(msg []byte) {
 		c.srv.gatewayHandleAccountNoInterest(c, c.pa.account)
 		return
 	}
+
+	acc.stats.Lock()
+	acc.stats.inMsgs++
+	acc.stats.inBytes += int64(size)
+	acc.stats.gw.inMsgs++
+	acc.stats.gw.inBytes += int64(size)
+	acc.stats.Unlock()
 
 	// Check if this is a service reply subject (_R_)
 	noInterest := len(r.psubs) == 0
@@ -3152,7 +3201,7 @@ func (c *client) gatewayAllSubsReceiveStart(info *Info) {
 		e.mode = Transitioning
 		e.Unlock()
 	} else {
-		e := &outsie{sl: NewSublistWithCache()}
+		e := &outsie{sl: NewSublistForServer(c.srv)}
 		e.mode = Transitioning
 		c.mu.Lock()
 		c.gw.outsim.Store(account, e)
