@@ -606,6 +606,7 @@ func TestHubStopsRetryingStreamReadWhenRequestCancels(t *testing.T) {
 		streamSubject: {err: nats.ErrTimeout},
 	})
 	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 	req := httptest.NewRequest(http.MethodPost, "http://bridge/mcp", nil).WithContext(ctx)
 	done := make(chan error, 1)
 
