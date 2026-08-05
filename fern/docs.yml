@@ -7,7 +7,6 @@ global-theme: nvidia
 
 instances:
   - url: nvidia-dsx-exchange.docs.buildwithfern.com/dsx-exchange
-    # uncomment when production domain is ready
     custom-domain: docs.nvidia.com/dsx-exchange
     multi-source: true
 
@@ -16,10 +15,6 @@ title: DSX Exchange
 announcement:
   message: "🔔 DSX Exchange is a <strong>developer preview</strong>. APIs and behavior may change without notice."
 
-#==============================================================================
-# Content navigation from here down
-#==============================================================================
-
 check:
   rules:
     broken-links: error
@@ -27,19 +22,15 @@ check:
 settings:
   folder-title-source: frontmatter
 
-layout:
-  searchbar-placement: header
-  page-width: 1376px
-  sidebar-width: 248px
-  content-width: 812px
-  tabs-placement: header
-  hide-feedback: true
+#==============================================================================
+# Content navigation from here down
+#==============================================================================
 
 navigation:
-  - section: DSX Exchange
+  - section: DSX Event Bus
     skip-slug: true
     contents:
-      - page: Architecture
+      - page: Event Bus Architecture
         path: ../docs/architecture.md
         slug: architecture
       - page: Stateless Async Bus
@@ -66,6 +57,10 @@ navigation:
       - page: Validated Capabilities
         path: ../docs/testing.md
         slug: validated-capabilities
+  - folder: ../docs/agent-gateway
+    title: DSX Agent Gateway
+    slug: agent-gateway
+    title-source: frontmatter
   - section: Schema
     contents:
       - section: BMS Event Bus

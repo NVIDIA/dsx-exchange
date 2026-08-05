@@ -1,0 +1,67 @@
+---
+title: DSX Agent Gateway Overview
+sidebar-title: Overview
+position: 10
+last-updated: August 5, 2026
+---
+
+DSX Agent Gateway provides authenticated, tenant-aware ingress for Model Context Protocol (MCP) traffic. It gives MCP clients one `/mcp` endpoint for discovering and invoking approved MCP servers.
+
+The product combines the Agentgateway dataplane with DSX-managed authentication, authorization, rate limiting, deployment defaults, and observability resources. An optional bridge routes selected requests to gateway shards through the DSX Event Bus.
+
+## When to Use DSX Agent Gateway
+
+Use DSX Agent Gateway when you need to do one or more of the following tasks:
+
+- Provide one protected MCP endpoint for multiple MCP servers.
+- Derive tenant identity from verified JSON Web Token (JWT) claims.
+- Limit each tenant to an approved set of MCP targets.
+- Apply per-tenant request limits before traffic reaches MCP servers.
+- Discover MCP servers from Kubernetes Services or configure static HTTP endpoints.
+- Route selected MCP requests to gateway shards in other clusters.
+- Monitor the gateway, rate-limit service, bridge, and bundled dependencies.
+
+DSX Agent Gateway does not replace authorization inside an MCP server. The gateway forwards the caller's bearer token to the selected server so that the server can enforce its own policy.
+
+## Who Uses DSX Agent Gateway
+
+The documentation supports the following audiences:
+
+| Audience | Primary Tasks |
+| -------- | ------------- |
+| MCP client developer | Connect a client, initialize MCP, discover capabilities, and invoke an approved tool or prompt. |
+| MCP server developer | Publish a server through Kubernetes discovery or a static upstream definition. |
+| Platform operator | Deploy the chart, configure identity and tenant policy, connect an optional bridge, and operate the service. |
+
+## How Requests Reach MCP Servers
+
+For a direct request, the gateway verifies the caller's JWT and derives a tenant ID from verified claims. It applies tenant authorization and rate limiting before it routes the request to an allowed MCP target.
+
+The gateway supports two target types:
+
+- A selector target discovers Kubernetes Service ports marked with `appProtocol: agentgateway.dev/mcp`.
+- A static target connects to a configured HTTP or HTTPS MCP endpoint.
+
+The optional bridge adds cross-shard routing. An entry gateway routes to a bridge hub, and bridge leaves forward requests through the gateway in each selected shard. The bridge uses NATS request-reply traffic provided by the DSX Event Bus.
+
+The [architecture guide](architecture.mdx) explains both request paths and their session behavior.
+
+## Relationship to DSX Exchange
+
+DSX Exchange is the documentation and product umbrella for the DSX Event Bus, AsyncAPI schemas, and DSX Agent Gateway. You can deploy DSX Agent Gateway without the DSX Event Bus when all MCP targets are reachable directly.
+
+The DSX Event Bus becomes a runtime dependency when you enable the Agent Gateway bridge. The bridge uses NATS to discover reachable gateway shards and to route MCP request-reply traffic between its hub and leaves. The AsyncAPI schemas describe DSX Event Bus message contracts, not MCP methods.
+
+## Documentation Map
+
+Use the following guides for your task:
+
+| Guide | Use It to |
+| ----- | --------- |
+| [Architecture](architecture.mdx) | Understand components, request processing, direct routing, bridge routing, and state boundaries. |
+| [Client Quickstart](client-quickstart.mdx) | Authenticate an MCP client, initialize a connection, and make a request. |
+| [Publish an MCP Server](publish-mcp-server.mdx) | Register a Kubernetes Service or configure a static MCP target. |
+| [Deployment](deployment.mdx) | Install the chart and configure identity, tenant access, rate limiting, and optional bridge roles. |
+| [Operations](operations.mdx) | Monitor components, diagnose failures, and manage upgrades or outages. |
+| [Configuration Reference](configuration-reference.mdx) | Find chart settings, defaults, limits, and security responsibilities. |
+| [Validated Capabilities](validated-capabilities.mdx) | Check tested MCP methods and deployment-profile behavior. |
