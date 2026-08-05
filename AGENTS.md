@@ -69,7 +69,7 @@ namespaces. Leave the local stack deployed when the user asks to inspect it.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this via commitlint.
 
-```
+```text
 type(scope): short description
 ```
 
@@ -126,6 +126,50 @@ made it stale.
 - Schema pages are generated from AsyncAPI specs — see `scripts/generate_asyncapi_docs.py`.
 - CI runs `fern check`, `tools/check-docs-mdx`, and offline link checking.
 - Do not upgrade the Fern CLI version without explicit instruction.
+
+## Documentation
+
+- Treat `docs/` as the source of truth for published user documentation and
+  follow `docs/AGENTS.md` for every documentation change.
+- Follow `WRITING.md` for changed prose in code comments, tests, pull request
+  content, contributor guidance, agent guidance, and user documentation.
+- Before completing a code change, determine whether it changes a user-visible
+  API, configuration option, deployment workflow, default, error, operational
+  procedure, or supported behavior.
+- Document user-visible changes in the same change. Give the DSX Event Bus,
+  AsyncAPI schemas, and DSX Agent Gateway distinct coverage while keeping
+  shared DSX Exchange concepts in one canonical location.
+- Verify documentation claims against checked-in source, tests, Helm charts,
+  example values, or scripts. Existing documentation, issues, and pull
+  requests can explain intent, but they are not behavior authority.
+- When the host supports subagents and its active instructions permit
+  delegation, a documentation subagent can update the affected pages while the
+  primary agent completes the implementation. Give it the changed sources,
+  user-visible impact, and required validation, then reconcile its changes and
+  evidence before handoff.
+- If delegation is unavailable or not permitted, complete the documentation
+  work in the primary task. Do not omit required documentation because a
+  documentation subagent is unavailable.
+
+### NVIDIA DORI Routing
+
+Select the documentation workflow from the capabilities exposed by the current
+host. DORI unavailability must not block documentation work.
+
+1. Check whether the current agent exposes `dori_handle` or `dori_route` and
+   `dori_collections`. If the user explicitly asks not to use DORI, follow the
+   [Writing Style Guide](docs/AGENTS.md#writing-style-guide) instead.
+2. When those tools are available, list the installed collections. Use DORI
+   for task routing only when a collection source contains
+   `tech-docs/skill-library`.
+3. If the verified collection is missing, inaccessible, or fails, continue
+   with the Writing Style Guide in `docs/AGENTS.md`.
+4. When DORI tools are unavailable, do not inspect a shell-visible CLI,
+   install software, configure the host, or ask the user to classify
+   themselves. Continue with the Writing Style Guide.
+
+Capability detection does not authorize installation or host configuration.
+Only install or configure DORI when the user explicitly requests it.
 
 ## CI
 
