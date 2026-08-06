@@ -4,7 +4,7 @@ position: 70
 last-updated: August 5, 2026
 ---
 
-Use this reference for settings owned by the DSX Agent Gateway chart. The checked-in [`values.yaml`](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/values.yaml) contains the exhaustive setting list and current defaults. Settings under `agentgateway` and `valkey` can also pass values to their pinned subcharts.
+Use this reference for settings owned by the DSX Agent Gateway chart. The checked-in [`values.yaml`](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/values.yaml) contains the exhaustive setting list and current defaults. Settings under `agentgateway` and `valkey` can also pass through values to their pinned subcharts.
 
 ## Gateway
 
@@ -100,7 +100,7 @@ The following settings enable chart-managed observability integrations:
 | `observability.tracing.sampleRatio` | Sets the trace sampling ratio from `0.0` through `1.0`. |
 | `observability.alerts.enabled` | Enables chart-provided Prometheus alert rules. |
 
-The bundled Agentgateway controller and Valkey do not have chart-supported tracing integrations. The Valkey subchart controls its own metrics exporter and monitor.
+The bundled Agent Gateway controller and Valkey do not have chart-supported tracing integrations. The Valkey subchart controls its own metrics exporter and monitor.
 
 ## Related Guides
 

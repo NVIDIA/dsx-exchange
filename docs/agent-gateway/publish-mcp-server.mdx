@@ -8,7 +8,7 @@ Use this guide to make a Model Context Protocol (MCP) server available through D
 
 ## Understand the Request Path
 
-DSX Agent Gateway authenticates the caller, derives a tenant ID, and checks access to the selected MCP target. The gateway then forwards the original bearer token to the selected server.
+Agent Gateway authenticates the caller, derives a tenant ID, and checks access to the selected MCP target. The gateway then forwards the original bearer token to the selected server.
 
 Your MCP server remains responsible for authorizing the caller within its domain. Do not use caller-supplied tenant headers as an authenticated identity.
 
@@ -49,7 +49,7 @@ The Service selector must identify the Pods that serve `/mcp` on the named targe
 
 ## Configure Service Discovery
 
-Add a selector entry under `upstreams` in the DSX Agent Gateway values. The `serviceLabels` map matches labels on the Service, not labels only on its Pods.
+Add a selector entry under `upstreams` in the Agent Gateway values. The `serviceLabels` map matches labels on the Service, not labels only on its Pods.
 
 ```yaml
 upstreams:
@@ -61,7 +61,7 @@ upstreams:
 
 The upstream entry name identifies the selector configuration. The discovered MCP target name is `<service-name>-<port-name>`. The example Service creates the target `inventory-mcp`.
 
-The bundled Agentgateway controller watches all namespaces by default. If the deployment restricts discovery with `agentgateway.discoveryNamespaceSelectors`, include the MCP server namespace.
+The bundled Agent Gateway controller watches all namespaces by default. If the deployment restricts discovery with `agentgateway.discoveryNamespaceSelectors`, include the MCP server namespace.
 
 The gateway skips an unavailable target when it builds a combined catalog, so healthy targets remain available. Use the [operations guide](operations.mdx) to monitor discovery and programming status.
 
@@ -129,7 +129,7 @@ Choose stable, lowercase, hyphenated Service, port, and static target names. Cha
 
 ## Apply the Configuration
 
-Apply the Service and workload before you update the gateway release.
+For a selector upstream, apply the MCP server workload and Service before you update the gateway release.
 
 ```bash
 kubectl apply --filename inventory-mcp.yaml

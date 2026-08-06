@@ -7,21 +7,21 @@ last-updated: August 5, 2026
 
 DSX Agent Gateway provides one authenticated, tenant-aware `/mcp` endpoint for discovering and invoking approved Model Context Protocol (MCP) servers. For component and request-flow details, refer to the [architecture](architecture.mdx).
 
-## When to Use DSX Agent Gateway
+## When to Use Agent Gateway
 
-Use DSX Agent Gateway when you need to do one or more of the following tasks:
+Use Agent Gateway to:
 
 - Provide one protected MCP endpoint for multiple MCP servers.
 - Derive tenant identity from verified JSON Web Token (JWT) claims.
 - Limit each tenant to an approved set of MCP targets.
 - Apply per-tenant request limits before traffic reaches MCP servers.
 - Discover MCP servers from Kubernetes Services or configure static HTTP endpoints.
-- Route selected MCP requests to gateway shards in other clusters.
+- Route selected MCP requests to remote gateway shards.
 - Monitor the gateway, rate-limit service, bridge, and bundled dependencies.
 
-DSX Agent Gateway does not replace authorization inside an MCP server. The gateway forwards the caller's bearer token to the selected server so that the server can enforce its own policy.
+Agent Gateway does not replace authorization inside an MCP server. The gateway forwards the caller's bearer token to the selected server so that the server can enforce its own policy.
 
-## Who Uses DSX Agent Gateway
+## Who Uses Agent Gateway
 
 The documentation supports the following audiences:
 
@@ -40,15 +40,15 @@ The gateway supports two target types:
 - A selector target discovers Kubernetes Service ports marked with `appProtocol: agentgateway.dev/mcp`.
 - A static target connects to a configured HTTP or HTTPS MCP endpoint.
 
-The optional bridge adds cross-shard routing. A shard is a deployment domain with its own DSX Agent Gateway and MCP servers, typically a Kubernetes cluster or logical site. An entry gateway routes to a bridge hub, and bridge leaves forward requests through the gateway in each selected shard. The bridge uses NATS request-reply traffic provided by the DSX Event Bus.
+The optional bridge adds cross-shard routing. A shard is a deployment domain with its own Agent Gateway and MCP servers, typically a Kubernetes cluster or logical site. An entry gateway routes to a bridge hub, and bridge leaves forward requests through the gateway in each selected shard. The bridge uses NATS request-reply traffic provided by the DSX Event Bus.
 
 The [architecture guide](architecture.mdx) explains both request paths and their session behavior.
 
 ## Relationship to DSX Exchange
 
-DSX Exchange is the documentation and product umbrella for the DSX Event Bus, AsyncAPI schemas, and DSX Agent Gateway. You can deploy DSX Agent Gateway without the DSX Event Bus when all MCP targets are reachable directly.
+DSX Exchange includes the DSX Event Bus, AsyncAPI schemas, and Agent Gateway. You can deploy Agent Gateway without the DSX Event Bus when the gateway can reach every MCP target.
 
-The DSX Event Bus becomes a runtime dependency when you enable the Agent Gateway bridge. The bridge uses NATS to discover reachable gateway shards and to route MCP request-reply traffic between its hub and leaves. The AsyncAPI schemas describe DSX Event Bus message contracts, not MCP methods.
+The DSX Event Bus becomes a runtime dependency when you enable the Agent Gateway bridge. The bridge uses NATS to discover reachable gateway shards and route MCP request-reply traffic between its hub and leaves. The AsyncAPI schemas describe DSX Event Bus message contracts, not MCP methods.
 
 ## Documentation Map
 

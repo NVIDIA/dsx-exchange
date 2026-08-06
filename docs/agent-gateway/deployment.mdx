@@ -26,7 +26,7 @@ Prepare the following software and cluster resources:
 - A Kubernetes cluster that can run the required workloads.
 - Helm and `kubectl` configured for the target cluster.
 - Kubernetes Gateway API `v1.5.1` custom resource definitions (CRDs).
-- Agentgateway `v1.4.1` CRDs.
+- Agent Gateway `v1.4.1` CRDs.
 - A reachable JSON Web Key Set endpoint for each JSON Web Token provider.
 - Each MCP Service or static MCP endpoint that the gateway must expose.
 - An external edge that can route HTTPS requests to the gateway Service.
@@ -43,7 +43,7 @@ kubectl apply --server-side --force-conflicts \
   -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
 ```
 
-Install the pinned Agentgateway CRDs:
+Install the pinned Agent Gateway CRDs:
 
 ```bash
 helm upgrade --install agentgateway-crds \
@@ -106,7 +106,7 @@ helm repo add valkey https://valkey-io.github.io/valkey-helm --force-update
 helm dependency build deploy/dsx-agent-gateway
 ```
 
-Install DSX Agent Gateway:
+Install Agent Gateway:
 
 ```bash
 helm install dsx-agent-gateway deploy/dsx-agent-gateway \
@@ -121,7 +121,7 @@ Apply later chart or values changes with `helm upgrade` and the same release nam
 
 ## Configure External Access
 
-Route the external `/mcp` path to port `80` on the release-named gateway Service. A cross-namespace Kubernetes Gateway API `HTTPRoute` also requires a `ReferenceGrant` in the DSX Agent Gateway namespace.
+Route the external `/mcp` path to port `80` on the release-named gateway Service. A cross-namespace Kubernetes Gateway API `HTTPRoute` also requires a `ReferenceGrant` in the Agent Gateway namespace.
 
 The checked-in [Envoy Gateway edge example](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/examples/envoy-edge-route.yaml) demonstrates this HTTP relationship. Adapt its GatewayClass, hostnames, namespaces, and TLS policy to your platform.
 
@@ -137,7 +137,7 @@ kubectl wait \
   --timeout=5m
 ```
 
-Wait for the Agentgateway controller to program the Gateway:
+Wait for the Agent Gateway controller to program the Gateway:
 
 ```bash
 kubectl wait \

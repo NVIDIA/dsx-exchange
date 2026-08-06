@@ -5,7 +5,7 @@ position: 60
 last-updated: August 5, 2026
 ---
 
-Monitor the Gateway, dataplane Pods, rate-limit path, upstreams, and optional bridge as one request path. The [deployment guide](deployment.mdx) contains the installation and configuration procedures.
+Monitor DSX Agent Gateway as one request path that includes the Kubernetes Gateway, dataplane Pods, rate-limit path, upstreams, and optional bridge. The [deployment guide](deployment.mdx) contains the installation and configuration procedures.
 
 ## Check Gateway Status
 
@@ -59,7 +59,7 @@ Change replica counts through Helm values so later releases preserve the intende
 
 | Component | Default Scale | Value |
 | --------- | ------------- | ----- |
-| DSX Agent Gateway dataplane | 3 replicas | `gateway.replicaCount` |
+| Agent Gateway dataplane | 3 replicas | `gateway.replicaCount` |
 | Rate-limit service | 2 replicas | `rateLimit.replicaCount` |
 | Enabled bridge | 2 replicas | `bridge.replicaCount` |
 | Bundled Agent Gateway controller | 1 replica | Native Agent Gateway chart values |
@@ -69,9 +69,9 @@ Set resource requests, limits, node selectors, and tolerations for each chart-ma
 
 `runtimeClassName` applies to gateway, rate-limit, and bridge Pods.
 
-## Observe DSX Agent Gateway
+## Observe Agent Gateway
 
-DSX Agent Gateway can expose Prometheus metrics for the dataplane, Agent Gateway controller, rate-limit service, bridge, and bundled Valkey. It can also export OpenTelemetry traces for the dataplane, rate-limit service, and bridge. Refer to the [configuration reference](configuration-reference.mdx) to connect these integrations to your observability platform.
+Agent Gateway can expose Prometheus metrics for the dataplane, controller, rate-limit service, bridge, and bundled Valkey. It can also export OpenTelemetry traces for the dataplane, rate-limit service, and bridge. Refer to the [configuration reference](configuration-reference.mdx) to connect these integrations to your observability platform.
 
 After enabling metrics, confirm that your Prometheus installation discovers the monitor resources in the release namespace:
 
@@ -111,7 +111,7 @@ kubectl get prometheusrule --namespace dsx-agent-gateway
 
 The bundled rules report these conditions:
 
-- No DSX Agent Gateway dataplane metrics for 10 minutes.
+- No Agent Gateway dataplane metrics for 10 minutes.
 - No bundled controller metrics for 10 minutes.
 - Unsynchronized Agent Gateway configuration for 5 minutes.
 - A 5xx response rate above 5 percent for 10 minutes when request traffic is present.
@@ -122,7 +122,7 @@ To investigate a request with distributed tracing, search your trace backend by 
 
 ## Inspect Logs
 
-Every chart-deployed container writes logs to standard output or standard error. The DSX Agent Gateway dataplane and Agent Gateway controller use their native structured logs. The rate-limit service and bridge use JSON logs. Use component labels to select logs:
+Every chart-deployed container writes logs to standard output or standard error. The Agent Gateway dataplane and controller use their native structured logs. The rate-limit service and bridge use JSON logs. Use component labels to select logs:
 
 ```bash
 kubectl logs \
@@ -147,7 +147,14 @@ Add `--prefix` when several Pods match one selector. Do not copy bearer tokens o
 
 The chart defaults `rateLimit.failureMode` to `FailOpen`. This mode serves requests without tenant limit enforcement when the rate-limit path fails.
 
-`FailClosed` rejects requests when that path fails. The chart limits each remote rate-limit request to 2 seconds so the selected failure mode can take effect. The MCP backend also uses `FailOpen` discovery behavior. An unavailable MCP target is omitted while healthy targets remain available. The gateway applies a `5s` default deadline to upstream response headers. A target-specific `requestTimeout` overrides that value. Streaming response bodies can continue after the response-header deadline. The bridge stops reporting ready when its required NATS connection is unavailable. The hub also requires a completed shard-discovery cache before it reports ready. Do not assume a specific JWKS outage result from chart configuration alone. Inspect authentication results, controller status, and identity-provider health together.
+The following defaults determine how the request path responds to dependency failures:
+
+| Failure | Default Behavior | Operational Detail |
+| ------- | ---------------- | ------------------ |
+| Rate-limit service or Valkey unavailable | `FailOpen` serves requests without tenant limit enforcement. | `FailClosed` rejects requests instead. Each remote rate-limit request has a limit of 2 seconds so the selected mode can take effect. |
+| MCP target unavailable | `FailOpen` discovery omits the target while healthy targets remain available. | The gateway waits `5s` for upstream response headers unless the target has a `requestTimeout` override. A streaming response body can continue after this deadline. |
+| Bridge NATS connection unavailable | The bridge stops reporting ready. | The hub also requires a completed shard-discovery cache before it reports ready. |
+| JWKS endpoint unavailable | Chart configuration does not define one outage result. | Inspect authentication results, controller status, and identity-provider health together. |
 
 ## Troubleshoot Gateway Programming
 

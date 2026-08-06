@@ -5,7 +5,7 @@ position: 20
 last-updated: August 5, 2026
 ---
 
-DSX Agent Gateway provides one policy enforcement and routing layer between MCP clients and MCP servers. The standard request path routes directly to targets that one gateway can reach. The optional bridge extends selected requests to gateway shards through the DSX Event Bus.
+DSX Agent Gateway provides a policy enforcement and routing layer between MCP clients and MCP servers. Without bridge routing, the gateway sends requests to targets that it can reach. The optional bridge extends selected requests to remote gateway shards through the DSX Event Bus.
 
 ## Components
 
@@ -50,7 +50,7 @@ The gateway processes a direct request as follows:
 1. The rate-limit service uses the tenant ID to select the tenant's request budget.
 1. MCP authorization permits the operator tenant to use all targets.
 1. MCP authorization limits every other tenant to configured target names.
-1. Agent Gateway selects the target and forwards the caller's original bearer token.
+1. The Agent Gateway dataplane selects the target and forwards the caller's original bearer token.
 1. The MCP server applies any server-specific authorization and processes the request.
 
 The chart rejects a tenant expression that reads request headers or does not reference verified `jwt.*` claims. Caller-supplied identity headers therefore do not define the tenant used for authorization or rate limiting.
@@ -97,9 +97,9 @@ The hub maintains a cache of reachable shard IDs. Clients can call the bridge-pr
 
 For bridge-provided tool and prompt entries, the hub adds a required `shard_id` input. The hub removes that value before it publishes the invocation to the selected shard subject. One leaf replica in that shard receives the request and forwards it through the local gateway.
 
-The local gateway repeats JWT verification, tenant derivation, authorization, and rate limiting for the forwarded request. The bridge preserves the caller's `Authorization` header across this path.
+The Agent Gateway deployment in the selected shard repeats JWT verification, tenant derivation, authorization, and rate limiting for the forwarded request. The bridge preserves the caller's `Authorization` header across this path.
 
-The bridge supports JSON responses and streamed server-sent events (SSE) for routed invocations. The [supported capabilities](supported-capabilities.mdx) page identifies methods that the stateless bridge does not support.
+The bridge supports JSON responses and streamed Server-Sent Events (SSE) for routed invocations. The [supported capabilities](supported-capabilities.mdx) page identifies methods that the stateless bridge does not support.
 
 ## Sessions and State
 

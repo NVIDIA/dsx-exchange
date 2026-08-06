@@ -8,13 +8,13 @@ DSX Agent Gateway supports authenticated Model Context Protocol (MCP) discovery 
 
 ## Supported Request Paths
 
-Use direct routing for MCP servers that the gateway can reach through Kubernetes Service discovery or a static HTTP endpoint. Direct routing supports sessionful Streamable HTTP requests and stateless requests accepted by the pinned Agentgateway release.
+Use direct routing for MCP servers that the gateway can reach through Kubernetes Service discovery or a static HTTP endpoint. Direct routing supports sessionful and stateless Streamable HTTP requests.
 
 Use bridge routing when an entry gateway must reach MCP servers through gateways in remote shards. The bridge provides a stateless subset of MCP because it does not extend the caller's session into a remote shard.
 
 ## MCP Method Support
 
-The following table defines the supported DSX Agent Gateway method profile. Methods outside this table are not part of the documented support profile.
+The following table defines the supported Agent Gateway method profile. Methods outside this table are not part of the documented support profile.
 
 | Capability | Direct target | Bridge target |
 | ---------- | ------------- | ------------- |
@@ -30,9 +30,9 @@ The following table defines the supported DSX Agent Gateway method profile. Meth
 | `resources/templates/list` | Supported when an authorized direct target advertises resource templates. | Not supported. |
 | `resources/read` | Supported for a target-qualified direct resource URI. | Not supported. |
 | Resource `completion/complete` | Not included in the supported multiplexed-resource profile. | Not supported. |
-| Stateful resource methods | Not included in the supported DSX Agent Gateway profile. | Not supported. |
+| Stateful resource methods | Not included in the supported Agent Gateway profile. | Not supported. |
 
-Direct resource catalogs remain available when another configured target does not support resources. The gateway omits the unsupported target instead of failing the complete catalog request.
+Direct resource catalogs remain available when another configured target does not support resources. The gateway omits the unsupported target instead of failing the entire catalog request.
 
 ## Catalog and Target Behavior
 

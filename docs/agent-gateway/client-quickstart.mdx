@@ -7,7 +7,7 @@ last-updated: August 5, 2026
 
 Use this guide to open a Model Context Protocol (MCP) session, discover tools, and call one tool through DSX Agent Gateway. The gateway uses the Streamable HTTP transport at `/mcp`.
 
-For application code, use an MCP client library that supports Streamable HTTP. Choose the MCP Inspector workflow for interactive testing or the manual protocol workflow for connectivity tests and troubleshooting.
+For application code, use an MCP client library that supports Streamable HTTP. Use MCP Inspector for interactive requests, or use the manual protocol workflow to inspect HTTP headers, session IDs, and response bodies.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Obtain the following values from the gateway operator:
 
 ## Try it Out
 
-The following examples use the MCP Inspector to interactively try out the gateway. You can either use the MCP Inspector (fastest), or the manual protocol workflow (slower, but more verbose and detailed).
+Start with MCP Inspector for an interactive workflow. Use manual protocol verification when you need to inspect the transport exchange.
 
 <Tabs>
 
