@@ -5,18 +5,19 @@ position: 50
 last-updated: August 5, 2026
 ---
 
-Use the DSX Agent Gateway Helm chart to deploy Model Context Protocol (MCP) ingress on Kubernetes. The chart installs the Agentgateway dataplane configuration, tenant rate limiting, Valkey, and optional cross-site bridge components.
+Use the DSX Agent Gateway Helm chart to deploy Model Context Protocol (MCP) ingress on Kubernetes. This workflow installs a direct-routing deployment that you can extend with an optional bridge.
 
 ## Plan the Deployment
 
-The chart creates a plaintext HTTP listener on port `80`. The default dataplane Service type is `ClusterIP`.
-
-`NodePort` is the only other supported Service type. An operator-owned edge must provide external routing and transport layer security (TLS) termination when required. The chart does not create listener certificates, cert-manager resources, or `LoadBalancer` Services. Choose one of these routing models:
+Choose a routing model before you create the values file:
 
 - Use direct routing when the gateway can reach every MCP server that it exposes.
-- Use a hub bridge when one gateway must expose MCP servers from remote shards.
-- Use a leaf bridge at each remote shard that participates in hub routing.
-Hub and leaf bridges require a reachable in-cluster NATS Service. DSX Event Bus can provide this NATS connection for a DSX Exchange deployment. The [Agent Gateway architecture](architecture.mdx) explains the request paths for these models.
+- Add a hub bridge when one entry gateway must expose MCP servers from remote shards.
+- Add a leaf bridge in each remote shard that participates in hub routing.
+
+Hub and leaf bridges require a reachable in-cluster NATS Service. DSX Event Bus can provide this connection for a DSX Exchange deployment. The [Agent Gateway architecture](architecture.mdx) explains the request paths and state boundaries.
+
+The chart creates a plaintext HTTP listener on port `80`. The default dataplane Service type is `ClusterIP`, and `NodePort` is the only other supported type. An operator-owned edge provides external routing and Transport Layer Security (TLS) termination. The chart does not create listener certificates, cert-manager resources, or a `LoadBalancer` Service.
 
 ## Prerequisites
 
@@ -26,9 +27,12 @@ Prepare the following software and cluster resources:
 - Helm and `kubectl` configured for the target cluster.
 - Kubernetes Gateway API `v1.5.1` custom resource definitions (CRDs).
 - Agentgateway `v1.4.1` CRDs.
-- A reachable JSON Web Key Set (JWKS) endpoint for each JSON Web Token (JWT) provider.
+- A reachable JSON Web Key Set endpoint for each JSON Web Token provider.
 - Each MCP Service or static MCP endpoint that the gateway must expose.
-The chart does not install the required CRDs. Metrics require Prometheus Operator CRDs. Tracing requires the configured OpenTelemetry Operator `Instrumentation` and sidecar Collector resources. Disable each unavailable observability integration in your values file before installation.
+- An external edge that can route HTTPS requests to the gateway Service.
+- A reachable NATS Service when you enable the bridge.
+
+The chart does not install the required CRDs. Metrics require Prometheus Operator CRDs. Tracing requires the configured OpenTelemetry Operator `Instrumentation` and sidecar Collector resources.
 
 ## Install the CRDs
 
@@ -87,117 +91,11 @@ valkey:
     enabled: false
 ```
 
-The chart requires at least one entry under `auth.jwt.providers`. Each provider name must be a lowercase DNS label with at most 56 characters. Each provider requires a unique `issuer`, one or more `audiences`, a complete `jwksUrl`, and a `tenantIdExpression`. The Common Expression Language (CEL) tenant expression must use verified `jwt.*` claims and must return a nonempty tenant ID. Set `auth.cel.operatorTenantId` to one exact derived tenant ID. The operator tenant can access every MCP target. Other tenants can access only targets in `auth.cel.unprivilegedTenantMCPs`. The selected MCP server receives the caller's original bearer token and must apply its own authorization policy.
+The Common Expression Language tenant expression must derive a nonempty tenant ID from verified `jwt.*` claims. Set `auth.cel.operatorTenantId` to one exact derived value. Other tenants can access only targets in `auth.cel.unprivilegedTenantMCPs`.
 
-## Configure MCP Upstreams
+The selector matches labels on a Kubernetes Service. Each selected Service port must set `appProtocol: agentgateway.dev/mcp`. The discovered target name uses the Service name and named port, such as `launchlayer-mcp`.
 
-Configure selector upstreams for Kubernetes Service discovery. Each selected Service port must set `appProtocol: agentgateway.dev/mcp`. The discovered target name uses the Service name and named port, such as `launchlayer-mcp`. Configure a static upstream when the gateway must use one specific HTTP or HTTPS endpoint:
-
-```yaml
-upstreams:
-  vendor-mcp:
-    mode: static
-    address: https://mcp.vendor.example/mcp
-    protocol: StreamableHTTP
-    requestTimeout: 10s
-```
-
-Static upstreams support `StreamableHTTP` and `SSE` protocols. The upstream map key becomes the static target name. The default response-header deadline is `5s` for every target. Set `upstreams.<name>.requestTimeout` when a target needs a different response-header deadline. Streaming response bodies can continue after the response-header deadline. The bundled controller watches all namespaces by default. Restrict discovery with `agentgateway.discoveryNamespaceSelectors` when cluster policy requires a narrower scope:
-
-```yaml
-agentgateway:
-  discoveryNamespaceSelectors:
-    - matchLabels:
-        kubernetes.io/metadata.name: dsx-agent-gateway
-    - matchLabels:
-        kubernetes.io/metadata.name: mcp-servers
-```
-
-Include the release namespace and every namespace referenced by a selector upstream. The [MCP server publishing guide](publish-mcp-server.mdx) describes Service requirements and target access.
-
-## Configure Rate Limiting and Valkey
-
-The bundled rate-limit service applies one request budget to each verified tenant ID. The default budget is 30 requests per second. Use `rateLimit.tenantOverrides` to assign another budget or unlimited access to a specific tenant:
-
-```yaml
-rateLimit:
-  tenantRequestsPerSecond: 30
-  failureMode: FailOpen
-  tenantOverrides:
-    - tenant: oidc:operator
-      unlimited: true
-    - tenant: oidc:batch-client
-      requestsPerSecond: 60
-```
-
-The default `FailOpen` mode serves requests without rate-limit enforcement when the rate-limit path fails. Set `FailClosed` when rejecting requests is preferable to temporarily unenforced limits. The chart installs bundled Valkey by default. Use an external Valkey Service by disabling the subchart and setting its coordinates:
-
-```yaml
-valkey:
-  enabled: false
-  external:
-    serviceName: valkey
-    namespace: data
-    port: 6379
-```
-
-The external Valkey owner must provide its availability, persistence, metrics exporter, and metrics discovery.
-
-## Configure the Gateway Service and Edge
-
-Keep the default internal Service for a production edge that can route across namespaces:
-
-```yaml
-gateway:
-  service:
-    type: ClusterIP
-```
-
-Use a fixed node port only when the platform requires direct node routing:
-
-```yaml
-gateway:
-  service:
-    type: NodePort
-    nodePort: 30180
-```
-
-The edge must forward the `/mcp` path to port `80` on the release-named gateway Service. A cross-namespace Kubernetes Gateway API `HTTPRoute` also requires a `ReferenceGrant` in the DSX Agent Gateway namespace. The checked-in Envoy Gateway example demonstrates this HTTP-only relationship. Adapt its GatewayClass, hostnames, namespaces, and TLS policy to your platform.
-
-## Configure a Hub and Leaf Bridge
-
-Skip this section for direct-only routing. Enable the hub bridge in the gateway that accepts client traffic:
-
-```yaml
-bridge:
-  enabled: true
-  role: hub
-  nats:
-    endpoint:
-      serviceName: nats
-      namespace: nats
-      port: 4222
-    auth:
-      mode: noauth
-```
-
-Enable a leaf bridge deployment in each remote shard:
-
-```yaml
-bridge:
-  enabled: true
-  role: leaf
-  shardId: site-1
-  nats:
-    endpoint:
-      serviceName: nats
-      namespace: nats
-      port: 4222
-    auth:
-      mode: noauth
-```
-
-Each leaf `shardId` must be one NATS subject token. It cannot contain `.`, `*`, `>`, a null character, or whitespace. Use `bridge.nats.auth.mode: oauth` to authenticate the bridge with OAuth 2.0 client credentials. OAuth mode requires an issuer, scope, and Secret reference for the client ID and client secret. Configure `bridge.nats.tls` when the bridge must validate a TLS-enabled NATS endpoint. The hub bridge becomes a chart-managed MCP target named from its Service and `mcp` port. Add that target to `auth.cel.unprivilegedTenantMCPs` only for tenants that require remote-shard access.
+Use the [configuration reference](configuration-reference.mdx) to select rate limits, an external Valkey destination, static upstreams, bridge roles, and observability integrations. Use the [MCP server publishing guide](publish-mcp-server.mdx) to prepare a Service or static target.
 
 ## Install the Chart
 
@@ -219,15 +117,13 @@ helm install dsx-agent-gateway deploy/dsx-agent-gateway \
   --timeout 5m
 ```
 
-Apply later chart or values changes with an upgrade:
+Apply later chart or values changes with `helm upgrade` and the same release name, namespace, and complete values file.
 
-```bash
-helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \
-  --namespace dsx-agent-gateway \
-  --values dsx-agent-gateway-values.yaml \
-  --wait \
-  --timeout 5m
-```
+## Configure External Access
+
+Route the external `/mcp` path to port `80` on the release-named gateway Service. A cross-namespace Kubernetes Gateway API `HTTPRoute` also requires a `ReferenceGrant` in the DSX Agent Gateway namespace.
+
+The checked-in [Envoy Gateway edge example](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/examples/envoy-edge-route.yaml) demonstrates this HTTP relationship. Adapt its GatewayClass, hostnames, namespaces, and TLS policy to your platform.
 
 ## Verify the Deployment
 
@@ -251,7 +147,7 @@ kubectl wait \
   --timeout=5m
 ```
 
-The `Programmed` condition confirms controller programming, but it does not confirm every dependency. Inspect the release resources and Services:
+Inspect the programmed resources and workloads:
 
 ```bash
 kubectl get gateway,httproute,agentgatewaybackend,agentgatewaypolicy \
@@ -259,4 +155,4 @@ kubectl get gateway,httproute,agentgatewaybackend,agentgatewaypolicy \
 kubectl get pods,services --namespace dsx-agent-gateway
 ```
 
-Confirm that the edge can reach `/mcp` before giving clients the endpoint. Use the [operations guide](operations.mdx) to configure monitoring and diagnose unavailable dependencies.
+The `Programmed` condition does not confirm identity-provider, Valkey, bridge, or MCP server availability. Confirm that the external edge can reach `/mcp`, then follow the [client quickstart](client-quickstart.mdx) to discover and call one authorized tool.

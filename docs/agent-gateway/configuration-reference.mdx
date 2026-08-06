@@ -4,161 +4,104 @@ position: 70
 last-updated: August 5, 2026
 ---
 
-Use this reference to select the chart settings that DSX Agent Gateway owns. The checked-in [`values.yaml`](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/values.yaml) is the source of truth for all defaults. Settings under the `agentgateway` and `valkey` keys can also pass values to their pinned subcharts.
+Use this reference for settings owned by the DSX Agent Gateway chart. The checked-in [`values.yaml`](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/values.yaml) contains the exhaustive setting list and current defaults. Settings under `agentgateway` and `valkey` can also pass values to their pinned subcharts.
 
-## Chart Versions
+## Gateway
 
-The chart pins these components.
+The following settings control the gateway dataplane and its Service:
 
-| Component | Version |
-| --------- | ------- |
-| DSX Agent Gateway chart | `0.3.0` |
-| Agentgateway chart and images | `v1.4.1` |
-| Valkey chart | `0.9.4` |
-| Valkey image | `9.0.2` |
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `runtimeClassName` | Selects a Kubernetes RuntimeClass for gateway, rate-limit, and bridge Pods. |
+| `gateway.replicaCount` | Sets the dataplane replica count. |
+| `gateway.resources`, `gateway.nodeSelector`, `gateway.tolerations` | Control Pod resources and placement. |
+| `gateway.service.type` | Accepts `ClusterIP` or `NodePort`. The chart does not support `LoadBalancer`. |
+| `gateway.service.nodePort` | Is required when the Service type is `NodePort`. |
+| `gateway.ipv6.enabled` | Enables or disables IPv6 in the dataplane. |
 
-Install Gateway API `v1.5.1` and Agentgateway `v1.4.1` CRDs with this chart release.
+The dataplane listens for plaintext HTTP on port `80`. An operator-owned edge provides external routing and Transport Layer Security termination.
 
-## Top-Level Settings
+## Authentication and Tenant Access
 
-The following groups control the DSX Agent Gateway deployment.
+`auth.jwt.providers` must contain at least one provider. Each provider name must be a lowercase DNS label with no more than 56 characters.
 
-| Setting | Default | Purpose |
-| ------- | ------- | ------- |
-| `runtimeClassName` | `""` | Selects a Kubernetes RuntimeClass for gateway, rate-limit, and bridge Pods. |
-| `agentgateway` | Enabled | Configures the bundled Agentgateway controller subchart. |
-| `gateway` | Three replicas | Configures the gateway dataplane and its Service. |
-| `auth` | No providers | Configures JWT verification and tenant authorization. |
-| `upstreams` | `{}` | Defines Kubernetes selector or static MCP targets. |
-| `upstreamRequestTimeout` | `5s` | Sets the default upstream response-header deadline. |
-| `rateLimit` | 30 requests per second | Configures per-tenant rate limiting. |
-| `valkey` | Enabled | Configures counter storage for the rate-limit service. |
-| `bridge` | Disabled | Configures optional cross-shard routing through the DSX Event Bus. |
-| `observability` | Metrics and tracing enabled | Configures metrics, alerts, and OpenTelemetry tracing. |
+The following settings define one provider and the shared tenant policy:
 
-## Gateway Dataplane
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `auth.jwt.providers.<name>.issuer` | Identifies the token issuer and must be unique across providers. |
+| `auth.jwt.providers.<name>.audiences` | Contains one or more accepted token audiences. |
+| `auth.jwt.providers.<name>.jwksUrl` | Specifies a complete HTTP or HTTPS JSON Web Key Set URL with a host and path. |
+| `auth.jwt.providers.<name>.tenantIdExpression` | Derives a nonempty tenant ID from verified `jwt.*` claims. Expressions that read request headers are rejected. |
+| `auth.cel.operatorTenantId` | Identifies the tenant that can access every configured MCP target. |
+| `auth.cel.unprivilegedTenantMCPs` | Lists targets available to every other authenticated tenant. |
 
-`gateway.replicaCount` defaults to `3`. Use `gateway.resources`, `gateway.nodeSelector`, and `gateway.tolerations` to control Pod placement and resources.
-
-`gateway.service.type` accepts `ClusterIP` or `NodePort`. The default is `ClusterIP`. Set `gateway.service.nodePort` when you select `NodePort`. The chart does not support a `LoadBalancer` Service.
-
-The dataplane listens for plaintext HTTP on port `80`. Terminate external Transport Layer Security at an operator-owned edge.
-
-`gateway.ipv6.enabled` defaults to `true`. Set it to `false` to disable IPv6 in the dataplane.
-
-## Authentication
-
-`auth.jwt.providers` must contain at least one provider. Each map key must be a lowercase DNS label with no more than 56 characters.
-
-Each provider requires the following settings.
-
-| Setting | Requirement |
-| ------- | ----------- |
-| `issuer` | Must be unique across configured providers. |
-| `audiences` | Must contain at least one accepted token audience. |
-| `jwksUrl` | Must be a complete HTTP or HTTPS URL with a host and path. |
-| `tenantIdExpression` | Must derive a nonempty tenant ID from verified `jwt.*` claims. |
-
-The chart rejects a tenant expression that reads an unverified request header. The gateway accepts a token when its audience claim contains at least one configured audience.
-
-`auth.cel.operatorTenantId` is required. The value must exactly match a tenant ID produced by a provider expression. The operator tenant can access every configured MCP target.
-
-`auth.cel.unprivilegedTenantMCPs` lists the target names available to every other authenticated tenant. An unprivileged tenant cannot discover or invoke a target outside this list.
+The gateway accepts a token when at least one token audience matches the provider configuration. The selected MCP server receives the caller's original bearer token and remains responsible for operation-level authorization.
 
 ## MCP Upstreams
 
-Each key under `upstreams` identifies one configured upstream entry. The chart reserves the `bridge` key for an enabled hub bridge.
+Each key under `upstreams` identifies a selector or static upstream. The chart reserves the `bridge` key for an enabled hub bridge.
 
-Use selector mode for Kubernetes Service discovery.
+The following settings define upstream discovery and transport:
 
-```yaml
-upstreams:
-  inventory-selector:
-    namespace: inventory
-    serviceLabels:
-      app.kubernetes.io/name: inventory-mcp
-```
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `upstreams.<name>.mode` | Accepts `selector` or `static`. Selector mode is the default. |
+| `upstreams.<name>.namespace` | Identifies the Service namespace for a selector upstream. |
+| `upstreams.<name>.serviceLabels` | Matches labels on Services. Selected ports must set `appProtocol: agentgateway.dev/mcp`. |
+| `upstreams.<name>.address` | Specifies the complete HTTP or HTTPS endpoint for a static upstream. Credentials, query strings, and fragments are not accepted. |
+| `upstreams.<name>.protocol` | Accepts `StreamableHTTP` or `SSE` for a static upstream. |
+| `upstreamRequestTimeout` | Sets the default upstream response-header deadline. |
+| `upstreams.<name>.requestTimeout` | Overrides the response-header deadline for one upstream. |
+| `agentgateway.discoveryNamespaceSelectors` | Restricts the namespaces watched for selector upstreams. |
 
-A matching Service port must set `appProtocol: agentgateway.dev/mcp`. The discovered target name uses the Service name and named port, such as `inventory-mcp`.
+Streaming response bodies can continue after the response-header deadline. An HTTPS static address enables Transport Layer Security to that upstream.
 
-Use static mode for an MCP endpoint with a stable address.
+## Rate Limiting and Valkey
 
-```yaml
-upstreams:
-  vendor-mcp:
-    mode: static
-    address: https://mcp.vendor.example/mcp
-    protocol: StreamableHTTP
-    requestTimeout: 10s
-```
+The gateway applies one request budget to each verified tenant ID. The following settings control limits and counter storage:
 
-`protocol` accepts `StreamableHTTP` or `SSE` for a static upstream. It defaults to `StreamableHTTP`. An HTTPS address enables Transport Layer Security between the gateway and that upstream.
-
-`upstreamRequestTimeout` controls how long the gateway waits for upstream response headers. Streaming bodies can continue after this deadline. Set `upstreams.<name>.requestTimeout` to override the deadline for one upstream.
-
-Use `agentgateway.discoveryNamespaceSelectors` to restrict the namespaces watched by the bundled controller. Include the release namespace and every namespace used by a selector upstream.
-
-## Rate Limiting
-
-`rateLimit.tenantRequestsPerSecond` defaults to `30` and must be at least `1`. The gateway applies the limit independently to each derived tenant ID.
-
-Use `rateLimit.tenantOverrides` to grant a different limit or unlimited access.
-
-```yaml
-rateLimit:
-  tenantRequestsPerSecond: 30
-  tenantOverrides:
-    - tenant: oidc:operator
-      unlimited: true
-    - tenant: service:batch-runner
-      requestsPerSecond: 60
-```
-
-Each override must set exactly one of `unlimited: true` or `requestsPerSecond`. Duplicate tenant overrides are invalid.
-
-`rateLimit.failureMode` accepts `FailOpen` or `FailClosed`. The default `FailOpen` value serves requests when rate limiting fails. Tenant limits are not enforced during that failure.
-
-The bundled rate-limit service defaults to two replicas. Use its `resources`, `nodeSelector`, and `tolerations` settings for scheduling.
-
-## Valkey
-
-Valkey stores rate-limit counters. The bundled deployment uses one primary, two replicas, and `1Gi` of persistent storage for each Pod by default.
-
-Set `valkey.enabled: false` to use an external Valkey service. Configure `valkey.external` with either Kubernetes Service coordinates or an external host and port.
-
-```yaml
-valkey:
-  enabled: false
-  external:
-    serviceName: valkey
-    namespace: data
-    port: 6379
-```
-
-An external destination cannot mix Kubernetes Service coordinates with an external host.
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `rateLimit.tenantRequestsPerSecond` | Sets the shared tenant request rate and must be at least `1`. |
+| `rateLimit.tenantOverrides` | Assigns a different rate or unlimited access to a tenant. Duplicate tenant entries are invalid. |
+| `rateLimit.failureMode` | Accepts `FailOpen` or `FailClosed`. `FailOpen` serves requests without limit enforcement when rate limiting fails. |
+| `rateLimit.replicaCount`, `rateLimit.resources`, `rateLimit.nodeSelector`, `rateLimit.tolerations` | Control the rate-limit workload scale, resources, and placement. |
+| `valkey.enabled` | Enables bundled counter storage. Disable it when using an external Valkey service. |
+| `valkey.external` | Identifies an external Valkey destination by Kubernetes Service coordinates or by host and port. Do not mix both forms. |
 
 ## Bridge
 
-Set `bridge.enabled: true` only when the deployment must route MCP traffic across DSX Event Bus shards. `bridge.role` accepts `hub` or `leaf`. The bridge defaults to two replicas when enabled.
+Enable the bridge only when the deployment must route MCP traffic across DSX Event Bus shards. The following settings define one bridge role:
 
-A hub runs behind the entry gateway and routes calls to remote shards. A leaf runs in front of one shard gateway. Each leaf requires a unique `bridge.shardId` that is one valid NATS subject token.
-
-Every bridge requires `bridge.nats.endpoint` and an explicit `bridge.nats.auth.mode`. Authentication mode accepts `noauth` or `oauth`. OAuth mode requires an issuer, scope, and client credentials Secret reference.
-
-Configure `bridge.nats.tls` when the NATS connection requires Transport Layer Security. A certificate authority Secret or server name also enables Transport Layer Security.
-
-`bridge.http.requestTimeout` defaults to `5m`. `bridge.http.writeTimeout` defaults to `30s`. These values bound hub request lifetime and response writes.
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `bridge.enabled` | Enables the optional bridge workload. |
+| `bridge.role` | Accepts `hub` or `leaf`. |
+| `bridge.shardId` | Identifies one leaf shard and must be one valid NATS subject token. |
+| `bridge.nats.endpoint` | Identifies the in-cluster NATS Service and port. |
+| `bridge.nats.auth.mode` | Accepts `noauth` or `oauth`. OAuth requires an issuer, scope, and client credentials Secret reference. |
+| `bridge.nats.tls` | Configures NATS server-name and certificate-authority validation. |
+| `bridge.http.requestTimeout` | Limits the lifetime of a hub HTTP request. |
+| `bridge.http.writeTimeout` | Limits how long one hub response write can block. |
 
 ## Observability
 
-`observability.metrics.enabled` defaults to `true`. The chart creates Prometheus Operator resources and chart-managed metric export when this value is enabled. The default scrape interval is `30s`, and the default scrape timeout is `10s`.
+The following settings enable chart-managed observability integrations:
 
-`observability.tracing.enabled` defaults to `true`. Tracing requires the configured OpenTelemetry Operator `Instrumentation` and sidecar resources. The default sample ratio is `1.0`.
+| Setting | Purpose and Constraints |
+| ------- | ----------------------- |
+| `observability.metrics.enabled` | Controls chart-managed metric export and Prometheus Operator monitor resources. |
+| `observability.metrics.scrapeNamespaces` | Permits metrics traffic from selected namespaces through chart-owned network policies. |
+| `observability.metrics.interval`, `observability.metrics.scrapeTimeout` | Configure the shared scrape policy. |
+| `observability.tracing.enabled` | Enables tracing for the dataplane, rate-limit service, and bridge. |
+| `observability.tracing.instrumentationRef`, `observability.tracing.sidecarRef` | Identify required OpenTelemetry Operator resources. |
+| `observability.tracing.exporter` | Overrides the injected endpoint and protocol when both values are set. Protocol accepts `grpc` or `http/protobuf`. |
+| `observability.tracing.sampleRatio` | Sets the trace sampling ratio from `0.0` through `1.0`. |
+| `observability.alerts.enabled` | Enables chart-provided Prometheus alert rules. |
 
-Set both `observability.tracing.exporter.endpoint` and `observability.tracing.exporter.protocol` to override the injected exporter. The protocol accepts `grpc` or `http/protobuf`.
-
-`observability.alerts.enabled` defaults to `false`. When enabled, the chart creates rules for missing metrics, configuration synchronization failures, high HTTP error rates, high latency, and authorization failures.
+The bundled Agentgateway controller and Valkey do not have chart-supported tracing integrations. The Valkey subchart controls its own metrics exporter and monitor.
 
 ## Related Guides
 
-Use the [deployment guide](deployment.mdx) for a production installation workflow. Use the [operations guide](operations.mdx) to monitor and troubleshoot the configured deployment. Use [validated capabilities](validated-capabilities.mdx) to review behavior covered by repository tests.
+Use the [deployment guide](deployment.mdx) for an installation workflow. Use the [operations guide](operations.mdx) to monitor and troubleshoot the configured deployment. Use [supported capabilities](supported-capabilities.mdx) to review the direct and bridge method profiles.

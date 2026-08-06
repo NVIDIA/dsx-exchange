@@ -5,9 +5,7 @@ position: 10
 last-updated: August 5, 2026
 ---
 
-DSX Agent Gateway provides authenticated, tenant-aware ingress for Model Context Protocol (MCP) traffic. It gives MCP clients one `/mcp` endpoint for discovering and invoking approved MCP servers.
-
-The product combines the Agentgateway dataplane with DSX-managed authentication, authorization, rate limiting, deployment defaults, and observability resources. An optional bridge routes selected requests to gateway shards through the DSX Event Bus.
+DSX Agent Gateway provides one authenticated, tenant-aware `/mcp` endpoint for discovering and invoking approved Model Context Protocol (MCP) servers. For component and request-flow details, refer to the [architecture](architecture.mdx).
 
 ## When to Use DSX Agent Gateway
 
@@ -35,14 +33,14 @@ The documentation supports the following audiences:
 
 ## How Requests Reach MCP Servers
 
-For a direct request, the gateway verifies the caller's JWT and derives a tenant ID from verified claims. It applies tenant authorization and rate limiting before it routes the request to an allowed MCP target.
+When routing without the optional bridge, the gateway verifies the caller's JWT and derives a tenant ID from verified claims. It applies tenant authorization and rate limiting before it routes the request to an allowed MCP target.
 
 The gateway supports two target types:
 
 - A selector target discovers Kubernetes Service ports marked with `appProtocol: agentgateway.dev/mcp`.
 - A static target connects to a configured HTTP or HTTPS MCP endpoint.
 
-The optional bridge adds cross-shard routing. An entry gateway routes to a bridge hub, and bridge leaves forward requests through the gateway in each selected shard. The bridge uses NATS request-reply traffic provided by the DSX Event Bus.
+The optional bridge adds cross-shard routing. A shard is a deployment domain with its own DSX Agent Gateway and MCP servers, typically a Kubernetes cluster or logical site. An entry gateway routes to a bridge hub, and bridge leaves forward requests through the gateway in each selected shard. The bridge uses NATS request-reply traffic provided by the DSX Event Bus.
 
 The [architecture guide](architecture.mdx) explains both request paths and their session behavior.
 
@@ -64,4 +62,4 @@ Use the following guides for your task:
 | [Deployment](deployment.mdx) | Install the chart and configure identity, tenant access, rate limiting, and optional bridge roles. |
 | [Operations](operations.mdx) | Monitor components, diagnose failures, and manage upgrades or outages. |
 | [Configuration Reference](configuration-reference.mdx) | Find chart settings, defaults, limits, and security responsibilities. |
-| [Validated Capabilities](validated-capabilities.mdx) | Check tested MCP methods and deployment-profile behavior. |
+| [Supported Capabilities](supported-capabilities.mdx) | Review supported MCP methods and direct or bridge profile limitations. |

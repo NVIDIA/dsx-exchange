@@ -16,18 +16,7 @@ Use the [architecture guide](architecture.mdx) for the complete direct and bridg
 
 ## Prepare the MCP Server
 
-The server must meet the following requirements.
-
-- Serve MCP through the Streamable HTTP transport at `/mcp`.
-- Support the MCP initialization handshake and the capabilities that the server advertises.
-- Accept `Content-Type: application/json` requests.
-- Support `Accept: application/json, text/event-stream` when a response can use JSON or Server-Sent Events (SSE).
-- Preserve JSON-RPC request IDs in responses to requests.
-- Accept the caller's bearer token in the `Authorization` header.
-- Return headers before the configured upstream response-header deadline.
-- Continue streaming a response body only while the client connection remains active.
-
-Expose a separate health endpoint for Kubernetes startup, readiness, and liveness probes. The health endpoint is not an MCP method and does not replace `/mcp`.
+Your server must implement MCP over Streamable HTTP at `/mcp` and advertise only capabilities that it supports.
 
 <Note>
 Static upstreams can use the legacy `SSE` protocol when required. Use `StreamableHTTP` for new servers.
@@ -56,7 +45,7 @@ spec:
       appProtocol: agentgateway.dev/mcp
 ```
 
-The Service selector must identify the Pods that serve `/mcp` on the named target port. Configure startup, readiness, and liveness probes on the workload before you publish it.
+The Service selector must identify the Pods that serve `/mcp` on the named target port. Expose a separate health endpoint for Kubernetes startup, readiness, and liveness probes, and configure the probes before you publish the workload. The health endpoint is not an MCP method and does not replace `/mcp`.
 
 ## Configure Service Discovery
 
@@ -146,17 +135,7 @@ Apply the Service and workload before you update the gateway release.
 kubectl apply --filename inventory-mcp.yaml
 ```
 
-Upgrade the gateway with the updated values.
-
-```bash
-helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \
-  --namespace dsx-agent-gateway \
-  --values dsx-agent-gateway-values.yaml \
-  --wait \
-  --timeout 5m
-```
-
-Use the [deployment guide](deployment.mdx) when the gateway release is not installed.
+Apply your updated values by following the [deployment guide](deployment.mdx).
 
 ## Verify the Published Server
 

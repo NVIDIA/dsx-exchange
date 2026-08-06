@@ -38,7 +38,7 @@ kubectl describe httproute dsx-agent-gateway-mcp-route \
 
 ## Check Workload Health
 
-Kubernetes readiness is the primary health signal for chart-managed workloads. The rate-limit service uses `/healthcheck` for readiness and liveness probes. Both bridge roles use `/readyz` and `/livez` on port `3001`. Hub readiness requires a NATS connection and a completed shard-discovery cache. Leaf readiness requires a NATS connection. List Pods that are not ready:
+Kubernetes readiness is the primary health signal for chart-managed workloads. Hub readiness requires a NATS connection and a completed shard-discovery cache. Leaf readiness requires a NATS connection. List Pods that are not ready:
 
 ```bash
 kubectl get pods --namespace dsx-agent-gateway \
@@ -59,69 +59,27 @@ Change replica counts through Helm values so later releases preserve the intende
 
 | Component | Default Scale | Value |
 | --------- | ------------- | ----- |
-| Agentgateway dataplane | 3 replicas | `gateway.replicaCount` |
+| DSX Agent Gateway dataplane | 3 replicas | `gateway.replicaCount` |
 | Rate-limit service | 2 replicas | `rateLimit.replicaCount` |
 | Enabled bridge | 2 replicas | `bridge.replicaCount` |
-| Bundled Agentgateway controller | 1 replica | Native Agentgateway chart values |
+| Bundled Agent Gateway controller | 1 replica | Native Agent Gateway chart values |
 | Bundled Valkey | 1 primary and 2 replicas | Native Valkey chart values |
 
 Set resource requests, limits, node selectors, and tolerations for each chart-managed workload before increasing traffic.
 
 `runtimeClassName` applies to gateway, rate-limit, and bridge Pods.
 
-## Configure Metrics
+## Observe DSX Agent Gateway
 
-Metrics require Prometheus Operator CRDs and a scraper that discovers monitor resources in the release namespace. The chart creates `PodMonitor` or `ServiceMonitor` resources for these components when metrics are enabled:
+DSX Agent Gateway can expose Prometheus metrics for the dataplane, Agent Gateway controller, rate-limit service, bridge, and bundled Valkey. It can also export OpenTelemetry traces for the dataplane, rate-limit service, and bridge. Refer to the [configuration reference](configuration-reference.mdx) to connect these integrations to your observability platform.
 
-- Agentgateway dataplane.
-- Bundled Agentgateway controller.
-- Rate-limit service.
-- Enabled bridge.
-The upstream Valkey chart controls its own exporter and `ServiceMonitor`. Configure the shared chart metrics and Valkey metrics together:
+After enabling metrics, confirm that your Prometheus installation discovers the monitor resources in the release namespace:
 
-```yaml
-observability:
-  metrics:
-    enabled: true
-    scrapeNamespaces:
-      - observability
-    interval: 30s
-    scrapeTimeout: 10s
-
-valkey:
-  metrics:
-    enabled: true
+```bash
+kubectl get podmonitor,servicemonitor --namespace dsx-agent-gateway
 ```
 
-`observability.metrics.scrapeNamespaces` permits metrics traffic from the listed namespaces through chart-owned network policies. Disabling chart metrics removes chart-owned monitors, metrics Service ports, and chart-managed metrics export. Disabling `valkey.metrics.enabled` removes the bundled Valkey exporter integration. An external Valkey owner must configure and operate its own metrics path.
-
-## Configure Tracing
-
-Tracing requires OpenTelemetry Operator resources that exist before the chart release. Configure their namespace and name in the chart values:
-
-```yaml
-observability:
-  tracing:
-    enabled: true
-    instrumentationRef: observability/default-instrumentation
-    sidecarRef: observability/default-sidecar
-```
-
-The Collector sidecar must accept OpenTelemetry Protocol over HTTP on `127.0.0.1:4318` for the default Agentgateway configuration. Set both exporter fields to override the injected endpoint and protocol:
-
-```yaml
-observability:
-  tracing:
-    exporter:
-      endpoint: http://127.0.0.1:4318
-      protocol: http/protobuf
-```
-
-Supported protocol values are `http/protobuf` and `grpc`. The chart configures tracing for the Agentgateway dataplane, rate-limit service, and bridge. The bundled Agentgateway controller and Valkey do not have chart-supported tracing integrations.
-
-## Configure the Dashboard and Alerts
-
-The dashboard and alert rules are disabled by default. Enable the bundled Agentgateway dashboard with labels that match Grafana discovery:
+Enable the bundled Agent Gateway dashboard with labels that match your Grafana dashboard discovery configuration:
 
 ```yaml
 agentgateway:
@@ -132,7 +90,9 @@ agentgateway:
         grafana_dashboard: "1"
 ```
 
-Enable alert rules with an owning team:
+After Grafana discovers the dashboard, search for **Agent Gateway**. Use its request rate, error rate, latency, and configuration status panels to assess dataplane traffic and identify changes that correlate with an incident.
+
+Enable the bundled alert rules with an owning team:
 
 ```yaml
 observability:
@@ -143,18 +103,26 @@ observability:
     team: gateway-operations
 ```
 
-Prometheus must discover `PrometheusRule` resources in the release namespace. The bundled rules report these conditions:
+Confirm that Prometheus discovers the resulting rules:
 
-- No Agentgateway dataplane metrics for 10 minutes.
+```bash
+kubectl get prometheusrule --namespace dsx-agent-gateway
+```
+
+The bundled rules report these conditions:
+
+- No DSX Agent Gateway dataplane metrics for 10 minutes.
 - No bundled controller metrics for 10 minutes.
-- Unsynchronized Agentgateway configuration for 5 minutes.
+- Unsynchronized Agent Gateway configuration for 5 minutes.
 - A 5xx response rate above 5 percent for 10 minutes when request traffic is present.
 - A p99 request latency above 5 seconds for 10 minutes when request traffic is present.
 - xDS authorization failures during a 5-minute window.
 
+To investigate a request with distributed tracing, search your trace backend by the `service.name` resource attribute. The chart uses `dsx-agent-gateway-agentgateway` for the dataplane, `dsx-agent-gateway-ratelimit` for rate limiting, and `dsx-agentgateway-bridge-hub` or `dsx-agentgateway-bridge-leaf` for bridge roles.
+
 ## Inspect Logs
 
-Every chart-deployed container writes logs to standard output or standard error. The dataplane and controller use their native structured logs. The rate-limit service and bridge use JSON logs. Use component labels to select logs:
+Every chart-deployed container writes logs to standard output or standard error. The DSX Agent Gateway dataplane and Agent Gateway controller use their native structured logs. The rate-limit service and bridge use JSON logs. Use component labels to select logs:
 
 ```bash
 kubectl logs \
@@ -185,11 +153,12 @@ The chart defaults `rateLimit.failureMode` to `FailOpen`. This mode serves reque
 
 If the Gateway does not become `Programmed`, check these conditions:
 
-1. Confirm that Gateway API `v1.5.1` and Agentgateway `v1.4.1` CRDs are installed.
-1. Confirm that the Agentgateway controller Deployment is available.
+1. Confirm that Gateway API `v1.5.1` and Agent Gateway `v1.4.1` CRDs are installed.
+1. Confirm that the Agent Gateway controller Deployment is available.
 1. Inspect the Gateway, HTTPRoute, backend, and policy conditions.
 1. Inspect controller logs for rejected resources or synchronization failures.
 1. Render the chart with the active values to identify validation errors.
+
 Render the release configuration locally:
 
 ```bash
@@ -208,6 +177,7 @@ If the gateway rejects a caller, check these settings:
 - The provider CEL expression returns a nonempty tenant ID from verified claims.
 - `auth.cel.operatorTenantId` exactly matches the intended operator tenant ID.
 - The target name appears in `auth.cel.unprivilegedTenantMCPs` for a non-operator tenant.
+
 The gateway discards caller-supplied tenant headers when it derives rate-limit and authorization identity.
 
 ## Troubleshoot Missing MCP Targets
@@ -219,6 +189,7 @@ If a selector upstream does not produce a target, check these conditions:
 1. Confirm that the Service port has `appProtocol: agentgateway.dev/mcp`.
 1. Confirm that `agentgateway.discoveryNamespaceSelectors` includes the upstream namespace.
 1. Confirm that the MCP server endpoints are ready.
+
 If a static target is unavailable, verify its complete HTTP or HTTPS URL and response-header deadline. The [configuration reference](configuration-reference.mdx) lists the supported upstream fields and defaults.
 
 ## Troubleshoot Rate Limiting and Valkey
@@ -235,11 +206,12 @@ If a bridge Pod is not ready, check these conditions:
 1. For OAuth mode, confirm the issuer, scope, and credential Secret keys.
 1. For NATS TLS, confirm the server name and certificate authority Secret.
 1. For a leaf, confirm that `bridge.shardId` is a valid NATS subject token.
+
 A hub with no completed shard discovery remains unready. Verify that each expected leaf connects to the same NATS deployment and uses a unique shard ID. The bridge emits completion records without logging caller bearer tokens. Inspect bridge logs and traces for NATS request timeouts, unknown shards, and upstream gateway errors.
 
 ## Upgrade and Roll Back
 
-Record the chart version, values file, CRD versions, and Helm revision before an upgrade. Review Agentgateway and Valkey compatibility before changing pinned dependency versions. Upgrade with the same release name and complete values file:
+Record the chart version, values file, CRD versions, and Helm revision before an upgrade. Review Agent Gateway and Valkey compatibility before changing pinned dependency versions. Upgrade with the same release name and complete values file:
 
 ```bash
 helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \

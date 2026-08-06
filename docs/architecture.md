@@ -6,7 +6,7 @@ last-updated: August 5, 2026
 
 ## DSX Exchange
 
-DSX Exchange is an open source event bus for AI factory operations. It supports real-time operational signal exchange between power management systems, building management systems, cooling infrastructure, grid interfaces, and compute schedulers.
+DSX Exchange is an open source platform for AI factory operations. It includes the DSX Event Bus, AsyncAPI schemas, and DSX Agent Gateway. The DSX Event Bus supports real-time operational signal exchange between power management systems, building management systems, cooling infrastructure, grid interfaces, and compute schedulers.
 
 DSX Exchange consists of the following components:
 
@@ -16,9 +16,10 @@ DSX Exchange consists of the following components:
 | AsyncAPI Schema | Formal topic definitions and payload contracts per service team |
 | Auth-Callout Service | OAuth2/mTLS/NKey authentication with topic-level ACLs |
 | DSX Agent Gateway | Authenticated Model Context Protocol routing to local and remote MCP servers |
+| DSX Agent Gateway Bridge | Stateless cross-shard MCP routing through the DSX Event Bus |
 
 <Info title="GitHub Repository">
-  The DSX Exchange GitHub repository is available at [https://github.com/NVIDIA/dsx-exchange](https://github.com/NVIDIA/dsx-exchange).
+You can find the [DSX Exchange repository](https://github.com/NVIDIA/dsx-exchange) on GitHub.
 </Info>
 
 ## DSX Agent Gateway

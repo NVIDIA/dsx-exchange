@@ -15,6 +15,10 @@ title: DSX Exchange
 announcement:
   message: "🔔 DSX Exchange is a <strong>developer preview</strong>. APIs and behavior may change without notice."
 
+navbar-links:
+  - type: github
+    value: https://github.com/NVIDIA/dsx-exchange
+
 check:
   rules:
     broken-links: error

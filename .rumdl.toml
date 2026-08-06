@@ -127,6 +127,12 @@ allow-with-separators = true    # Allow multiple H1s as document section titles 
 # - "consistent": Document-wide consistency - uses most common style across all lists
 style = "one-one"
 
+[MD032]
+# blanks-around-lists
+# Require a blank line before and after a list, and
+# don't allow a non-indented line to continue the list item.
+allow-lazy-continuation = false
+
 [MD041]
 # first-line-heading
 level = 1

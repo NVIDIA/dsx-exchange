@@ -14,8 +14,8 @@ The Helm chart coordinates the following components:
 | Component | Responsibility |
 | --------- | -------------- |
 | Operator-owned edge | Terminates external TLS and routes HTTP traffic to the gateway Service. |
-| Agentgateway controller | Programs Agentgateway resources from Kubernetes Gateway API and Agentgateway custom resources. |
-| Agentgateway dataplane | Accepts `/mcp` traffic and applies authentication, authorization, rate limiting, and target routing. |
+| Agent Gateway controller | Programs Agent Gateway resources from Kubernetes Gateway API and Agent Gateway custom resources. |
+| Agent Gateway dataplane | Accepts `/mcp` traffic and applies authentication, authorization, rate limiting, and target routing. |
 | Rate-limit service | Evaluates request limits with counters keyed by the verified tenant ID. |
 | Valkey | Stores counters for the bundled rate-limit service. |
 | MCP target | Serves MCP through a discovered Kubernetes Service or a configured static endpoint. |
@@ -30,9 +30,9 @@ The bridge components and DSX Event Bus are optional. Direct target routing does
 The following diagram shows the policy and routing stages for a direct request:
 
 ```mermaid
-flowchart LR
+flowchart TB
     client["MCP Client"] -->|"HTTPS /mcp"| edge["Operator-Owned Edge"]
-    edge -->|"HTTP /mcp"| gateway["Agentgateway Dataplane"]
+    edge -->|"HTTP /mcp"| gateway["Agent Gateway Dataplane"]
     gateway --> jwt["Strict JWT Verification"]
     jwt --> tenant["Tenant ID From Verified Claims"]
     tenant --> limit["Tenant Rate Limit"]
@@ -50,7 +50,7 @@ The gateway processes a direct request as follows:
 1. The rate-limit service uses the tenant ID to select the tenant's request budget.
 1. MCP authorization permits the operator tenant to use all targets.
 1. MCP authorization limits every other tenant to configured target names.
-1. Agentgateway selects the target and forwards the caller's original bearer token.
+1. Agent Gateway selects the target and forwards the caller's original bearer token.
 1. The MCP server applies any server-specific authorization and processes the request.
 
 The chart rejects a tenant expression that reads request headers or does not reference verified `jwt.*` claims. Caller-supplied identity headers therefore do not define the tenant used for authorization or rate limiting.
@@ -61,9 +61,9 @@ The rate-limit service keeps counters separate by derived tenant ID. Operators c
 
 ## Target Discovery and Routing
 
-Agentgateway combines the catalogs from the targets that a tenant can access. It uses target-qualified names to route a tool, prompt, or resource request to the selected server. An unavailable target does not prevent healthy targets from remaining available in a catalog response.
+Agent Gateway combines the catalogs from the targets that a tenant can access. It uses target-qualified names to route a tool, prompt, or resource request to the selected server. An unavailable target does not prevent healthy targets from remaining available in a catalog response.
 
-Selector targets match Kubernetes Services by namespace and labels. Each selected Service exposes an MCP port with `appProtocol: agentgateway.dev/mcp`. Agentgateway discovers the Service endpoints and maintains session affinity to the selected endpoint when a client uses an MCP session.
+Selector targets match Kubernetes Services by namespace and labels. Each selected Service exposes an MCP port with `appProtocol: agentgateway.dev/mcp`. Agent Gateway discovers the Service endpoints and maintains session affinity to the selected endpoint when a client uses an MCP session.
 
 Static targets specify an HTTP or HTTPS address and an optional MCP transport protocol. They are useful when Kubernetes Service discovery cannot represent the target.
 
@@ -75,18 +75,18 @@ Use the bridge when one entry gateway must reach MCP servers through gateways in
 
 ```mermaid
 flowchart LR
-    client["MCP Client"] -->|"/mcp"| entry["Entry Agentgateway"]
+    client["MCP Client"] -->|"/mcp"| entry["Entry Agent Gateway"]
     entry -->|"Bridge Target"| hub["Bridge Hub"]
-    hub <-->|"Discovery And Request-Reply"| nats["NATS In DSX Event Bus"]
-
-    subgraph shardA["Shard A"]
-        leafA["Bridge Leaf"] -->|"Stateless /mcp"| gatewayA["Local Agentgateway"]
-        gatewayA --> serversA["MCP Servers"]
-    end
+    hub <-->|"Discovery And Request-Reply"| nats["NATS in DSX Event Bus"]
 
     subgraph shardB["Shard B"]
-        leafB["Bridge Leaf"] -->|"Stateless /mcp"| gatewayB["Local Agentgateway"]
+        leafB["Bridge Leaf"] -->|"Stateless /mcp"| gatewayB["Local Agent Gateway"]
         gatewayB --> serversB["MCP Servers"]
+    end
+
+    subgraph shardA["Shard A"]
+        leafA["Bridge Leaf"] -->|"Stateless /mcp"| gatewayA["Local Agent Gateway"]
+        gatewayA --> serversA["MCP Servers"]
     end
 
     nats <--> leafA
@@ -99,19 +99,19 @@ For bridge-provided tool and prompt entries, the hub adds a required `shard_id` 
 
 The local gateway repeats JWT verification, tenant derivation, authorization, and rate limiting for the forwarded request. The bridge preserves the caller's `Authorization` header across this path.
 
-The bridge supports JSON responses and streamed server-sent events (SSE) for routed invocations. The [validated capabilities](validated-capabilities.mdx) page identifies methods that the stateless bridge does not support.
+The bridge supports JSON responses and streamed server-sent events (SSE) for routed invocations. The [supported capabilities](supported-capabilities.mdx) page identifies methods that the stateless bridge does not support.
 
 ## Sessions and State
 
 Direct and bridged requests have different state boundaries.
 
-For direct routing, a client can initialize a streamable HTTP MCP session and reuse its `Mcp-Session-Id` value. Selector-mode routing keeps that session associated with one discovered upstream endpoint. The tested dataplane preserves this upstream association when a later request reaches another gateway replica.
+For direct routing, a client can initialize a streamable HTTP MCP session and reuse its `Mcp-Session-Id` value. Selector-mode routing keeps that session associated with one discovered upstream endpoint. The dataplane preserves this upstream association when a later request reaches another gateway replica.
 
 The bridge does not extend the caller's MCP session into a remote shard. The hub and leaves remove `Mcp-Session-Id` before the leaf calls its local gateway. Remote requests are independent, stateless MCP requests.
 
 The hub handles `initialize` and `ping` locally. It also accepts supported JSON-RPC notifications without forwarding session state. Methods that require server-side MCP session state, client state, or resource-path routing are not available through the bridge.
 
-A bridge leaf temporarily owns the response state for an active SSE stream. The hub reads ordered frames from that leaf until completion, cancellation, or idle expiry. This temporary stream ownership does not create an MCP session in the remote shard.
+For an active SSE response, one bridge leaf owns temporary stream state without creating an MCP session in the remote shard.
 
 ## Network and Security Boundary
 
@@ -121,6 +121,6 @@ The chart does not create external listener certificates, cert-manager resources
 
 The chart-owned `HTTPRoute` accepts `/mcp` traffic and attaches only to its gateway in the same namespace. Operational endpoints and metrics are not exposed through this route.
 
-For HTTPS static targets, Agentgateway initiates TLS to the upstream. For selector targets and bridge leaf-to-gateway traffic, the documented in-cluster path uses HTTP.
+For HTTPS static targets, Agent Gateway initiates TLS to the upstream. For selector targets and bridge leaf-to-gateway traffic, the documented in-cluster path uses HTTP.
 
 The [deployment guide](deployment.mdx) describes the supported edge and cluster prerequisites.
