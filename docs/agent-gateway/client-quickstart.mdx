@@ -115,7 +115,7 @@ Read the session ID from the response headers. Header names are case-insensitive
 
 ```bash
 DSX_AGENT_GATEWAY_SESSION_ID="$(
-  awk 'BEGIN {IGNORECASE=1} /^Mcp-Session-Id:/ {sub(/\r$/, "", $2); print $2}' \
+  awk 'tolower($1) == "mcp-session-id:" {sub(/\r$/, "", $2); print $2}' \
     "${DSX_AGENT_GATEWAY_TMP}/initialize.headers"
 )"
 export DSX_AGENT_GATEWAY_SESSION_ID
