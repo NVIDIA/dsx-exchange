@@ -63,8 +63,8 @@ so repeated messages are safe.
 The normal flow has three parts:
 
 1. Publish when state changes.
-2. Periodically republish current state even when it did not change.
-3. Consumers process messages idempotently.
+1. Periodically republish current state even when it did not change.
+1. Consumers process messages idempotently.
 
 ```mermaid
 sequenceDiagram

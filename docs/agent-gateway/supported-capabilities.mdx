@@ -1,0 +1,71 @@
+---
+title: Supported Capabilities
+position: 80
+last-updated: August 5, 2026
+---
+
+DSX Agent Gateway supports authenticated Model Context Protocol (MCP) discovery and invocation across direct and bridged request paths. A configured MCP server can expose fewer capabilities than the gateway supports.
+
+## Supported Request Paths
+
+Use direct routing for MCP servers that the gateway can reach through Kubernetes Service discovery or a static HTTP endpoint. Direct routing supports sessionful and stateless Streamable HTTP requests.
+
+Use bridge routing when an entry gateway must reach MCP servers through gateways in remote shards. The bridge provides a stateless subset of MCP because it does not extend the caller's session into a remote shard.
+
+## MCP Method Support
+
+The following table defines the supported Agent Gateway method profile. Methods outside this table are not part of the documented support profile.
+
+| Capability | Direct target | Bridge target |
+| ---------- | ------------- | ------------- |
+| `initialize` | Supported for sessionful clients. | Supported and handled by the hub with stateless capabilities. |
+| `ping` | Supported. | Supported and handled by the hub. |
+| JSON-RPC notifications | Supported according to the negotiated client protocol. | Supported notifications return HTTP `202` with no body. |
+| `tools/list` | Supported with tenant filtering, pagination, and target-qualified names. | Supported from one reachable leaf catalog with an injected `shard_id` input. |
+| `tools/call` | Supported for authorized discovered and static targets. | Supported with an explicit `shard_id`, JSON responses, and streamed responses. |
+| `prompts/list` | Supported with tenant filtering and target-qualified names. | Supported from one reachable leaf catalog with an injected `shard_id` argument. |
+| `prompts/get` | Supported for authorized targets. | Supported with an explicit `shard_id`. |
+| Prompt `completion/complete` | Supported when the selected target advertises prompt completion. | Supported with an explicit `shard_id`. |
+| `resources/list` | Supported when an authorized direct target advertises resources. | Not supported. |
+| `resources/templates/list` | Supported when an authorized direct target advertises resource templates. | Not supported. |
+| `resources/read` | Supported for a target-qualified direct resource URI. | Not supported. |
+| Resource `completion/complete` | Not included in the supported multiplexed-resource profile. | Not supported. |
+| Stateful resource methods | Not included in the supported Agent Gateway profile. | Not supported. |
+
+Direct resource catalogs remain available when another configured target does not support resources. The gateway omits the unsupported target instead of failing the entire catalog request.
+
+## Catalog and Target Behavior
+
+The gateway filters catalogs by the authenticated tenant. An unauthenticated request does not receive target names, and an unprivileged tenant cannot discover an operator-only target.
+
+When the gateway aggregates multiple targets, it publishes tool and prompt names as `<target>_<name>`. Clients must use the complete target-qualified name because an unprefixed name does not select a default target.
+
+Multiplexed resource identifiers include the target before the resource URI. For example, a target can publish `inventory-mcp+inventory://servers/42`.
+
+The bridge adds `dsx_bridge_list_shards` to its tool catalog. Clients use this tool to find reachable shard IDs before a bridged tool call, prompt request, or prompt completion.
+
+## Authentication and Tenant Isolation
+
+The supported authentication and isolation profile includes the following controls:
+
+- Verification of JWT signatures, issuers, audiences, expiration, and token structure.
+- Tenant derivation from verified JWT claims through a configured Common Expression Language expression.
+- Full target access for one configured operator tenant.
+- Allowlisted target access for every other authenticated tenant.
+- Removal of caller-supplied internal identity and rate-limit headers.
+- Per-tenant catalog filtering and rate-limit counters.
+- Forwarding of the original `Authorization` header to the selected MCP server.
+
+The selected MCP server remains responsible for operation-level authorization within its domain.
+
+## Availability Behavior
+
+Healthy direct targets remain available when another target, the bridge, or a remote shard is unavailable. The bridge removes remote tools from its catalog when no leaf can answer, and it returns an error instead of routing a call to a different shard.
+
+The default `FailOpen` rate-limit mode keeps MCP requests available during a rate-limit service or Valkey outage. Tenant limits are temporarily unenforced until the dependency recovers.
+
+The bridge supports streamed Server-Sent Events (SSE) responses with cancellation, idle expiry, and graceful leaf drain. It does not repeat an initial invocation after an ambiguous missing reply, which prevents automatic replay of side-effecting tool calls.
+
+## Observability
+
+The supported observability profile includes health endpoints, Prometheus metrics, structured logs, OpenTelemetry trace propagation, and optional alert rules. The chart provides alerts for missing metrics, synchronization failures, HTTP errors, latency, and authorization failures.

@@ -1,0 +1,238 @@
+---
+title: MCP Client Quickstart
+sidebar-title: Client Quickstart
+position: 30
+last-updated: August 5, 2026
+---
+
+Use this guide to open a Model Context Protocol (MCP) session, discover tools, and call one tool through DSX Agent Gateway. The gateway uses the Streamable HTTP transport at `/mcp`.
+
+For application code, use an MCP client library that supports Streamable HTTP. Use MCP Inspector for interactive requests, or use the manual protocol workflow to inspect HTTP headers, session IDs, and response bodies.
+
+## Prerequisites
+
+Obtain the following values from the gateway operator:
+
+- The complete HTTPS gateway endpoint, including `/mcp`.
+- A bearer token from a JSON Web Token (JWT) provider configured for the gateway.
+- Access to at least one MCP target.
+
+## Try it Out
+
+Start with MCP Inspector for an interactive workflow. Use manual protocol verification when you need to inspect the transport exchange.
+
+<Tabs>
+
+<Tab title="MCP Inspector">
+
+<Steps>
+
+<Step title="Start MCP Inspector">
+
+Install Node.js `22.19.0` or later. Start the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) web interface:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+<Warning>
+Keep the Inspector bound to a loopback address. Its local proxy can start processes and connect to configured MCP servers, so do not expose it to an untrusted network.
+</Warning>
+
+</Step>
+
+<Step title="Connect to the Gateway">
+
+The command prints a loopback URL for the Inspector. Open that URL in a browser, then configure the connection:
+
+1. Select the Streamable HTTP transport.
+1. Enter the complete gateway endpoint, including `/mcp`.
+1. Add an `Authorization` request header with the value `Bearer <access-token>`.
+1. Connect to the gateway.
+
+</Step>
+
+<Step title="List and Call a Tool">
+
+Open the Inspector's **Tools** view after the connection succeeds. Select a target-qualified tool, enter its required arguments, and run it. The tool name has the form `<target>_<name>` when the gateway aggregates multiple targets.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+<Tab title="Manual Protocol Verification">
+
+<Steps>
+
+<Step title="Set the Connection Details">
+
+Install `curl` 8.3.0 or later, `jq`, and `awk` before you run the examples. The examples import the token into `curl` without expanding it in the shell command.
+
+Set the gateway endpoint. Enter the bearer token at the hidden prompt to keep it out of your shell history.
+
+```bash
+export DSX_AGENT_GATEWAY_URL='https://gateway.example.com/mcp'
+read -rsp 'Access token: ' DSX_AGENT_GATEWAY_TOKEN
+export DSX_AGENT_GATEWAY_TOKEN
+printf '\n'
+```
+
+Create a temporary directory for the response headers and bodies.
+
+```bash
+DSX_AGENT_GATEWAY_TMP="$(mktemp -d)"
+export DSX_AGENT_GATEWAY_TMP
+```
+
+</Step>
+
+<Step title="Initialize the Session">
+
+Send an `initialize` request without an `Mcp-Session-Id` header. The `Accept` header permits either a JSON response or Server-Sent Events (SSE).
+
+```bash
+curl --silent --show-error \
+  --request POST \
+  --url "${DSX_AGENT_GATEWAY_URL}" \
+  --variable %DSX_AGENT_GATEWAY_TOKEN \
+  --expand-oauth2-bearer '{{DSX_AGENT_GATEWAY_TOKEN}}' \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json, text/event-stream' \
+  --dump-header "${DSX_AGENT_GATEWAY_TMP}/initialize.headers" \
+  --output "${DSX_AGENT_GATEWAY_TMP}/initialize.body" \
+  --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"dsx-agent-gateway-curl","version":"1.0.0"}}}'
+```
+
+Inspect the initialization response.
+
+```bash
+cat "${DSX_AGENT_GATEWAY_TMP}/initialize.body"
+```
+
+Read the session ID from the response headers. Header names are case-insensitive.
+
+```bash
+DSX_AGENT_GATEWAY_SESSION_ID="$(
+  awk 'tolower($1) == "mcp-session-id:" {sub(/\r$/, "", $2); print $2}' \
+    "${DSX_AGENT_GATEWAY_TMP}/initialize.headers"
+)"
+export DSX_AGENT_GATEWAY_SESSION_ID
+test -n "${DSX_AGENT_GATEWAY_SESSION_ID}"
+```
+
+Send the required `notifications/initialized` notification with the session ID. The notification has no JSON-RPC request ID.
+
+```bash
+curl --silent --show-error \
+  --request POST \
+  --url "${DSX_AGENT_GATEWAY_URL}" \
+  --variable %DSX_AGENT_GATEWAY_TOKEN \
+  --variable %DSX_AGENT_GATEWAY_SESSION_ID \
+  --expand-oauth2-bearer '{{DSX_AGENT_GATEWAY_TOKEN}}' \
+  --expand-header 'Mcp-Session-Id: {{DSX_AGENT_GATEWAY_SESSION_ID}}' \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json, text/event-stream' \
+  --output /dev/null \
+  --write-out 'HTTP %{http_code}\n' \
+  --data '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+```
+
+A successful notification returns HTTP `202` with an empty body.
+
+</Step>
+
+<Step title="List Available Tools">
+
+Send `tools/list` with the bearer token and session ID.
+
+```bash
+curl --silent --show-error \
+  --request POST \
+  --url "${DSX_AGENT_GATEWAY_URL}" \
+  --variable %DSX_AGENT_GATEWAY_TOKEN \
+  --variable %DSX_AGENT_GATEWAY_SESSION_ID \
+  --expand-oauth2-bearer '{{DSX_AGENT_GATEWAY_TOKEN}}' \
+  --expand-header 'Mcp-Session-Id: {{DSX_AGENT_GATEWAY_SESSION_ID}}' \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json, text/event-stream' \
+  --data '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+```
+
+The result contains only the targets that the authenticated tenant can access. Unauthenticated requests do not receive catalog names.
+
+When the gateway aggregates multiple targets, each tool name has the form `<target>_<name>`. Use the complete published name in later calls. The gateway does not route an unprefixed name to a default target.
+
+If the response contains `nextCursor`, repeat `tools/list` with that value in `params.cursor`.
+
+</Step>
+
+<Step title="Call a Tool">
+
+Copy one complete tool name from the `tools/list` result. Set any arguments that the tool requires in the JSON-RPC request.
+
+```bash
+export DSX_AGENT_GATEWAY_TOOL='inventory-mcp_lookup'
+
+jq --null-input \
+  --arg tool "${DSX_AGENT_GATEWAY_TOOL}" \
+  '{jsonrpc:"2.0",id:3,method:"tools/call",params:{name:$tool,arguments:{}}}' |
+curl --silent --show-error \
+  --request POST \
+  --url "${DSX_AGENT_GATEWAY_URL}" \
+  --variable %DSX_AGENT_GATEWAY_TOKEN \
+  --variable %DSX_AGENT_GATEWAY_SESSION_ID \
+  --expand-oauth2-bearer '{{DSX_AGENT_GATEWAY_TOKEN}}' \
+  --expand-header 'Mcp-Session-Id: {{DSX_AGENT_GATEWAY_SESSION_ID}}' \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json, text/event-stream' \
+  --data-binary @-
+```
+
+A successful JSON-RPC response contains a `result` object. Also inspect `result.isError` because an MCP tool can report an execution error in a successful HTTP response.
+
+The gateway forwards the caller's original `Authorization` header to the selected MCP server. The server can apply authorization rules for the requested operation.
+
+</Step>
+
+<Step title="Manage the Session">
+
+Send the same `Mcp-Session-Id` and bearer token with every request in one session. Do not share a session ID between identities or workloads. Initialize a new session after the bearer identity changes or the gateway rejects the previous session ID.
+
+An MCP client library handles the session header, JSON or SSE response framing, and transport cleanup. Release the client transport when the workflow finishes.
+
+</Step>
+
+</Steps>
+
+</Tab>
+
+</Tabs>
+
+## Handle Errors and Retries
+
+Handle HTTP and JSON-RPC errors separately.
+
+| Signal | Action |
+| ------ | ------ |
+| HTTP `401` or `403` | Obtain a valid token or request target access. Do not retry with unchanged credentials. |
+| HTTP `429` | Wait before retrying. Use bounded exponential backoff and limit the retry count. |
+| HTTP `5xx` or a network failure | Retry catalog requests with bounded backoff. Retry a tool call only when its contract permits replay. |
+| Unknown or rejected session | Run `initialize` again and use the new session ID. |
+| JSON-RPC `error` | Correct the method, target name, or parameters before retrying. |
+| `result.isError: true` | Handle the tool-defined failure. Do not assume that replay is safe. |
+
+<Tip>
+Tool calls can change external state. Do not automatically retry an interrupted `tools/call` unless the tool is idempotent or supports an idempotency key.
+</Tip>
+
+## Verify the Connection
+
+The connection is working when all of the following conditions are true.
+
+- The client connects through Streamable HTTP with the configured bearer token.
+- The tool catalog does not contain unauthorized target names.
+- A call reaches the selected target-qualified tool and returns a result or a tool-defined error.
+
+Use the [MCP server publishing guide](publish-mcp-server.mdx) when a required target is absent from the catalog. Use the [operations guide](operations.mdx) to investigate gateway or dependency failures.

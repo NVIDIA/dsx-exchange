@@ -1,0 +1,158 @@
+---
+title: Deploy DSX Agent Gateway
+sidebar-title: Deployment
+position: 50
+last-updated: August 5, 2026
+---
+
+Use the DSX Agent Gateway Helm chart to deploy Model Context Protocol (MCP) ingress on Kubernetes. This workflow installs a direct-routing deployment that you can extend with an optional bridge.
+
+## Plan the Deployment
+
+Choose a routing model before you create the values file:
+
+- Use direct routing when the gateway can reach every MCP server that it exposes.
+- Add a hub bridge when one entry gateway must expose MCP servers from remote shards.
+- Add a leaf bridge in each remote shard that participates in hub routing.
+
+Hub and leaf bridges require a reachable in-cluster NATS Service. DSX Event Bus can provide this connection for a DSX Exchange deployment. The [Agent Gateway architecture](architecture.mdx) explains the request paths and state boundaries.
+
+The chart creates a plaintext HTTP listener on port `80`. The default dataplane Service type is `ClusterIP`, and `NodePort` is the only other supported type. An operator-owned edge provides external routing and Transport Layer Security (TLS) termination. The chart does not create listener certificates, cert-manager resources, or a `LoadBalancer` Service.
+
+## Prerequisites
+
+Prepare the following software and cluster resources:
+
+- A Kubernetes cluster that can run the required workloads.
+- Helm and `kubectl` configured for the target cluster.
+- Kubernetes Gateway API `v1.5.1` custom resource definitions (CRDs).
+- Agent Gateway `v1.4.1` CRDs.
+- A reachable JSON Web Key Set endpoint for each JSON Web Token provider.
+- Each MCP Service or static MCP endpoint that the gateway must expose.
+- An external edge that can route HTTPS requests to the gateway Service.
+- A reachable NATS Service when you enable the bridge.
+
+The chart does not install the required CRDs. Metrics require Prometheus Operator CRDs. Tracing requires the configured OpenTelemetry Operator `Instrumentation` and sidecar Collector resources.
+
+## Install the CRDs
+
+Install the pinned Gateway API CRDs:
+
+```bash
+kubectl apply --server-side --force-conflicts \
+  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+```
+
+Install the pinned Agent Gateway CRDs:
+
+```bash
+helm upgrade --install agentgateway-crds \
+  oci://cr.agentgateway.dev/charts/agentgateway-crds \
+  --namespace agentgateway-system \
+  --create-namespace \
+  --version v1.4.1
+```
+
+Cluster administrators should manage CRD upgrades separately from application releases.
+
+## Create the Values File
+
+Save the following example as `dsx-agent-gateway-values.yaml`. Replace the example identity and upstream values before installation. This example disables observability integrations so it does not require their operator resources.
+
+```yaml
+auth:
+  jwt:
+    providers:
+      human:
+        issuer: https://identity.example.com
+        audiences:
+          - dsx-agent-gateway
+        jwksUrl: https://identity.example.com/.well-known/jwks.json
+        tenantIdExpression: '"oidc:" + jwt.sub'
+  cel:
+    operatorTenantId: oidc:operator
+    unprivilegedTenantMCPs:
+      - launchlayer-mcp
+
+upstreams:
+  launchlayer-selector:
+    namespace: dsx-agent-gateway
+    serviceLabels:
+      app.kubernetes.io/name: launchlayer
+
+observability:
+  metrics:
+    enabled: false
+  tracing:
+    enabled: false
+
+valkey:
+  metrics:
+    enabled: false
+```
+
+The Common Expression Language tenant expression must derive a nonempty tenant ID from verified `jwt.*` claims. Set `auth.cel.operatorTenantId` to one exact derived value. Other tenants can access only targets in `auth.cel.unprivilegedTenantMCPs`.
+
+The selector matches labels on a Kubernetes Service. Each selected Service port must set `appProtocol: agentgateway.dev/mcp`. The discovered target name uses the Service name and named port, such as `launchlayer-mcp`.
+
+Use the [configuration reference](configuration-reference.mdx) to select rate limits, an external Valkey destination, static upstreams, bridge roles, and observability integrations. Use the [MCP server publishing guide](publish-mcp-server.mdx) to prepare a Service or static target.
+
+## Install the Chart
+
+Add the Valkey repository and download chart dependencies:
+
+```bash
+helm repo add valkey https://valkey-io.github.io/valkey-helm --force-update
+helm dependency build deploy/dsx-agent-gateway
+```
+
+Install Agent Gateway:
+
+```bash
+helm install dsx-agent-gateway deploy/dsx-agent-gateway \
+  --namespace dsx-agent-gateway \
+  --create-namespace \
+  --values dsx-agent-gateway-values.yaml \
+  --wait \
+  --timeout 5m
+```
+
+Apply later chart or values changes with `helm upgrade` and the same release name, namespace, and complete values file.
+
+## Configure External Access
+
+Route the external `/mcp` path to port `80` on the release-named gateway Service. A cross-namespace Kubernetes Gateway API `HTTPRoute` also requires a `ReferenceGrant` in the Agent Gateway namespace.
+
+The checked-in [Envoy Gateway edge example](https://github.com/NVIDIA/dsx-exchange/blob/main/deploy/dsx-agent-gateway/examples/envoy-edge-route.yaml) demonstrates this HTTP relationship. Adapt its GatewayClass, hostnames, namespaces, and TLS policy to your platform.
+
+## Verify the Deployment
+
+Wait for every Deployment in the release namespace to become available:
+
+```bash
+kubectl wait \
+  --namespace dsx-agent-gateway \
+  --for=condition=Available \
+  deployment --all \
+  --timeout=5m
+```
+
+Wait for the Agent Gateway controller to program the Gateway:
+
+```bash
+kubectl wait \
+  --namespace dsx-agent-gateway \
+  --for=condition=Programmed \
+  gateway/dsx-agent-gateway \
+  --timeout=5m
+```
+
+Inspect the programmed resources and workloads:
+
+```bash
+kubectl get gateway,httproute,agentgatewaybackend,agentgatewaypolicy \
+  --namespace dsx-agent-gateway
+kubectl get pods,services --namespace dsx-agent-gateway
+```
+
+The `Programmed` condition does not confirm identity-provider, Valkey, bridge, or MCP server availability. Confirm that the external edge can reach `/mcp`, then follow the [client quickstart](client-quickstart.mdx) to discover and call one authorized tool.

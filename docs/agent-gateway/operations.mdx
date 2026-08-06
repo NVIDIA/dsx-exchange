@@ -1,0 +1,257 @@
+---
+title: Operate DSX Agent Gateway
+sidebar-title: Operations
+position: 60
+last-updated: August 5, 2026
+---
+
+Monitor DSX Agent Gateway as one request path that includes the Kubernetes Gateway, dataplane Pods, rate-limit path, upstreams, and optional bridge. The [deployment guide](deployment.mdx) contains the installation and configuration procedures.
+
+## Check Gateway Status
+
+Check Helm and Kubernetes status before testing an MCP request:
+
+```bash
+helm status dsx-agent-gateway --namespace dsx-agent-gateway
+kubectl get gateway,httproute,agentgatewaybackend,agentgatewaypolicy \
+  --namespace dsx-agent-gateway
+kubectl get deployments,pods,services --namespace dsx-agent-gateway
+```
+
+Wait for controller programming after an installation or configuration change:
+
+```bash
+kubectl wait \
+  --namespace dsx-agent-gateway \
+  --for=condition=Programmed \
+  gateway/dsx-agent-gateway \
+  --timeout=5m
+```
+
+The `Programmed` condition confirms that the controller accepted and programmed the Gateway. It does not confirm JWKS access, Valkey access, bridge connectivity, or MCP server availability. Inspect Gateway conditions when programming does not complete:
+
+```bash
+kubectl describe gateway dsx-agent-gateway --namespace dsx-agent-gateway
+kubectl describe httproute dsx-agent-gateway-mcp-route \
+  --namespace dsx-agent-gateway
+```
+
+## Check Workload Health
+
+Kubernetes readiness is the primary health signal for chart-managed workloads. Hub readiness requires a NATS connection and a completed shard-discovery cache. Leaf readiness requires a NATS connection. List Pods that are not ready:
+
+```bash
+kubectl get pods --namespace dsx-agent-gateway \
+  --field-selector='status.phase!=Running'
+```
+
+The field selector does not identify a running Pod with an unready container. Use the full Pod view to identify those containers:
+
+```bash
+kubectl get pods --namespace dsx-agent-gateway
+export DSX_AGENT_GATEWAY_POD='pod-name'
+kubectl describe pod "${DSX_AGENT_GATEWAY_POD}" --namespace dsx-agent-gateway
+```
+
+## Scale the Workloads
+
+Change replica counts through Helm values so later releases preserve the intended scale. The chart uses these defaults:
+
+| Component | Default Scale | Value |
+| --------- | ------------- | ----- |
+| Agent Gateway dataplane | 3 replicas | `gateway.replicaCount` |
+| Rate-limit service | 2 replicas | `rateLimit.replicaCount` |
+| Enabled bridge | 2 replicas | `bridge.replicaCount` |
+| Bundled Agent Gateway controller | 1 replica | Native Agent Gateway chart values |
+| Bundled Valkey | 1 primary and 2 replicas | Native Valkey chart values |
+
+Set resource requests, limits, node selectors, and tolerations for each chart-managed workload before increasing traffic.
+
+`runtimeClassName` applies to gateway, rate-limit, and bridge Pods.
+
+## Observe Agent Gateway
+
+Agent Gateway can expose Prometheus metrics for the dataplane, controller, rate-limit service, bridge, and bundled Valkey. It can also export OpenTelemetry traces for the dataplane, rate-limit service, and bridge. Refer to the [configuration reference](configuration-reference.mdx) to connect these integrations to your observability platform.
+
+After enabling metrics, confirm that your Prometheus installation discovers the monitor resources in the release namespace:
+
+```bash
+kubectl get podmonitor,servicemonitor --namespace dsx-agent-gateway
+```
+
+Enable the bundled Agent Gateway dashboard with labels that match your Grafana dashboard discovery configuration:
+
+```yaml
+agentgateway:
+  monitoring:
+    grafanaDashboard:
+      enabled: true
+      labels:
+        grafana_dashboard: "1"
+```
+
+After Grafana discovers the dashboard, search for **Agent Gateway**. Use its request rate, error rate, latency, and configuration status panels to assess dataplane traffic and identify changes that correlate with an incident.
+
+Enable the bundled alert rules with an owning team:
+
+```yaml
+observability:
+  metrics:
+    enabled: true
+  alerts:
+    enabled: true
+    team: gateway-operations
+```
+
+Confirm that Prometheus discovers the resulting rules:
+
+```bash
+kubectl get prometheusrule --namespace dsx-agent-gateway
+```
+
+The bundled rules report these conditions:
+
+- No Agent Gateway dataplane metrics for 10 minutes.
+- No bundled controller metrics for 10 minutes.
+- Unsynchronized Agent Gateway configuration for 5 minutes.
+- A 5xx response rate above 5 percent for 10 minutes when request traffic is present.
+- A p99 request latency above 5 seconds for 10 minutes when request traffic is present.
+- xDS authorization failures during a 5-minute window.
+
+To investigate a request with distributed tracing, search your trace backend by the `service.name` resource attribute. The chart uses `dsx-agent-gateway-agentgateway` for the dataplane, `dsx-agent-gateway-ratelimit` for rate limiting, and `dsx-agentgateway-bridge-hub` or `dsx-agentgateway-bridge-leaf` for bridge roles.
+
+## Inspect Logs
+
+Every chart-deployed container writes logs to standard output or standard error. The Agent Gateway dataplane and controller use their native structured logs. The rate-limit service and bridge use JSON logs. Use component labels to select logs:
+
+```bash
+kubectl logs \
+  --namespace dsx-agent-gateway \
+  --selector gateway.networking.k8s.io/gateway-name=dsx-agent-gateway \
+  --all-containers
+
+kubectl logs \
+  --namespace dsx-agent-gateway \
+  --selector app.kubernetes.io/component=ratelimit \
+  --all-containers
+
+kubectl logs \
+  --namespace dsx-agent-gateway \
+  --selector app.kubernetes.io/component=dsx-agentgateway-bridge \
+  --all-containers
+```
+
+Add `--prefix` when several Pods match one selector. Do not copy bearer tokens or credential values into support records.
+
+## Understand Failure Behavior
+
+The chart defaults `rateLimit.failureMode` to `FailOpen`. This mode serves requests without tenant limit enforcement when the rate-limit path fails.
+
+The following defaults determine how the request path responds to dependency failures:
+
+| Failure | Default Behavior | Operational Detail |
+| ------- | ---------------- | ------------------ |
+| Rate-limit service or Valkey unavailable | `FailOpen` serves requests without tenant limit enforcement. | `FailClosed` rejects requests instead. Each remote rate-limit request has a limit of 2 seconds so the selected mode can take effect. |
+| MCP target unavailable | `FailOpen` discovery omits the target while healthy targets remain available. | The gateway waits `5s` for upstream response headers unless the target has a `requestTimeout` override. A streaming response body can continue after this deadline. |
+| Bridge NATS connection unavailable | The bridge stops reporting ready. | The hub also requires a completed shard-discovery cache before it reports ready. |
+| JWKS endpoint unavailable | Chart configuration does not define one outage result. | Inspect authentication results, controller status, and identity-provider health together. |
+
+## Troubleshoot Gateway Programming
+
+If the Gateway does not become `Programmed`, check these conditions:
+
+1. Confirm that Gateway API `v1.5.1` and Agent Gateway `v1.4.1` CRDs are installed.
+1. Confirm that the Agent Gateway controller Deployment is available.
+1. Inspect the Gateway, HTTPRoute, backend, and policy conditions.
+1. Inspect controller logs for rejected resources or synchronization failures.
+1. Render the chart with the active values to identify validation errors.
+
+Render the release configuration locally:
+
+```bash
+helm template dsx-agent-gateway deploy/dsx-agent-gateway \
+  --namespace dsx-agent-gateway \
+  --values dsx-agent-gateway-values.yaml
+```
+
+## Troubleshoot Authentication and Target Access
+
+If the gateway rejects a caller, check these settings:
+
+- The token issuer exactly matches one configured provider issuer.
+- At least one token audience matches a configured audience.
+- The provider JWKS URL is reachable from the dataplane.
+- The provider CEL expression returns a nonempty tenant ID from verified claims.
+- `auth.cel.operatorTenantId` exactly matches the intended operator tenant ID.
+- The target name appears in `auth.cel.unprivilegedTenantMCPs` for a non-operator tenant.
+
+The gateway discards caller-supplied tenant headers when it derives rate-limit and authorization identity.
+
+## Troubleshoot Missing MCP Targets
+
+If a selector upstream does not produce a target, check these conditions:
+
+1. Confirm that `upstreams.<name>.namespace` names the MCP Service namespace.
+1. Confirm that `serviceLabels` match the intended Service.
+1. Confirm that the Service port has `appProtocol: agentgateway.dev/mcp`.
+1. Confirm that `agentgateway.discoveryNamespaceSelectors` includes the upstream namespace.
+1. Confirm that the MCP server endpoints are ready.
+
+If a static target is unavailable, verify its complete HTTP or HTTPS URL and response-header deadline. The [configuration reference](configuration-reference.mdx) lists the supported upstream fields and defaults.
+
+## Troubleshoot Rate Limiting and Valkey
+
+HTTP `429` responses indicate that a tenant exhausted its configured request budget. Check `rateLimit.tenantRequestsPerSecond` and matching `tenantOverrides` before changing the limit. The rate-limit Deployment waits for Valkey before its application container starts. If the rate-limit Pods remain in initialization, verify the configured Valkey host, port, Service, endpoints, and network policy. For an external Valkey deployment, verify availability and connectivity with the external owner. During a runtime outage, confirm whether `rateLimit.failureMode` matches the required availability policy.
+
+## Troubleshoot the Bridge
+
+If a bridge Pod is not ready, check these conditions:
+
+1. Confirm that `bridge.nats.endpoint` identifies an in-cluster NATS Service and port.
+1. Confirm that the NATS Service has ready endpoints.
+1. Confirm that `bridge.nats.auth.mode` is `noauth` or `oauth`.
+1. For OAuth mode, confirm the issuer, scope, and credential Secret keys.
+1. For NATS TLS, confirm the server name and certificate authority Secret.
+1. For a leaf, confirm that `bridge.shardId` is a valid NATS subject token.
+
+A hub with no completed shard discovery remains unready. Verify that each expected leaf connects to the same NATS deployment and uses a unique shard ID. The bridge emits completion records without logging caller bearer tokens. Inspect bridge logs and traces for NATS request timeouts, unknown shards, and upstream gateway errors.
+
+## Upgrade and Roll Back
+
+Record the chart version, values file, CRD versions, and Helm revision before an upgrade. Review Agent Gateway and Valkey compatibility before changing pinned dependency versions. Upgrade with the same release name and complete values file:
+
+```bash
+helm upgrade dsx-agent-gateway deploy/dsx-agent-gateway \
+  --namespace dsx-agent-gateway \
+  --values dsx-agent-gateway-values.yaml \
+  --wait \
+  --timeout 5m
+```
+
+Verify workload readiness, Gateway programming, target discovery, authentication, and a representative MCP call after the upgrade. Review available Helm revisions before a rollback:
+
+```bash
+helm history dsx-agent-gateway --namespace dsx-agent-gateway
+```
+
+Use Helm rollback only after confirming that the earlier chart supports the installed CRDs and external dependencies:
+
+```bash
+export DSX_AGENT_GATEWAY_REVISION='1'
+helm rollback dsx-agent-gateway "${DSX_AGENT_GATEWAY_REVISION}" \
+  --namespace dsx-agent-gateway \
+  --wait \
+  --timeout 5m
+```
+
+Helm rollback reapplies an earlier release revision. It does not roll back cluster-scoped CRDs, external resources, or Valkey data. Verify the same request path after a rollback.
+
+## Uninstall the Release
+
+Uninstall the Helm release:
+
+```bash
+helm uninstall dsx-agent-gateway --namespace dsx-agent-gateway
+```
+
+This command removes resources owned by the Helm release. It leaves the namespace, cluster-scoped CRDs, Valkey data persistent volume claims, external workloads, and operator-owned resources. Review those retained resources separately before removing them.
